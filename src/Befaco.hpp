@@ -32,3 +32,7 @@ struct MixerWidget : ModuleWidget {
 struct SlewLimiterWidget : ModuleWidget {
 	SlewLimiterWidget();
 };
+
+struct DualAtenuverterWidget : ModuleWidget {
+	DualAtenuverterWidget();
+};

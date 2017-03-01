@@ -11,6 +11,7 @@ struct BefacoPlugin : Plugin {
 		createModel<SpringReverbWidget>(this, "SpringReverb", "Spring Reverb");
 		createModel<MixerWidget>(this, "Mixer", "Mixer");
 		createModel<SlewLimiterWidget>(this, "SlewLimiter", "Slew Limiter");
+		createModel<DualAtenuverterWidget>(this, "DualAtenuverter", "Dual Atenuverter");
 	}
 };
 

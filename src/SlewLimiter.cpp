@@ -71,7 +71,7 @@ SlewLimiterWidget::SlewLimiterWidget() {
 	{
 		Panel *panel = new DarkPanel();
 		panel->box.size = box.size;
-		panel->backgroundImage = Image::load("plugins/Befaco/res/Slew Limiter.png");
+		panel->backgroundImage = Image::load("plugins/Befaco/res/SlewLimiter.png");
 		addChild(panel);
 	}
 

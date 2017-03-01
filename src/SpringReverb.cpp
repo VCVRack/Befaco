@@ -268,7 +268,7 @@ SpringReverbWidget::SpringReverbWidget() {
 	{
 		Panel *panel = new DarkPanel();
 		panel->box.size = box.size;
-		panel->backgroundImage = Image::load("plugins/Befaco/res/Spring Reverb.png");
+		panel->backgroundImage = Image::load("plugins/Befaco/res/SpringReverb.png");
 		addChild(panel);
 	}
 

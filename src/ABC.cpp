@@ -37,8 +37,7 @@ ABC::ABC() {
 	outputs.resize(NUM_OUTPUTS);
 }
 
-inline
-float clip(float x) {
+static float clip(float x) {
 	x = clampf(x, -2.0, 2.0);
 	return x / powf(1.0 + powf(x, 24.0), 1/24.0);
 }
