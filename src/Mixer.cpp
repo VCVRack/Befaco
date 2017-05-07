@@ -60,8 +60,8 @@ MixerWidget::MixerWidget() {
 		addChild(panel);
 	}
 
-	addChild(createScrew<BlackScrew>(Vec(15, 0)));
-	addChild(createScrew<BlackScrew>(Vec(15, 365)));
+	addChild(createScrew<ScrewBlack>(Vec(15, 0)));
+	addChild(createScrew<ScrewBlack>(Vec(15, 365)));
 
 	addParam(createParam<Davies1900hWhiteKnob>(Vec(19, 32), module, Mixer::CH1_PARAM, 0.0, 1.0, 0.0));
 	addParam(createParam<Davies1900hWhiteKnob>(Vec(19, 85), module, Mixer::CH2_PARAM, 0.0, 1.0, 0.0));

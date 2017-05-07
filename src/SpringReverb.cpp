@@ -272,15 +272,15 @@ SpringReverbWidget::SpringReverbWidget() {
 		addChild(panel);
 	}
 
-	addChild(createScrew<BlackScrew>(Vec(15, 0)));
-	addChild(createScrew<BlackScrew>(Vec(15, 365)));
-	addChild(createScrew<BlackScrew>(Vec(15*6, 0)));
-	addChild(createScrew<BlackScrew>(Vec(15*6, 365)));
+	addChild(createScrew<ScrewBlack>(Vec(15, 0)));
+	addChild(createScrew<ScrewBlack>(Vec(15, 365)));
+	addChild(createScrew<ScrewBlack>(Vec(15*6, 0)));
+	addChild(createScrew<ScrewBlack>(Vec(15*6, 365)));
 
 	addParam(createParam<BefacoBigKnob>(Vec(22, 29), module, SpringReverb::WET_PARAM, 0.0, 1.0, 0.5));
 
-	addParam(createParam<BefacoSlidePot>(Vec(13, 118-2), module, SpringReverb::LEVEL1_PARAM, 0.0, 1.0, 0.0));
-	addParam(createParam<BefacoSlidePot>(Vec(93, 118-2), module, SpringReverb::LEVEL2_PARAM, 0.0, 1.0, 0.0));
+	addParam(createParam<BefacoSlidePot>(Vec(12, 116), module, SpringReverb::LEVEL1_PARAM, 0.0, 1.0, 0.0));
+	addParam(createParam<BefacoSlidePot>(Vec(92, 116), module, SpringReverb::LEVEL2_PARAM, 0.0, 1.0, 0.0));
 
 	addParam(createParam<Davies1900hWhiteKnob>(Vec(41, 209), module, SpringReverb::HPF_PARAM, 0.0, 1.0, 0.5));
 

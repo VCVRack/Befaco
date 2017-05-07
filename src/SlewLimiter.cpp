@@ -75,13 +75,13 @@ SlewLimiterWidget::SlewLimiterWidget() {
 		addChild(panel);
 	}
 
-	addChild(createScrew<BlackScrew>(Vec(15, 0)));
-	addChild(createScrew<BlackScrew>(Vec(15, 365)));
+	addChild(createScrew<ScrewBlack>(Vec(15, 0)));
+	addChild(createScrew<ScrewBlack>(Vec(15, 365)));
 
 	addParam(createParam<Davies1900hWhiteKnob>(Vec(26, 39), module, SlewLimiter::SHAPE_PARAM, 0.0, 1.0, 0.0));
 
-	addParam(createParam<BefacoSlidePot>(Vec(17, 100), module, SlewLimiter::RISE_PARAM, 0.0, 1.0, 0.0));
-	addParam(createParam<BefacoSlidePot>(Vec(61, 100), module, SlewLimiter::FALL_PARAM, 0.0, 1.0, 0.0));
+	addParam(createParam<BefacoSlidePot>(Vec(15, 102), module, SlewLimiter::RISE_PARAM, 0.0, 1.0, 0.0));
+	addParam(createParam<BefacoSlidePot>(Vec(60, 102), module, SlewLimiter::FALL_PARAM, 0.0, 1.0, 0.0));
 
 	addInput(createInput<PJ3410Port>(Vec(6, 270), module, SlewLimiter::RISE_INPUT));
 	addInput(createInput<PJ3410Port>(Vec(52, 270), module, SlewLimiter::FALL_INPUT));

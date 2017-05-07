@@ -6,7 +6,7 @@ struct BefacoPlugin : Plugin {
 		slug = "Befaco";
 		name = "Befaco";
 		createModel<EvenVCOWidget>(this, "EvenVCO", "EvenVCO");
-		// createModel<RampageWidget>(this, "Rampage", "Rampage");
+		createModel<RampageWidget>(this, "Rampage", "Rampage");
 		createModel<ABCWidget>(this, "ABC", "A*B+C");
 		createModel<SpringReverbWidget>(this, "SpringReverb", "Spring Reverb");
 		createModel<MixerWidget>(this, "Mixer", "Mixer");
