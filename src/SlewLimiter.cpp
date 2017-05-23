@@ -26,13 +26,13 @@ struct SlewLimiter : Module {
 };
 
 
-SlewLimiter::SlewLimiter() {
+::SlewLimiter::SlewLimiter() {
 	params.resize(NUM_PARAMS);
 	inputs.resize(NUM_INPUTS);
 	outputs.resize(NUM_OUTPUTS);
 }
 
-void SlewLimiter::step() {
+void ::SlewLimiter::step() {
 	float input = getf(inputs[IN_INPUT]);
 	float shape = params[SHAPE_PARAM];
 
@@ -64,7 +64,7 @@ void SlewLimiter::step() {
 
 
 SlewLimiterWidget::SlewLimiterWidget() {
-	SlewLimiter *module = new SlewLimiter();
+	::SlewLimiter *module = new ::SlewLimiter();
 	setModule(module);
 	box.size = Vec(15*6, 380);
 
@@ -78,14 +78,14 @@ SlewLimiterWidget::SlewLimiterWidget() {
 	addChild(createScrew<ScrewBlack>(Vec(15, 0)));
 	addChild(createScrew<ScrewBlack>(Vec(15, 365)));
 
-	addParam(createParam<Davies1900hWhiteKnob>(Vec(26, 39), module, SlewLimiter::SHAPE_PARAM, 0.0, 1.0, 0.0));
+	addParam(createParam<Davies1900hWhiteKnob>(Vec(26, 39), module, ::SlewLimiter::SHAPE_PARAM, 0.0, 1.0, 0.0));
 
-	addParam(createParam<BefacoSlidePot>(Vec(15, 102), module, SlewLimiter::RISE_PARAM, 0.0, 1.0, 0.0));
-	addParam(createParam<BefacoSlidePot>(Vec(60, 102), module, SlewLimiter::FALL_PARAM, 0.0, 1.0, 0.0));
+	addParam(createParam<BefacoSlidePot>(Vec(15, 102), module, ::SlewLimiter::RISE_PARAM, 0.0, 1.0, 0.0));
+	addParam(createParam<BefacoSlidePot>(Vec(60, 102), module, ::SlewLimiter::FALL_PARAM, 0.0, 1.0, 0.0));
 
-	addInput(createInput<PJ3410Port>(Vec(6, 270), module, SlewLimiter::RISE_INPUT));
-	addInput(createInput<PJ3410Port>(Vec(52, 270), module, SlewLimiter::FALL_INPUT));
+	addInput(createInput<PJ3410Port>(Vec(6, 270), module, ::SlewLimiter::RISE_INPUT));
+	addInput(createInput<PJ3410Port>(Vec(52, 270), module, ::SlewLimiter::FALL_INPUT));
 
-	addInput(createInput<PJ3410Port>(Vec(6, 320), module, SlewLimiter::IN_INPUT));
-	addOutput(createOutput<PJ3410Port>(Vec(52, 320), module, SlewLimiter::OUT_OUTPUT));
+	addInput(createInput<PJ3410Port>(Vec(6, 320), module, ::SlewLimiter::IN_INPUT));
+	addOutput(createOutput<PJ3410Port>(Vec(52, 320), module, ::SlewLimiter::OUT_OUTPUT));
 }

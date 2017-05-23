@@ -94,13 +94,13 @@ RampageWidget::RampageWidget() {
 	addInput(createInput<PJ3410Port>(Vec(142-3, 290-3), module, Rampage::CYCLE_B_INPUT));
 
 	addParam(createParam<BefacoSwitch>(Vec(96-2, 35-3), module, Rampage::RANGE_A_PARAM, 0.0, 2.0, 0.0));
-	addParam(createParam<BefacoTinyKnob>(Vec(27, 91), module, Rampage::SHAPE_A_PARAM, 0.0, 1.0, 0.0));
+	addParam(createParam<BefacoTinyKnob>(Vec(27, 90), module, Rampage::SHAPE_A_PARAM, 0.0, 1.0, 0.0));
 	addParam(createParam<BefacoPush>(Vec(72, 82), module, Rampage::TRIGG_A_PARAM, 0.0, 1.0, 0.0));
 	addParam(createParam<BefacoSlidePot>(Vec(21-5, 140-5), module, Rampage::RISE_A_PARAM, 0.0, 1.0, 0.0));
 	addParam(createParam<BefacoSlidePot>(Vec(62-5, 140-5), module, Rampage::FALL_A_PARAM, 0.0, 1.0, 0.0));
 	addParam(createParam<BefacoSwitch>(Vec(101, 240-2), module, Rampage::CYCLE_A_PARAM, 0.0, 1.0, 0.0));
 	addParam(createParam<BefacoSwitch>(Vec(149-2, 35-3), module, Rampage::RANGE_B_PARAM, 0.0, 2.0, 0.0));
-	addParam(createParam<BefacoTinyKnob>(Vec(217, 91), module, Rampage::SHAPE_B_PARAM, 0.0, 1.0, 0.0));
+	addParam(createParam<BefacoTinyKnob>(Vec(217, 90), module, Rampage::SHAPE_B_PARAM, 0.0, 1.0, 0.0));
 	addParam(createParam<BefacoPush>(Vec(170, 82), module, Rampage::TRIGG_B_PARAM, 0.0, 1.0, 0.0));
 	addParam(createParam<BefacoSlidePot>(Vec(202-5, 140-5), module, Rampage::RISE_B_PARAM, 0.0, 1.0, 0.0));
 	addParam(createParam<BefacoSlidePot>(Vec(243-5, 140-5), module, Rampage::FALL_B_PARAM, 0.0, 1.0, 0.0));
