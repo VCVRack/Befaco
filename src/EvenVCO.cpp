@@ -78,7 +78,7 @@ void EvenVCO::step() {
 	// Pulse width
 	float pw = params[PWM_PARAM] + getf(inputs[PWM_INPUT]) / 5.0;
 	const float minPw = 0.05;
-	pw = mapf(clampf(pw, -1.0, 1.0), -1.0, 1.0, minPw, 1.0-minPw);
+	pw = rescalef(clampf(pw, -1.0, 1.0), -1.0, 1.0, minPw, 1.0-minPw);
 
 	// Advance phase
 	float deltaPhase = clampf(freq / gSampleRate, 1e-6, 0.5);
@@ -151,7 +151,7 @@ EvenVCOWidget::EvenVCOWidget() {
 	addChild(createScrew<ScrewBlack>(Vec(15*6, 0)));
 	addChild(createScrew<ScrewBlack>(Vec(15*6, 365)));
 
-	addParam(createParam<BefacoBigKnob>(Vec(24-4+2, 35-4+1), module, EvenVCO::OCTAVE_PARAM, -5.0, 4.0, 0.0));
+	addParam(createParam<BefacoBigSnapKnob>(Vec(24-4+2, 35-4+1), module, EvenVCO::OCTAVE_PARAM, -5.0, 4.0, 0.0));
 	addParam(createParam<BefacoTinyKnob>(Vec(72, 131), module, EvenVCO::TUNE_PARAM, -7.0, 7.0, 0.0));
 	addParam(createParam<Davies1900hRedKnob>(Vec(16, 230), module, EvenVCO::PWM_PARAM, -1.0, 1.0, 0.0));
 
