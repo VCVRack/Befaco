@@ -74,9 +74,9 @@ ABCWidget::ABCWidget() {
 	box.size = Vec(15*6, 380);
 
 	{
-		Panel *panel = new DarkPanel();
+		SVGPanel *panel = new SVGPanel();
 		panel->box.size = box.size;
-		panel->backgroundImage = Image::load("plugins/Befaco/res/ABC.png");
+		panel->setBackground(SVG::load("plugins/Befaco/res/ABC.svg"));
 		addChild(panel);
 	}
 
@@ -98,5 +98,5 @@ ABCWidget::ABCWidget() {
 	addOutput(createOutput<PJ3410Port>(Vec(2, 317), module, ABC::OUT2_OUTPUT));
 
 	addChild(createValueLight<SmallLight<GreenRedPolarityLight>>(Vec(38, 162), &module->lights[0]));
-	addChild(createValueLight<SmallLight<GreenRedPolarityLight>>(Vec(38, 329), &module->lights[1]));
+	addChild(createValueLight<SmallLight<GreenRedPolarityLight>>(Vec(38, 330), &module->lights[1]));
 }

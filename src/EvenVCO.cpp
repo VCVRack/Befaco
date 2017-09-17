@@ -140,9 +140,9 @@ EvenVCOWidget::EvenVCOWidget() {
 	box.size = Vec(15*8, 380);
 
 	{
-		Panel *panel = new DarkPanel();
+		SVGPanel *panel = new SVGPanel();
 		panel->box.size = box.size;
-		panel->backgroundImage = Image::load("plugins/Befaco/res/EvenVCO.png");
+		panel->setBackground(SVG::load("plugins/Befaco/res/EvenVCO.svg"));
 		addChild(panel);
 	}
 
@@ -152,7 +152,7 @@ EvenVCOWidget::EvenVCOWidget() {
 	addChild(createScrew<ScrewBlack>(Vec(15*6, 365)));
 
 	addParam(createParam<BefacoBigSnapKnob>(Vec(24-4+2, 35-4+1), module, EvenVCO::OCTAVE_PARAM, -5.0, 4.0, 0.0));
-	addParam(createParam<BefacoTinyKnob>(Vec(72, 131), module, EvenVCO::TUNE_PARAM, -7.0, 7.0, 0.0));
+	addParam(createParam<BefacoTinyKnob>(Vec(73, 131), module, EvenVCO::TUNE_PARAM, -7.0, 7.0, 0.0));
 	addParam(createParam<Davies1900hRedKnob>(Vec(16, 230), module, EvenVCO::PWM_PARAM, -1.0, 1.0, 0.0));
 
 	addInput(createInput<PJ3410Port>(Vec(13-7-1, 124-7), module, EvenVCO::PITCH1_INPUT));

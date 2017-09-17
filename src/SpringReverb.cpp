@@ -266,9 +266,9 @@ SpringReverbWidget::SpringReverbWidget() {
 	box.size = Vec(15*8, 380);
 
 	{
-		Panel *panel = new DarkPanel();
+		SVGPanel *panel = new SVGPanel();
 		panel->box.size = box.size;
-		panel->backgroundImage = Image::load("plugins/Befaco/res/SpringReverb.png");
+		panel->setBackground(SVG::load("plugins/Befaco/res/SpringReverb.svg"));
 		addChild(panel);
 	}
 
@@ -280,26 +280,26 @@ SpringReverbWidget::SpringReverbWidget() {
 	addParam(createParam<BefacoBigKnob>(Vec(22, 29), module, SpringReverb::WET_PARAM, 0.0, 1.0, 0.5));
 
 	addParam(createParam<BefacoSlidePot>(Vec(12, 116), module, SpringReverb::LEVEL1_PARAM, 0.0, 1.0, 0.0));
-	addParam(createParam<BefacoSlidePot>(Vec(92, 116), module, SpringReverb::LEVEL2_PARAM, 0.0, 1.0, 0.0));
+	addParam(createParam<BefacoSlidePot>(Vec(93, 116), module, SpringReverb::LEVEL2_PARAM, 0.0, 1.0, 0.0));
 
-	addParam(createParam<Davies1900hWhiteKnob>(Vec(41, 209), module, SpringReverb::HPF_PARAM, 0.0, 1.0, 0.5));
+	addParam(createParam<Davies1900hWhiteKnob>(Vec(42, 210), module, SpringReverb::HPF_PARAM, 0.0, 1.0, 0.5));
 
-	addInput(createInput<PJ3410Port>(Vec(6-3, 243-3), module, SpringReverb::CV1_INPUT));
-	addInput(createInput<PJ3410Port>(Vec(86-3, 243-3), module, SpringReverb::CV2_INPUT));
-	addInput(createInput<PJ3410Port>(Vec(26-3, 281-3), module, SpringReverb::IN1_INPUT));
-	addInput(createInput<PJ3410Port>(Vec(65-3, 281-3), module, SpringReverb::IN2_INPUT));
+	addInput(createInput<PJ3410Port>(Vec(4, 240), module, SpringReverb::CV1_INPUT));
+	addInput(createInput<PJ3410Port>(Vec(84, 240), module, SpringReverb::CV2_INPUT));
+	addInput(createInput<PJ3410Port>(Vec(24, 278), module, SpringReverb::IN1_INPUT));
+	addInput(createInput<PJ3410Port>(Vec(63, 278), module, SpringReverb::IN2_INPUT));
 
-	addOutput(createOutput<PJ3410Port>(Vec(6-3, 317-3), module, SpringReverb::MIX_OUTPUT));
-	addInput(createInput<PJ3410Port>(Vec(46-3, 324-3), module, SpringReverb::MIX_CV_INPUT));
-	addOutput(createOutput<PJ3410Port>(Vec(87-3, 317-3), module, SpringReverb::WET_OUTPUT));
+	addOutput(createOutput<PJ3410Port>(Vec(4, 314), module, SpringReverb::MIX_OUTPUT));
+	addInput(createInput<PJ3410Port>(Vec(44, 321), module, SpringReverb::MIX_CV_INPUT));
+	addOutput(createOutput<PJ3410Port>(Vec(85, 314), module, SpringReverb::WET_OUTPUT));
 
-	addChild(createValueLight<SmallLight<RedValueLight>>(Vec(55, 114), &module->vuLights[0]));
-	addChild(createValueLight<SmallLight<YellowValueLight>>(Vec(55, 127), &module->vuLights[1]));
-	addChild(createValueLight<SmallLight<YellowValueLight>>(Vec(55, 139), &module->vuLights[2]));
-	addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(55, 151), &module->vuLights[3]));
-	addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(55, 164), &module->vuLights[4]));
-	addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(55, 176), &module->vuLights[5]));
-	addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(55, 189), &module->vuLights[6]));
+	addChild(createValueLight<SmallLight<RedValueLight>>(Vec(56, 114), &module->vuLights[0]));
+	addChild(createValueLight<SmallLight<YellowValueLight>>(Vec(56, 127), &module->vuLights[1]));
+	addChild(createValueLight<SmallLight<YellowValueLight>>(Vec(56, 139), &module->vuLights[2]));
+	addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(56, 151), &module->vuLights[3]));
+	addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(56, 164), &module->vuLights[4]));
+	addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(56, 176), &module->vuLights[5]));
+	addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(56, 189), &module->vuLights[6]));
 
-	addChild(createValueLight<SmallLight<GreenRedPolarityLight>>(Vec(55, 270), &module->lights[0]));
+	addChild(createValueLight<SmallLight<GreenRedPolarityLight>>(Vec(56, 270), &module->lights[0]));
 }

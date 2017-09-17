@@ -54,9 +54,9 @@ MixerWidget::MixerWidget() {
 	box.size = Vec(15*5, 380);
 
 	{
-		Panel *panel = new DarkPanel();
+		SVGPanel *panel = new SVGPanel();
 		panel->box.size = box.size;
-		panel->backgroundImage = Image::load("plugins/Befaco/res/Mixer.png");
+		panel->setBackground(SVG::load("plugins/Befaco/res/Mixer.svg"));
 		addChild(panel);
 	}
 

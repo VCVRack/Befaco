@@ -53,19 +53,19 @@ DualAtenuverterWidget::DualAtenuverterWidget() {
 	box.size = Vec(15*5, 380);
 
 	{
-		Panel *panel = new DarkPanel();
+		SVGPanel *panel = new SVGPanel();
 		panel->box.size = box.size;
-		panel->backgroundImage = Image::load("plugins/Befaco/res/DualAtenuverter.png");
+		panel->setBackground(SVG::load("plugins/Befaco/res/DualAtenuverter.svg"));
 		addChild(panel);
 	}
 
 	addChild(createScrew<ScrewBlack>(Vec(15, 0)));
 	addChild(createScrew<ScrewBlack>(Vec(15, 365)));
 
-	addParam(createParam<Davies1900hWhiteKnob>(Vec(19, 33), module, DualAtenuverter::ATEN1_PARAM, -1.0, 1.0, 0.0));
-	addParam(createParam<Davies1900hRedKnob>(Vec(19, 91), module, DualAtenuverter::OFFSET1_PARAM, -10.0, 10.0, 0.0));
-	addParam(createParam<Davies1900hWhiteKnob>(Vec(19, 201), module, DualAtenuverter::ATEN2_PARAM, -1.0, 1.0, 0.0));
-	addParam(createParam<Davies1900hRedKnob>(Vec(19, 260), module, DualAtenuverter::OFFSET2_PARAM, -10.0, 10.0, 0.0));
+	addParam(createParam<Davies1900hWhiteKnob>(Vec(20, 33), module, DualAtenuverter::ATEN1_PARAM, -1.0, 1.0, 0.0));
+	addParam(createParam<Davies1900hRedKnob>(Vec(20, 91), module, DualAtenuverter::OFFSET1_PARAM, -10.0, 10.0, 0.0));
+	addParam(createParam<Davies1900hWhiteKnob>(Vec(20, 201), module, DualAtenuverter::ATEN2_PARAM, -1.0, 1.0, 0.0));
+	addParam(createParam<Davies1900hRedKnob>(Vec(20, 260), module, DualAtenuverter::OFFSET2_PARAM, -10.0, 10.0, 0.0));
 
 	addInput(createInput<PJ3410Port>(Vec(4, 149), module, DualAtenuverter::IN1_INPUT));
 	addOutput(createOutput<PJ3410Port>(Vec(39, 149), module, DualAtenuverter::OUT1_OUTPUT));
