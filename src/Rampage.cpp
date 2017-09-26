@@ -121,7 +121,7 @@ RampageWidget::RampageWidget() {
 	{
 		Panel *panel = new DarkPanel();
 		panel->box.size = box.size;
-		panel->backgroundImage = Image::load("plugins/Befaco/res/Rampage.png");
+		panel->backgroundImage = Image::load(assetPlugin(plugin, "res/Rampage.png"));
 		addChild(panel);
 	}
 

@@ -8,7 +8,8 @@ float *springReverbIR;
 int springReverbIRLen;
 
 void springReverbInit() {
-	FILE *f = fopen("plugins/Befaco/res/SpringReverbIR.pcm", "rb");
+	std::string irFilename = assetPlugin(plugin, "res/SpringReverbIR.pcm");
+	FILE *f = fopen(irFilename.c_str(), "rb");
 	assert(f);
 	fseek(f, 0, SEEK_END);
 	int size = ftell(f);
@@ -268,7 +269,7 @@ SpringReverbWidget::SpringReverbWidget() {
 	{
 		SVGPanel *panel = new SVGPanel();
 		panel->box.size = box.size;
-		panel->setBackground(SVG::load("plugins/Befaco/res/SpringReverb.svg"));
+		panel->setBackground(SVG::load(assetPlugin(plugin, "res/SpringReverb.svg")));
 		addChild(panel);
 	}
 

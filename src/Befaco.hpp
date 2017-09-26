@@ -3,6 +3,9 @@
 
 using namespace rack;
 
+
+extern Plugin *plugin;
+
 void springReverbInit();
 
 ////////////////////

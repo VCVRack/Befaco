@@ -76,7 +76,7 @@ ABCWidget::ABCWidget() {
 	{
 		SVGPanel *panel = new SVGPanel();
 		panel->box.size = box.size;
-		panel->setBackground(SVG::load("plugins/Befaco/res/ABC.svg"));
+		panel->setBackground(SVG::load(assetPlugin(plugin, "res/ABC.svg")));
 		addChild(panel);
 	}
 
