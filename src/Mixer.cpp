@@ -24,26 +24,20 @@ struct Mixer : Module {
 
 	float lights[1] = {};
 
-	Mixer();
+	Mixer() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS) {}
 	void step();
 };
 
 
-Mixer::Mixer() {
-	params.resize(NUM_PARAMS);
-	inputs.resize(NUM_INPUTS);
-	outputs.resize(NUM_OUTPUTS);
-}
-
 void Mixer::step() {
-	float in1 = getf(inputs[IN1_INPUT]) * params[CH1_PARAM];
-	float in2 = getf(inputs[IN2_INPUT]) * params[CH2_PARAM];
-	float in3 = getf(inputs[IN3_INPUT]) * params[CH3_PARAM];
-	float in4 = getf(inputs[IN4_INPUT]) * params[CH4_PARAM];
+	float in1 = inputs[IN1_INPUT].value * params[CH1_PARAM].value;
+	float in2 = inputs[IN2_INPUT].value * params[CH2_PARAM].value;
+	float in3 = inputs[IN3_INPUT].value * params[CH3_PARAM].value;
+	float in4 = inputs[IN4_INPUT].value * params[CH4_PARAM].value;
 
 	float out = in1 + in2 + in3 + in4;
-	setf(outputs[OUT1_OUTPUT], out);
-	setf(outputs[OUT2_OUTPUT], -out);
+	outputs[OUT1_OUTPUT].value = out;
+	outputs[OUT2_OUTPUT].value = -out;
 	lights[0] = out / 5.0;
 }
 

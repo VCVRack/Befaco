@@ -175,11 +175,7 @@ struct SpringReverb : Module {
 };
 
 
-SpringReverb::SpringReverb() {
-	params.resize(NUM_PARAMS);
-	inputs.resize(NUM_INPUTS);
-	outputs.resize(NUM_OUTPUTS);
-
+SpringReverb::SpringReverb() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS) {
 	convolver = new RealTimeConvolver(BLOCKSIZE);
 	convolver->setKernel(springReverbIR, springReverbIRLen);
 }
@@ -189,16 +185,16 @@ SpringReverb::~SpringReverb() {
 }
 
 void SpringReverb::step() {
-	float in1 = getf(inputs[IN1_INPUT]);
-	float in2 = getf(inputs[IN2_INPUT]);
+	float in1 = inputs[IN1_INPUT].value;
+	float in2 = inputs[IN2_INPUT].value;
 	const float levelScale = 0.030;
 	const float levelBase = 25.0;
-	float level1 = levelScale * exponentialBipolar(levelBase, params[LEVEL1_PARAM]) * getf(inputs[CV1_INPUT], 10.0) / 10.0;
-	float level2 = levelScale * exponentialBipolar(levelBase, params[LEVEL2_PARAM]) * getf(inputs[CV2_INPUT], 10.0) / 10.0;
+	float level1 = levelScale * exponentialBipolar(levelBase, params[LEVEL1_PARAM].value) * inputs[CV1_INPUT].normalize(10.0) / 10.0;
+	float level2 = levelScale * exponentialBipolar(levelBase, params[LEVEL2_PARAM].value) * inputs[CV2_INPUT].normalize(10.0) / 10.0;
 	float dry = in1 * level1 + in2 * level2;
 
 	// HPF on dry
-	float dryCutoff = 200.0 * powf(20.0, params[HPF_PARAM]) / gSampleRate;
+	float dryCutoff = 200.0 * powf(20.0, params[HPF_PARAM].value) / gSampleRate;
 	dryFilter.setCutoff(dryCutoff);
 	dryFilter.process(dry);
 
@@ -239,11 +235,11 @@ void SpringReverb::step() {
 	if (outputBuffer.empty())
 		return;
 	float wet = outputBuffer.shift().samples[0];
-	float crossfade = clampf(params[WET_PARAM] + getf(inputs[MIX_CV_INPUT]) / 10.0, 0.0, 1.0);
+	float crossfade = clampf(params[WET_PARAM].value + inputs[MIX_CV_INPUT].value / 10.0, 0.0, 1.0);
 	float mix = crossf(in1, wet, crossfade);
 
-	setf(outputs[WET_OUTPUT], clampf(wet, -10.0, 10.0));
-	setf(outputs[MIX_OUTPUT], clampf(mix, -10.0, 10.0));
+	outputs[WET_OUTPUT].value =clampf(wet, -10.0, 10.0);
+	outputs[MIX_OUTPUT].value =clampf(mix, -10.0, 10.0);
 
 	// Set lights
 	float lightRate = 5.0 / gSampleRate;

@@ -23,25 +23,19 @@ struct DualAtenuverter : Module {
 
 	float lights[2] = {};
 
-	DualAtenuverter();
+	DualAtenuverter() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS) {}
 	void step();
 };
 
 
-DualAtenuverter::DualAtenuverter() {
-	params.resize(NUM_PARAMS);
-	inputs.resize(NUM_INPUTS);
-	outputs.resize(NUM_OUTPUTS);
-}
-
 void DualAtenuverter::step() {
-	float out1 = getf(inputs[IN1_INPUT]) * params[ATEN1_PARAM] + params[OFFSET1_PARAM];
-	float out2 = getf(inputs[IN2_INPUT]) * params[ATEN2_PARAM] + params[OFFSET2_PARAM];
+	float out1 = inputs[IN1_INPUT].value * params[ATEN1_PARAM].value + params[OFFSET1_PARAM].value;
+	float out2 = inputs[IN2_INPUT].value * params[ATEN2_PARAM].value + params[OFFSET2_PARAM].value;
 	out1 = clampf(out1, -10.0, 10.0);
 	out2 = clampf(out2, -10.0, 10.0);
 
-	setf(outputs[OUT1_OUTPUT], out1);
-	setf(outputs[OUT2_OUTPUT], out2);
+	outputs[OUT1_OUTPUT].value = out1;
+	outputs[OUT2_OUTPUT].value = out2;
 	lights[0] = out1 / 5.0;
 	lights[1] = out2 / 5.0;
 }

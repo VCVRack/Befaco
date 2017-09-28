@@ -48,11 +48,7 @@ struct EvenVCO : Module {
 };
 
 
-EvenVCO::EvenVCO() {
-	params.resize(NUM_PARAMS);
-	inputs.resize(NUM_INPUTS);
-	outputs.resize(NUM_OUTPUTS);
-
+EvenVCO::EvenVCO() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS) {
 	triSquareMinBLEP.minblep = minblep_16_32;
 	triSquareMinBLEP.oversample = 32;
 	triMinBLEP.minblep = minblep_16_32;
@@ -69,14 +65,14 @@ EvenVCO::EvenVCO() {
 
 void EvenVCO::step() {
 	// Compute frequency, pitch is 1V/oct
-	float pitch = 1.0 + roundf(params[OCTAVE_PARAM]) + params[TUNE_PARAM] / 12.0;
-	pitch += getf(inputs[PITCH1_INPUT]) + getf(inputs[PITCH2_INPUT]);
-	pitch += getf(inputs[FM_INPUT]) / 4.0;
+	float pitch = 1.0 + roundf(params[OCTAVE_PARAM].value) + params[TUNE_PARAM].value / 12.0;
+	pitch += inputs[PITCH1_INPUT].value + inputs[PITCH2_INPUT].value;
+	pitch += inputs[FM_INPUT].value / 4.0;
 	float freq = 261.626 * powf(2.0, pitch);
 	freq = clampf(freq, 0.0, 20000.0);
 
 	// Pulse width
-	float pw = params[PWM_PARAM] + getf(inputs[PWM_INPUT]) / 5.0;
+	float pw = params[PWM_PARAM].value + inputs[PWM_INPUT].value / 5.0;
 	const float minPw = 0.05;
 	pw = rescalef(clampf(pw, -1.0, 1.0), -1.0, 1.0, minPw, 1.0-minPw);
 
@@ -126,11 +122,11 @@ void EvenVCO::step() {
 	square += squareMinBLEP.shift();
 
 	// Set outputs
-	setf(outputs[TRI_OUTPUT], 5.0*tri);
-	setf(outputs[SINE_OUTPUT], 5.0*sine);
-	setf(outputs[EVEN_OUTPUT], 5.0*even);
-	setf(outputs[SAW_OUTPUT], 5.0*saw);
-	setf(outputs[SQUARE_OUTPUT], 5.0*square);
+	outputs[TRI_OUTPUT].value = 5.0*tri;
+	outputs[SINE_OUTPUT].value = 5.0*sine;
+	outputs[EVEN_OUTPUT].value = 5.0*even;
+	outputs[SAW_OUTPUT].value = 5.0*saw;
+	outputs[SQUARE_OUTPUT].value = 5.0*square;
 }
 
 

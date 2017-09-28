@@ -61,23 +61,17 @@ struct Rampage : Module {
 	float risingBLight = 0.0;
 	float fallingBLight = 0.0;
 
-	Rampage();
+	Rampage() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS) {}
 	void step();
 };
 
 
-Rampage::Rampage() {
-	params.resize(NUM_PARAMS);
-	inputs.resize(NUM_INPUTS);
-	outputs.resize(NUM_OUTPUTS);
-}
-
 void Rampage::step() {
 	// TEMP
-	float outA = getf(inputs[IN_A_INPUT]);
-	float outB = getf(inputs[IN_B_INPUT]);
-	setf(outputs[OUT_A_OUTPUT], outA);
-	setf(outputs[OUT_B_OUTPUT], outB);
+	float outA = inputs[IN_A_INPUT].value;
+	float outB = inputs[IN_B_INPUT].value;
+	outputs[OUT_A_OUTPUT].value = outA;
+	outputs[OUT_B_OUTPUT].value = outB;
 	outALight = outA / 10.0;
 	outBLight = outB / 10.0;
 
@@ -88,8 +82,8 @@ void Rampage::step() {
 	lastOut = out; \
 	float rising = slope > slopeThreshold ? 10.0 : 0.0; \
 	float falling = slope < -slopeThreshold ? 10.0 : 0.0; \
-	setf(outputs[rising], rising); \
-	setf(outputs[falling], falling); \
+	outputs[rising].value = rising; \
+	outputs[falling].value = falling; \
 	risingLight = rising / 10.0; \
 	fallingLight = falling / 10.0; \
 }
@@ -97,16 +91,16 @@ void Rampage::step() {
 	SLOPE(outB, lastOutB, RISING_B_OUTPUT, FALLING_B_OUTPUT, risingBLight, fallingBLight)
 
 	// Analog logic processor
-	float balance = params[BALANCE_PARAM];
+	float balance = params[BALANCE_PARAM].value;
 	const float balancePower = 0.5;
 	outA *= powf(1.0 - balance, balancePower);
 	outB *= powf(balance, balancePower);
 	float max = fmaxf(outA, outB);
 	float min = fminf(outA, outB);
 	float comparator = outB > outA ? 10.0 : 0.0;
-	setf(outputs[MAX_OUTPUT], max);
-	setf(outputs[MIN_OUTPUT], min);
-	setf(outputs[COMPARATOR_OUTPUT], comparator);
+	outputs[MAX_OUTPUT].value = max;
+	outputs[MIN_OUTPUT].value = min;
+	outputs[COMPARATOR_OUTPUT].value = comparator;
 	maxLight = max / 10.0;
 	minLight = min / 10.0;
 	comparatorLight = comparator / 20.0;

@@ -21,20 +21,14 @@ struct SlewLimiter : Module {
 
 	float out = 0.0;
 
-	SlewLimiter();
+	SlewLimiter() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS) {}
 	void step();
 };
 
 
-::SlewLimiter::SlewLimiter() {
-	params.resize(NUM_PARAMS);
-	inputs.resize(NUM_INPUTS);
-	outputs.resize(NUM_OUTPUTS);
-}
-
 void ::SlewLimiter::step() {
-	float in = getf(inputs[IN_INPUT]);
-	float shape = params[SHAPE_PARAM];
+	float in = inputs[IN_INPUT].value;
+	float shape = params[SHAPE_PARAM].value;
 
 	// minimum and maximum slopes in volts per second
 	const float slewMin = 0.1;
@@ -44,7 +38,7 @@ void ::SlewLimiter::step() {
 
 	// Rise
 	if (in > out) {
-		float rise = getf(inputs[RISE_INPUT]) + params[RISE_PARAM];
+		float rise = inputs[RISE_INPUT].value + params[RISE_PARAM].value;
 		float slew = slewMax * powf(slewMin / slewMax, rise);
 		out += slew * crossf(1.0, shapeScale * (in - out), shape) / gSampleRate;
 		if (out > in)
@@ -52,14 +46,14 @@ void ::SlewLimiter::step() {
 	}
 	// Fall
 	else if (in < out) {
-		float fall = getf(inputs[FALL_INPUT]) + params[FALL_PARAM];
+		float fall = inputs[FALL_INPUT].value + params[FALL_PARAM].value;
 		float slew = slewMax * powf(slewMin / slewMax, fall);
 		out -= slew * crossf(1.0, shapeScale * (out - in), shape) / gSampleRate;
 		if (out < in)
 			out = in;
 	}
 
-	setf(outputs[OUT_OUTPUT], out);
+	outputs[OUT_OUTPUT].value = out;
 }
 
 

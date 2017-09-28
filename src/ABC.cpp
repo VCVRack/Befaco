@@ -26,16 +26,10 @@ struct ABC : Module {
 
 	float lights[2] = {};
 
-	ABC();
+	ABC() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS) {}
 	void step();
 };
 
-
-ABC::ABC() {
-	params.resize(NUM_PARAMS);
-	inputs.resize(NUM_INPUTS);
-	outputs.resize(NUM_OUTPUTS);
-}
 
 static float clip(float x) {
 	x = clampf(x, -2.0, 2.0);
@@ -43,25 +37,25 @@ static float clip(float x) {
 }
 
 void ABC::step() {
-	float a1 = getf(inputs[A1_INPUT]);
-	float b1 = getf(inputs[B1_INPUT], 5.0) * 2.0*exponentialBipolar(80.0, params[B1_LEVEL_PARAM]);
-	float c1 = getf(inputs[C1_INPUT], 10.0) * exponentialBipolar(80.0, params[C1_LEVEL_PARAM]);
+	float a1 = inputs[A1_INPUT].value;
+	float b1 = inputs[B1_INPUT].normalize(5.0) * 2.0*exponentialBipolar(80.0, params[B1_LEVEL_PARAM].value);
+	float c1 = inputs[C1_INPUT].normalize(10.0) * exponentialBipolar(80.0, params[C1_LEVEL_PARAM].value);
 	float out1 = a1 * b1 / 5.0 + c1;
 
-	float a2 = getf(inputs[A2_INPUT]);
-	float b2 = getf(inputs[B2_INPUT], 5.0) * 2.0*exponentialBipolar(80.0, params[B2_LEVEL_PARAM]);
-	float c2 = getf(inputs[C2_INPUT], 20.0) * exponentialBipolar(80.0, params[C2_LEVEL_PARAM]);
+	float a2 = inputs[A2_INPUT].value;
+	float b2 = inputs[B2_INPUT].normalize(5.0) * 2.0*exponentialBipolar(80.0, params[B2_LEVEL_PARAM].value);
+	float c2 = inputs[C2_INPUT].normalize(20.0) * exponentialBipolar(80.0, params[C2_LEVEL_PARAM].value);
 	float out2 = a2 * b2 / 5.0 + c2;
 
 	// Set outputs
-	if (outputs[OUT1_OUTPUT]) {
-		*outputs[OUT1_OUTPUT] = clip(out1 / 10.0) * 10.0;
+	if (outputs[OUT1_OUTPUT].active) {
+		outputs[OUT1_OUTPUT].value = clip(out1 / 10.0) * 10.0;
 	}
 	else {
 		out2 += out1;
 	}
-	if (outputs[OUT2_OUTPUT]) {
-		*outputs[OUT2_OUTPUT] = clip(out2 / 10.0) * 10.0;
+	if (outputs[OUT2_OUTPUT].active) {
+		outputs[OUT2_OUTPUT].value = clip(out2 / 10.0) * 10.0;
 	}
 	lights[0] = out1 / 5.0;
 	lights[1] = out2 / 5.0;
