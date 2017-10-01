@@ -6,6 +6,14 @@ using namespace rack;
 
 extern Plugin *plugin;
 
+struct Knurlie : SVGScrew {
+	Knurlie() {
+		sw->svg = SVG::load(assetPlugin(plugin, "res/Knurlie.svg"));
+		sw->wrap();
+		box.size = sw->box.size;
+	}
+};
+
 void springReverbInit();
 
 ////////////////////

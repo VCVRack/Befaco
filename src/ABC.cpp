@@ -74,8 +74,8 @@ ABCWidget::ABCWidget() {
 		addChild(panel);
 	}
 
-	addChild(createScrew<ScrewBlack>(Vec(15, 0)));
-	addChild(createScrew<ScrewBlack>(Vec(15, 365)));
+	addChild(createScrew<Knurlie>(Vec(15, 0)));
+	addChild(createScrew<Knurlie>(Vec(15, 365)));
 
 	addParam(createParam<Davies1900hRedKnob>(Vec(44, 37), module, ABC::B1_LEVEL_PARAM, -1.0, 1.0, 0.0));
 	addParam(createParam<Davies1900hWhiteKnob>(Vec(44, 107), module, ABC::C1_LEVEL_PARAM, -1.0, 1.0, 0.0));

@@ -69,8 +69,8 @@ SlewLimiterWidget::SlewLimiterWidget() {
 		addChild(panel);
 	}
 
-	addChild(createScrew<ScrewBlack>(Vec(15, 0)));
-	addChild(createScrew<ScrewBlack>(Vec(15, 365)));
+	addChild(createScrew<Knurlie>(Vec(15, 0)));
+	addChild(createScrew<Knurlie>(Vec(15, 365)));
 
 	addParam(createParam<Davies1900hWhiteKnob>(Vec(27, 39), module, ::SlewLimiter::SHAPE_PARAM, 0.0, 1.0, 0.0));
 

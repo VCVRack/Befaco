@@ -269,10 +269,10 @@ SpringReverbWidget::SpringReverbWidget() {
 		addChild(panel);
 	}
 
-	addChild(createScrew<ScrewBlack>(Vec(15, 0)));
-	addChild(createScrew<ScrewBlack>(Vec(15, 365)));
-	addChild(createScrew<ScrewBlack>(Vec(15*6, 0)));
-	addChild(createScrew<ScrewBlack>(Vec(15*6, 365)));
+	addChild(createScrew<Knurlie>(Vec(15, 0)));
+	addChild(createScrew<Knurlie>(Vec(15, 365)));
+	addChild(createScrew<Knurlie>(Vec(15*6, 0)));
+	addChild(createScrew<Knurlie>(Vec(15*6, 365)));
 
 	addParam(createParam<BefacoBigKnob>(Vec(22, 29), module, SpringReverb::WET_PARAM, 0.0, 1.0, 0.5));
 

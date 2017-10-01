@@ -53,8 +53,8 @@ DualAtenuverterWidget::DualAtenuverterWidget() {
 		addChild(panel);
 	}
 
-	addChild(createScrew<ScrewBlack>(Vec(15, 0)));
-	addChild(createScrew<ScrewBlack>(Vec(15, 365)));
+	addChild(createScrew<Knurlie>(Vec(15, 0)));
+	addChild(createScrew<Knurlie>(Vec(15, 365)));
 
 	addParam(createParam<Davies1900hWhiteKnob>(Vec(20, 33), module, DualAtenuverter::ATEN1_PARAM, -1.0, 1.0, 0.0));
 	addParam(createParam<Davies1900hRedKnob>(Vec(20, 91), module, DualAtenuverter::OFFSET1_PARAM, -10.0, 10.0, 0.0));

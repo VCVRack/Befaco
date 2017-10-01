@@ -119,10 +119,10 @@ RampageWidget::RampageWidget() {
 		addChild(panel);
 	}
 
-	addChild(createScrew<ScrewBlack>(Vec(15, 0)));
-	addChild(createScrew<ScrewBlack>(Vec(box.size.x-30, 0)));
-	addChild(createScrew<ScrewBlack>(Vec(15, 365)));
-	addChild(createScrew<ScrewBlack>(Vec(box.size.x-30, 365)));
+	addChild(createScrew<Knurlie>(Vec(15, 0)));
+	addChild(createScrew<Knurlie>(Vec(box.size.x-30, 0)));
+	addChild(createScrew<Knurlie>(Vec(15, 365)));
+	addChild(createScrew<Knurlie>(Vec(box.size.x-30, 365)));
 
 	addInput(createInput<PJ3410Port>(Vec(14-3, 30-3), module, Rampage::IN_A_INPUT));
 	addInput(createInput<PJ3410Port>(Vec(52-3, 37-3), module, Rampage::TRIGG_A_INPUT));

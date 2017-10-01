@@ -142,10 +142,10 @@ EvenVCOWidget::EvenVCOWidget() {
 		addChild(panel);
 	}
 
-	addChild(createScrew<ScrewBlack>(Vec(15, 0)));
-	addChild(createScrew<ScrewBlack>(Vec(15, 365)));
-	addChild(createScrew<ScrewBlack>(Vec(15*6, 0)));
-	addChild(createScrew<ScrewBlack>(Vec(15*6, 365)));
+	addChild(createScrew<Knurlie>(Vec(15, 0)));
+	addChild(createScrew<Knurlie>(Vec(15, 365)));
+	addChild(createScrew<Knurlie>(Vec(15*6, 0)));
+	addChild(createScrew<Knurlie>(Vec(15*6, 365)));
 
 	addParam(createParam<BefacoBigSnapKnob>(Vec(24-4+2, 35-4+1), module, EvenVCO::OCTAVE_PARAM, -5.0, 4.0, 0.0));
 	addParam(createParam<BefacoTinyKnob>(Vec(73, 131), module, EvenVCO::TUNE_PARAM, -7.0, 7.0, 0.0));
