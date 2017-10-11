@@ -77,19 +77,19 @@ ABCWidget::ABCWidget() {
 	addChild(createScrew<Knurlie>(Vec(15, 0)));
 	addChild(createScrew<Knurlie>(Vec(15, 365)));
 
-	addParam(createParam<Davies1900hRedKnob>(Vec(44, 37), module, ABC::B1_LEVEL_PARAM, -1.0, 1.0, 0.0));
-	addParam(createParam<Davies1900hWhiteKnob>(Vec(44, 107), module, ABC::C1_LEVEL_PARAM, -1.0, 1.0, 0.0));
-	addParam(createParam<Davies1900hRedKnob>(Vec(44, 204), module, ABC::B2_LEVEL_PARAM, -1.0, 1.0, 0.0));
-	addParam(createParam<Davies1900hWhiteKnob>(Vec(44, 274), module, ABC::C2_LEVEL_PARAM, -1.0, 1.0, 0.0));
+	addParam(createParam<Davies1900hRedKnob>(Vec(45, 37), module, ABC::B1_LEVEL_PARAM, -1.0, 1.0, 0.0));
+	addParam(createParam<Davies1900hWhiteKnob>(Vec(45, 107), module, ABC::C1_LEVEL_PARAM, -1.0, 1.0, 0.0));
+	addParam(createParam<Davies1900hRedKnob>(Vec(45, 204), module, ABC::B2_LEVEL_PARAM, -1.0, 1.0, 0.0));
+	addParam(createParam<Davies1900hWhiteKnob>(Vec(45, 274), module, ABC::C2_LEVEL_PARAM, -1.0, 1.0, 0.0));
 
-	addInput(createInput<PJ3410Port>(Vec(2, 24), module, ABC::A1_INPUT));
-	addInput(createInput<PJ3410Port>(Vec(2, 66), module, ABC::B1_INPUT));
-	addInput(createInput<PJ3410Port>(Vec(2, 108), module, ABC::C1_INPUT));
-	addOutput(createOutput<PJ3410Port>(Vec(2, 150), module, ABC::OUT1_OUTPUT));
-	addInput(createInput<PJ3410Port>(Vec(2, 191), module, ABC::A2_INPUT));
-	addInput(createInput<PJ3410Port>(Vec(2, 233), module, ABC::B2_INPUT));
-	addInput(createInput<PJ3410Port>(Vec(2, 275), module, ABC::C2_INPUT));
-	addOutput(createOutput<PJ3410Port>(Vec(2, 317), module, ABC::OUT2_OUTPUT));
+	addInput(createInput<PJ3410Port>(Vec(3, 24), module, ABC::A1_INPUT));
+	addInput(createInput<PJ3410Port>(Vec(3, 66), module, ABC::B1_INPUT));
+	addInput(createInput<PJ3410Port>(Vec(3, 108), module, ABC::C1_INPUT));
+	addOutput(createOutput<PJ3410Port>(Vec(3, 150), module, ABC::OUT1_OUTPUT));
+	addInput(createInput<PJ3410Port>(Vec(3, 191), module, ABC::A2_INPUT));
+	addInput(createInput<PJ3410Port>(Vec(3, 233), module, ABC::B2_INPUT));
+	addInput(createInput<PJ3410Port>(Vec(3, 275), module, ABC::C2_INPUT));
+	addOutput(createOutput<PJ3410Port>(Vec(3, 317), module, ABC::OUT2_OUTPUT));
 
 	addChild(createValueLight<SmallLight<GreenRedPolarityLight>>(Vec(38, 162), &module->lights[0]));
 	addChild(createValueLight<SmallLight<GreenRedPolarityLight>>(Vec(38, 330), &module->lights[1]));
