@@ -1,5 +1,6 @@
 #include "Befaco.hpp"
-#include "dsp.hpp"
+#include "dsp/minblep.hpp"
+#include "dsp/filter.hpp"
 
 
 struct EvenVCO : Module {
