@@ -134,6 +134,9 @@ void Rampage::step() {
 				}
 			}
 		}
+		else {
+			gate[c] = false;
+		}
 
 		if (!rising && !falling) {
 			out[c] = in;
