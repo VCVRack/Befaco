@@ -1,7 +1,6 @@
 #include "Befaco.hpp"
 
 
-/** Yes, in English this would be spelled "Attenuverter", but since attenuator is "atenuador" in Spanish, I suppose they (accidentally or not) went with one "t". */
 struct DualAtenuverter : Module {
 	enum ParamIds {
 		ATEN1_PARAM,
@@ -61,11 +60,11 @@ DualAtenuverterWidget::DualAtenuverterWidget() {
 	addParam(createParam<Davies1900hWhiteKnob>(Vec(20, 201), module, DualAtenuverter::ATEN2_PARAM, -1.0, 1.0, 0.0));
 	addParam(createParam<Davies1900hRedKnob>(Vec(20, 260), module, DualAtenuverter::OFFSET2_PARAM, -10.0, 10.0, 0.0));
 
-	addInput(createInput<PJ3410Port>(Vec(4, 149), module, DualAtenuverter::IN1_INPUT));
-	addOutput(createOutput<PJ3410Port>(Vec(39, 149), module, DualAtenuverter::OUT1_OUTPUT));
+	addInput(createInput<PJ301MPort>(Vec(7, 152), module, DualAtenuverter::IN1_INPUT));
+	addOutput(createOutput<PJ301MPort>(Vec(43, 152), module, DualAtenuverter::OUT1_OUTPUT));
 
-	addInput(createInput<PJ3410Port>(Vec(4, 316), module, DualAtenuverter::IN2_INPUT));
-	addOutput(createOutput<PJ3410Port>(Vec(39, 316), module, DualAtenuverter::OUT2_OUTPUT));
+	addInput(createInput<PJ301MPort>(Vec(7, 319), module, DualAtenuverter::IN2_INPUT));
+	addOutput(createOutput<PJ301MPort>(Vec(43, 319), module, DualAtenuverter::OUT2_OUTPUT));
 
 	addChild(createValueLight<SmallLight<GreenRedPolarityLight>>(Vec(33, 143), &module->lights[0]));
 	addChild(createValueLight<SmallLight<GreenRedPolarityLight>>(Vec(33, 311), &module->lights[1]));

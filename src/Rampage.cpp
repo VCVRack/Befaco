@@ -186,18 +186,18 @@ RampageWidget::RampageWidget() {
 	addChild(createScrew<Knurlie>(Vec(15, 365)));
 	addChild(createScrew<Knurlie>(Vec(box.size.x-30, 365)));
 
-	addInput(createInput<PJ3410Port>(Vec(11, 27), module, Rampage::IN_A_INPUT));
-	addInput(createInput<PJ3410Port>(Vec(49, 34), module, Rampage::TRIGG_A_INPUT));
-	addInput(createInput<PJ3410Port>(Vec(5, 265), module, Rampage::RISE_CV_A_INPUT));
-	addInput(createInput<PJ3410Port>(Vec(64, 265), module, Rampage::FALL_CV_A_INPUT));
-	addInput(createInput<PJ3410Port>(Vec(35, 294), module, Rampage::EXP_CV_A_INPUT));
-	addInput(createInput<PJ3410Port>(Vec(99, 287), module, Rampage::CYCLE_A_INPUT));
-	addInput(createInput<PJ3410Port>(Vec(227, 27), module, Rampage::IN_B_INPUT));
-	addInput(createInput<PJ3410Port>(Vec(189, 34), module, Rampage::TRIGG_B_INPUT));
-	addInput(createInput<PJ3410Port>(Vec(173, 265), module, Rampage::RISE_CV_B_INPUT));
-	addInput(createInput<PJ3410Port>(Vec(234, 265), module, Rampage::FALL_CV_B_INPUT));
-	addInput(createInput<PJ3410Port>(Vec(204, 294), module, Rampage::EXP_CV_B_INPUT));
-	addInput(createInput<PJ3410Port>(Vec(139, 287), module, Rampage::CYCLE_B_INPUT));
+	addInput(createInput<PJ301MPort>(Vec(14, 30), module, Rampage::IN_A_INPUT));
+	addInput(createInput<PJ301MPort>(Vec(52, 37), module, Rampage::TRIGG_A_INPUT));
+	addInput(createInput<PJ301MPort>(Vec(8, 268), module, Rampage::RISE_CV_A_INPUT));
+	addInput(createInput<PJ301MPort>(Vec(67, 268), module, Rampage::FALL_CV_A_INPUT));
+	addInput(createInput<PJ301MPort>(Vec(38, 297), module, Rampage::EXP_CV_A_INPUT));
+	addInput(createInput<PJ301MPort>(Vec(102, 290), module, Rampage::CYCLE_A_INPUT));
+	addInput(createInput<PJ301MPort>(Vec(229, 30), module, Rampage::IN_B_INPUT));
+	addInput(createInput<PJ301MPort>(Vec(192, 37), module, Rampage::TRIGG_B_INPUT));
+	addInput(createInput<PJ301MPort>(Vec(176, 268), module, Rampage::RISE_CV_B_INPUT));
+	addInput(createInput<PJ301MPort>(Vec(237, 268), module, Rampage::FALL_CV_B_INPUT));
+	addInput(createInput<PJ301MPort>(Vec(207, 297), module, Rampage::EXP_CV_B_INPUT));
+	addInput(createInput<PJ301MPort>(Vec(143, 290), module, Rampage::CYCLE_B_INPUT));
 
 	addParam(createParam<BefacoSwitch>(Vec(94, 32), module, Rampage::RANGE_A_PARAM, 0.0, 2.0, 0.0));
 	addParam(createParam<BefacoTinyKnob>(Vec(27, 90), module, Rampage::SHAPE_A_PARAM, -1.0, 1.0, 0.0));
@@ -213,17 +213,17 @@ RampageWidget::RampageWidget() {
 	addParam(createParam<BefacoSwitch>(Vec(141, 238), module, Rampage::CYCLE_B_PARAM, 0.0, 1.0, 0.0));
 	addParam(createParam<Davies1900hWhiteKnob>(Vec(117, 76), module, Rampage::BALANCE_PARAM, 0.0, 1.0, 0.5));
 
-	addOutput(createOutput<PJ3410Port>(Vec(5, 323), module, Rampage::RISING_A_OUTPUT));
-	addOutput(createOutput<PJ3410Port>(Vec(65, 323), module, Rampage::FALLING_A_OUTPUT));
-	addOutput(createOutput<PJ3410Port>(Vec(101, 323), module, Rampage::EOC_A_OUTPUT));
-	addOutput(createOutput<PJ3410Port>(Vec(99, 192), module, Rampage::OUT_A_OUTPUT));
-	addOutput(createOutput<PJ3410Port>(Vec(173, 323), module, Rampage::RISING_B_OUTPUT));
-	addOutput(createOutput<PJ3410Port>(Vec(234, 323), module, Rampage::FALLING_B_OUTPUT));
-	addOutput(createOutput<PJ3410Port>(Vec(137, 323), module, Rampage::EOC_B_OUTPUT));
-	addOutput(createOutput<PJ3410Port>(Vec(139, 192), module, Rampage::OUT_B_OUTPUT));
-	addOutput(createOutput<PJ3410Port>(Vec(119, 130), module, Rampage::COMPARATOR_OUTPUT));
-	addOutput(createOutput<PJ3410Port>(Vec(86, 153), module, Rampage::MIN_OUTPUT));
-	addOutput(createOutput<PJ3410Port>(Vec(152, 153), module, Rampage::MAX_OUTPUT));
+	addOutput(createOutput<PJ301MPort>(Vec(8, 326), module, Rampage::RISING_A_OUTPUT));
+	addOutput(createOutput<PJ301MPort>(Vec(68, 326), module, Rampage::FALLING_A_OUTPUT));
+	addOutput(createOutput<PJ301MPort>(Vec(104, 326), module, Rampage::EOC_A_OUTPUT));
+	addOutput(createOutput<PJ301MPort>(Vec(102, 195), module, Rampage::OUT_A_OUTPUT));
+	addOutput(createOutput<PJ301MPort>(Vec(177, 326), module, Rampage::RISING_B_OUTPUT));
+	addOutput(createOutput<PJ301MPort>(Vec(237, 326), module, Rampage::FALLING_B_OUTPUT));
+	addOutput(createOutput<PJ301MPort>(Vec(140, 326), module, Rampage::EOC_B_OUTPUT));
+	addOutput(createOutput<PJ301MPort>(Vec(142, 195), module, Rampage::OUT_B_OUTPUT));
+	addOutput(createOutput<PJ301MPort>(Vec(122, 133), module, Rampage::COMPARATOR_OUTPUT));
+	addOutput(createOutput<PJ301MPort>(Vec(89, 157), module, Rampage::MIN_OUTPUT));
+	addOutput(createOutput<PJ301MPort>(Vec(155, 157), module, Rampage::MAX_OUTPUT));
 
 	addChild(createValueLight<SmallLight<RedValueLight>>(Vec(131, 167), &module->outputs[Rampage::COMPARATOR_LIGHT].value));
 	addChild(createValueLight<SmallLight<RedValueLight>>(Vec(122, 174), &module->outputs[Rampage::MIN_LIGHT].value));

@@ -283,14 +283,14 @@ SpringReverbWidget::SpringReverbWidget() {
 
 	addParam(createParam<Davies1900hWhiteKnob>(Vec(42, 210), module, SpringReverb::HPF_PARAM, 0.0, 1.0, 0.5));
 
-	addInput(createInput<PJ3410Port>(Vec(4, 240), module, SpringReverb::CV1_INPUT));
-	addInput(createInput<PJ3410Port>(Vec(84, 240), module, SpringReverb::CV2_INPUT));
-	addInput(createInput<PJ3410Port>(Vec(24, 278), module, SpringReverb::IN1_INPUT));
-	addInput(createInput<PJ3410Port>(Vec(63, 278), module, SpringReverb::IN2_INPUT));
+	addInput(createInput<PJ301MPort>(Vec(7, 243), module, SpringReverb::CV1_INPUT));
+	addInput(createInput<PJ301MPort>(Vec(88, 243), module, SpringReverb::CV2_INPUT));
+	addInput(createInput<PJ301MPort>(Vec(27, 281), module, SpringReverb::IN1_INPUT));
+	addInput(createInput<PJ301MPort>(Vec(67, 281), module, SpringReverb::IN2_INPUT));
 
-	addOutput(createOutput<PJ3410Port>(Vec(4, 314), module, SpringReverb::MIX_OUTPUT));
-	addInput(createInput<PJ3410Port>(Vec(44, 321), module, SpringReverb::MIX_CV_INPUT));
-	addOutput(createOutput<PJ3410Port>(Vec(85, 314), module, SpringReverb::WET_OUTPUT));
+	addOutput(createOutput<PJ301MPort>(Vec(7, 317), module, SpringReverb::MIX_OUTPUT));
+	addInput(createInput<PJ301MPort>(Vec(47, 324), module, SpringReverb::MIX_CV_INPUT));
+	addOutput(createOutput<PJ301MPort>(Vec(88, 317), module, SpringReverb::WET_OUTPUT));
 
 	addChild(createValueLight<SmallLight<RedValueLight>>(Vec(56, 114), &module->vuLights[0]));
 	addChild(createValueLight<SmallLight<YellowValueLight>>(Vec(56, 127), &module->vuLights[1]));

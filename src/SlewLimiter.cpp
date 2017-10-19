@@ -77,9 +77,9 @@ SlewLimiterWidget::SlewLimiterWidget() {
 	addParam(createParam<BefacoSlidePot>(Vec(15, 102), module, ::SlewLimiter::RISE_PARAM, 0.0, 1.0, 0.0));
 	addParam(createParam<BefacoSlidePot>(Vec(60, 102), module, ::SlewLimiter::FALL_PARAM, 0.0, 1.0, 0.0));
 
-	addInput(createInput<PJ3410Port>(Vec(7, 270), module, ::SlewLimiter::RISE_INPUT));
-	addInput(createInput<PJ3410Port>(Vec(52, 270), module, ::SlewLimiter::FALL_INPUT));
+	addInput(createInput<PJ301MPort>(Vec(10, 273), module, ::SlewLimiter::RISE_INPUT));
+	addInput(createInput<PJ301MPort>(Vec(55, 273), module, ::SlewLimiter::FALL_INPUT));
 
-	addInput(createInput<PJ3410Port>(Vec(7, 320), module, ::SlewLimiter::IN_INPUT));
-	addOutput(createOutput<PJ3410Port>(Vec(52, 320), module, ::SlewLimiter::OUT_OUTPUT));
+	addInput(createInput<PJ301MPort>(Vec(10, 323), module, ::SlewLimiter::IN_INPUT));
+	addOutput(createOutput<PJ301MPort>(Vec(55, 323), module, ::SlewLimiter::OUT_OUTPUT));
 }
