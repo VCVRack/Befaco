@@ -173,7 +173,7 @@ struct SpringReverb : Module {
 
 	SpringReverb();
 	~SpringReverb();
-	void step();
+	void step() override;
 };
 
 
@@ -196,7 +196,7 @@ void SpringReverb::step() {
 	float dry = in1 * level1 + in2 * level2;
 
 	// HPF on dry
-	float dryCutoff = 200.0 * powf(20.0, params[HPF_PARAM].value) / gSampleRate;
+	float dryCutoff = 200.0 * powf(20.0, params[HPF_PARAM].value) / engineGetSampleRate();
 	dryFilter.setCutoff(dryCutoff);
 	dryFilter.process(dry);
 
@@ -213,7 +213,7 @@ void SpringReverb::step() {
 		float output[BLOCKSIZE];
 		// Convert input buffer
 		{
-			inputSrc.setRatio(48000.0 / gSampleRate);
+			inputSrc.setRatio(48000.0 / engineGetSampleRate());
 			int inLen = inputBuffer.size();
 			int outLen = BLOCKSIZE;
 			inputSrc.process(inputBuffer.startData(), &inLen, (Frame<1>*) input, &outLen);
@@ -225,7 +225,7 @@ void SpringReverb::step() {
 
 		// Convert output buffer
 		{
-			outputSrc.setRatio(gSampleRate / 48000.0);
+			outputSrc.setRatio(engineGetSampleRate() / 48000.0);
 			int inLen = BLOCKSIZE;
 			int outLen = outputBuffer.capacity();
 			outputSrc.process((Frame<1>*) output, &inLen, outputBuffer.endData(), &outLen);
@@ -244,7 +244,7 @@ void SpringReverb::step() {
 	outputs[MIX_OUTPUT].value =clampf(mix, -10.0, 10.0);
 
 	// Set lights
-	float lightRate = 5.0 / gSampleRate;
+	float lightRate = 5.0 / engineGetSampleRate();
 	vuFilter.setRate(lightRate);
 	vuFilter.process(fabsf(wet));
 	lightFilter.setRate(lightRate);

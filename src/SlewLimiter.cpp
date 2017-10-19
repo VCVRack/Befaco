@@ -22,7 +22,7 @@ struct SlewLimiter : Module {
 	float out = 0.0;
 
 	SlewLimiter() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS) {}
-	void step();
+	void step() override;
 };
 
 
@@ -40,7 +40,7 @@ void ::SlewLimiter::step() {
 	if (in > out) {
 		float rise = inputs[RISE_INPUT].value + params[RISE_PARAM].value;
 		float slew = slewMax * powf(slewMin / slewMax, rise);
-		out += slew * crossf(1.0, shapeScale * (in - out), shape) / gSampleRate;
+		out += slew * crossf(1.0, shapeScale * (in - out), shape) / engineGetSampleRate();
 		if (out > in)
 			out = in;
 	}
@@ -48,7 +48,7 @@ void ::SlewLimiter::step() {
 	else if (in < out) {
 		float fall = inputs[FALL_INPUT].value + params[FALL_PARAM].value;
 		float slew = slewMax * powf(slewMin / slewMax, fall);
-		out -= slew * crossf(1.0, shapeScale * (out - in), shape) / gSampleRate;
+		out -= slew * crossf(1.0, shapeScale * (out - in), shape) / engineGetSampleRate();
 		if (out < in)
 			out = in;
 	}

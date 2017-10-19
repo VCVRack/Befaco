@@ -25,7 +25,7 @@ struct Mixer : Module {
 	float lights[1] = {};
 
 	Mixer() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS) {}
-	void step();
+	void step() override;
 };
 
 

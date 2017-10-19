@@ -24,7 +24,7 @@ struct DualAtenuverter : Module {
 	float lights[2] = {};
 
 	DualAtenuverter() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS) {}
-	void step();
+	void step() override;
 };
 
 

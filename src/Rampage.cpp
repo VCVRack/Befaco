@@ -68,7 +68,7 @@ struct Rampage : Module {
 			trigger[c].setThresholds(0.0, 4.0);
 		}
 	}
-	void step();
+	void step() override;
 };
 
 
@@ -110,10 +110,10 @@ void Rampage::step() {
 
 		if (delta > 0) {
 			// Rise
-			float riseCv = params[RISE_A_PARAM + c].value - inputs[EXP_CV_A_INPUT + c].value + inputs[RISE_CV_A_INPUT + c].value / 10.0;
+			float riseCv = params[RISE_A_PARAM + c].value - inputs[EXP_CV_A_INPUT + c].value / 10.0 + inputs[RISE_CV_A_INPUT + c].value / 10.0;
 			riseCv = clampf(riseCv, 0.0, 1.0);
 			float rise = minTime * powf(2.0, riseCv * 10.0);
-			out[c] += shapeDelta(delta, rise, shape) / gSampleRate;
+			out[c] += shapeDelta(delta, rise, shape) / engineGetSampleRate();
 			rising = (in - out[c] > 1e-3);
 			if (!rising) {
 				gate[c] = false;
@@ -121,10 +121,10 @@ void Rampage::step() {
 		}
 		else if (delta < 0) {
 			// Fall
-			float fallCv = params[FALL_A_PARAM + c].value - inputs[EXP_CV_A_INPUT + c].value + inputs[FALL_CV_A_INPUT + c].value / 10.0;
+			float fallCv = params[FALL_A_PARAM + c].value - inputs[EXP_CV_A_INPUT + c].value / 10.0 + inputs[FALL_CV_A_INPUT + c].value / 10.0;
 			fallCv = clampf(fallCv, 0.0, 1.0);
 			float fall = minTime * powf(2.0, fallCv * 10.0);
-			out[c] += shapeDelta(delta, fall, shape) / gSampleRate;
+			out[c] += shapeDelta(delta, fall, shape) / engineGetSampleRate();
 			falling = (in - out[c] < -1e-3);
 			if (!falling) {
 				// End of cycle, check if we should turn the gate back on (cycle mode)
@@ -146,7 +146,7 @@ void Rampage::step() {
 		outputs[FALLING_A_OUTPUT + c].value = (falling ? 10.0 : 0.0);
 		outputs[RISING_A_LIGHT + c].value = (rising ? 1.0 : 0.0);
 		outputs[FALLING_A_LIGHT + c].value = (falling ? 1.0 : 0.0);
-		outputs[EOC_A_OUTPUT + c].value = (endOfCyclePulse[c].process(1.0 / gSampleRate) ? 10.0 : 0.0);
+		outputs[EOC_A_OUTPUT + c].value = (endOfCyclePulse[c].process(1.0 / engineGetSampleRate()) ? 10.0 : 0.0);
 		outputs[OUT_A_OUTPUT + c].value = out[c];
 		outputs[OUT_A_LIGHT + c].value = out[c] / 10.0;
 	}

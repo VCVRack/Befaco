@@ -45,7 +45,7 @@ struct EvenVCO : Module {
 	RCFilter triFilter;
 
 	EvenVCO();
-	void step();
+	void step() override;
 };
 
 
@@ -78,7 +78,7 @@ void EvenVCO::step() {
 	pw = rescalef(clampf(pw, -1.0, 1.0), -1.0, 1.0, minPw, 1.0-minPw);
 
 	// Advance phase
-	float deltaPhase = clampf(freq / gSampleRate, 1e-6, 0.5);
+	float deltaPhase = clampf(freq / engineGetSampleRate(), 1e-6, 0.5);
 	float oldPhase = phase;
 	phase += deltaPhase;
 
@@ -110,8 +110,8 @@ void EvenVCO::step() {
 	triSquare += triSquareMinBLEP.shift();
 
 	// Integrate square for triangle
-	tri += 4.0 * triSquare * freq / gSampleRate;
-	tri *= (1.0 - 40.0 / gSampleRate);
+	tri += 4.0 * triSquare * freq / engineGetSampleRate();
+	tri *= (1.0 - 40.0 / engineGetSampleRate());
 
 	float sine = -cosf(2*M_PI * phase);
 	float doubleSaw = (phase < 0.5) ? (-1.0 + 4.0*phase) : (-1.0 + 4.0*(phase - 0.5));
