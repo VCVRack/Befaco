@@ -158,6 +158,11 @@ struct SpringReverb : Module {
 		WET_OUTPUT,
 		NUM_OUTPUTS
 	};
+	enum LightIds {
+		PEAK_LIGHT,
+		VU1_LIGHT,
+		NUM_LIGHTS = VU1_LIGHT + 7
+	};
 
 	RealTimeConvolver *convolver = NULL;
 	SampleRateConverter<1> inputSrc;
@@ -168,8 +173,6 @@ struct SpringReverb : Module {
 	RCFilter dryFilter;
 	PeakFilter vuFilter;
 	PeakFilter lightFilter;
-	float vuLights[7] = {};
-	float lights[1] = {};
 
 	SpringReverb();
 	~SpringReverb();
@@ -177,7 +180,7 @@ struct SpringReverb : Module {
 };
 
 
-SpringReverb::SpringReverb() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS) {
+SpringReverb::SpringReverb() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {
 	convolver = new RealTimeConvolver(BLOCKSIZE);
 	convolver->setKernel(springReverbIR, springReverbIRLen);
 }
@@ -253,9 +256,9 @@ void SpringReverb::step() {
 	float vuValue = vuFilter.peak();
 	for (int i = 0; i < 7; i++) {
 		float light = powf(1.413, i) * vuValue / 10.0 - 1.0;
-		vuLights[i] = clampf(light, 0.0, 1.0);
+		lights[VU1_LIGHT + i].value = clampf(light, 0.0, 1.0);
 	}
-	lights[0] = lightFilter.peak();
+	lights[PEAK_LIGHT].value = lightFilter.peak();
 }
 
 
@@ -292,13 +295,12 @@ SpringReverbWidget::SpringReverbWidget() {
 	addInput(createInput<PJ301MPort>(Vec(47, 324), module, SpringReverb::MIX_CV_INPUT));
 	addOutput(createOutput<PJ301MPort>(Vec(88, 317), module, SpringReverb::WET_OUTPUT));
 
-	addChild(createValueLight<SmallLight<RedValueLight>>(Vec(56, 114), &module->vuLights[0]));
-	addChild(createValueLight<SmallLight<YellowValueLight>>(Vec(56, 127), &module->vuLights[1]));
-	addChild(createValueLight<SmallLight<YellowValueLight>>(Vec(56, 139), &module->vuLights[2]));
-	addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(56, 151), &module->vuLights[3]));
-	addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(56, 164), &module->vuLights[4]));
-	addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(56, 176), &module->vuLights[5]));
-	addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(56, 189), &module->vuLights[6]));
-
-	addChild(createValueLight<SmallLight<GreenRedPolarityLight>>(Vec(56, 270), &module->lights[0]));
+	addChild(createLight<SmallLight<GreenRedLight>>(Vec(56, 270), module, SpringReverb::PEAK_LIGHT));
+	addChild(createLight<SmallLight<RedLight>>(Vec(56, 114), module, SpringReverb::VU1_LIGHT + 0));
+	addChild(createLight<SmallLight<YellowLight>>(Vec(56, 127), module, SpringReverb::VU1_LIGHT + 1));
+	addChild(createLight<SmallLight<YellowLight>>(Vec(56, 139), module, SpringReverb::VU1_LIGHT + 2));
+	addChild(createLight<SmallLight<GreenLight>>(Vec(56, 151), module, SpringReverb::VU1_LIGHT + 3));
+	addChild(createLight<SmallLight<GreenLight>>(Vec(56, 164), module, SpringReverb::VU1_LIGHT + 4));
+	addChild(createLight<SmallLight<GreenLight>>(Vec(56, 176), module, SpringReverb::VU1_LIGHT + 5));
+	addChild(createLight<SmallLight<GreenLight>>(Vec(56, 189), module, SpringReverb::VU1_LIGHT + 6));
 }

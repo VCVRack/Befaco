@@ -21,10 +21,13 @@ struct Mixer : Module {
 		OUT2_OUTPUT,
 		NUM_OUTPUTS
 	};
+	enum LightIds {
+		OUT_POS_LIGHT,
+		OUT_NEG_LIGHT,
+		NUM_LIGHTS
+	};
 
-	float lights[1] = {};
-
-	Mixer() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS) {}
+	Mixer() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
 	void step() override;
 };
 
@@ -38,7 +41,8 @@ void Mixer::step() {
 	float out = in1 + in2 + in3 + in4;
 	outputs[OUT1_OUTPUT].value = out;
 	outputs[OUT2_OUTPUT].value = -out;
-	lights[0] = out / 5.0;
+	lights[OUT_POS_LIGHT].value = fmaxf(0.0, out / 5.0);
+	lights[OUT_NEG_LIGHT].value = fmaxf(0.0, -out / 5.0);
 }
 
 
@@ -71,5 +75,5 @@ MixerWidget::MixerWidget() {
 	addOutput(createOutput<PJ301MPort>(Vec(7, 324), module, Mixer::OUT1_OUTPUT));
 	addOutput(createOutput<PJ301MPort>(Vec(43, 324), module, Mixer::OUT2_OUTPUT));
 
-	addChild(createValueLight<MediumLight<GreenRedPolarityLight>>(Vec(31, 309), &module->lights[0]));
+	addChild(createLight<MediumLight<GreenRedLight>>(Vec(31, 309), module, Mixer::OUT_POS_LIGHT));
 }

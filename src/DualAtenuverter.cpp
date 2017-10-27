@@ -19,10 +19,15 @@ struct DualAtenuverter : Module {
 		OUT2_OUTPUT,
 		NUM_OUTPUTS
 	};
+	enum LightIds {
+		OUT1_POS_LIGHT,
+		OUT1_NEG_LIGHT,
+		OUT2_POS_LIGHT,
+		OUT2_NEG_LIGHT,
+		NUM_LIGHTS
+	};
 
-	float lights[2] = {};
-
-	DualAtenuverter() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS) {}
+	DualAtenuverter() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
 	void step() override;
 };
 
@@ -35,8 +40,10 @@ void DualAtenuverter::step() {
 
 	outputs[OUT1_OUTPUT].value = out1;
 	outputs[OUT2_OUTPUT].value = out2;
-	lights[0] = out1 / 5.0;
-	lights[1] = out2 / 5.0;
+	lights[OUT1_POS_LIGHT].value = fmaxf(0.0, out1 / 5.0);
+	lights[OUT1_NEG_LIGHT].value = fmaxf(0.0, -out1 / 5.0);
+	lights[OUT2_POS_LIGHT].value = fmaxf(0.0, out2 / 5.0);
+	lights[OUT2_NEG_LIGHT].value = fmaxf(0.0, -out2 / 5.0);
 }
 
 
@@ -66,6 +73,6 @@ DualAtenuverterWidget::DualAtenuverterWidget() {
 	addInput(createInput<PJ301MPort>(Vec(7, 319), module, DualAtenuverter::IN2_INPUT));
 	addOutput(createOutput<PJ301MPort>(Vec(43, 319), module, DualAtenuverter::OUT2_OUTPUT));
 
-	addChild(createValueLight<SmallLight<GreenRedPolarityLight>>(Vec(33, 143), &module->lights[0]));
-	addChild(createValueLight<SmallLight<GreenRedPolarityLight>>(Vec(33, 311), &module->lights[1]));
+	addChild(createLight<SmallLight<GreenRedLight>>(Vec(33, 143), module, DualAtenuverter::OUT1_POS_LIGHT));
+	addChild(createLight<SmallLight<GreenRedLight>>(Vec(33, 311), module, DualAtenuverter::OUT2_POS_LIGHT));
 }

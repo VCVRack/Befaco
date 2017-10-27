@@ -46,6 +46,9 @@ struct Rampage : Module {
 		COMPARATOR_OUTPUT,
 		MIN_OUTPUT,
 		MAX_OUTPUT,
+		NUM_OUTPUTS
+	};
+	enum LightIds {
 		COMPARATOR_LIGHT,
 		MIN_LIGHT,
 		MAX_LIGHT,
@@ -55,7 +58,7 @@ struct Rampage : Module {
 		RISING_B_LIGHT,
 		FALLING_A_LIGHT,
 		FALLING_B_LIGHT,
-		NUM_OUTPUTS
+		NUM_LIGHTS
 	};
 
 	float out[2] = {};
@@ -63,7 +66,7 @@ struct Rampage : Module {
 	SchmittTrigger trigger[2];
 	PulseGenerator endOfCyclePulse[2];
 
-	Rampage() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS) {
+	Rampage() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {
 		for (int c = 0; c < 2; c++) {
 			trigger[c].setThresholds(0.0, 4.0);
 		}
@@ -144,11 +147,11 @@ void Rampage::step() {
 
 		outputs[RISING_A_OUTPUT + c].value = (rising ? 10.0 : 0.0);
 		outputs[FALLING_A_OUTPUT + c].value = (falling ? 10.0 : 0.0);
-		outputs[RISING_A_LIGHT + c].value = (rising ? 1.0 : 0.0);
-		outputs[FALLING_A_LIGHT + c].value = (falling ? 1.0 : 0.0);
+		lights[RISING_A_LIGHT + c].value = (rising ? 1.0 : 0.0);
+		lights[FALLING_A_LIGHT + c].value = (falling ? 1.0 : 0.0);
 		outputs[EOC_A_OUTPUT + c].value = (endOfCyclePulse[c].process(1.0 / engineGetSampleRate()) ? 10.0 : 0.0);
 		outputs[OUT_A_OUTPUT + c].value = out[c];
-		outputs[OUT_A_LIGHT + c].value = out[c] / 10.0;
+		lights[OUT_A_LIGHT + c].value = out[c] / 10.0;
 	}
 
 	// Logic
@@ -163,9 +166,9 @@ void Rampage::step() {
 	outputs[MIN_OUTPUT].value = fminf(a, b);
 	outputs[MAX_OUTPUT].value = fmaxf(a, b);
 	// Lights
-	outputs[COMPARATOR_LIGHT].value = outputs[COMPARATOR_OUTPUT].value / 10.0;
-	outputs[MIN_LIGHT].value = outputs[MIN_OUTPUT].value / 10.0;
-	outputs[MAX_LIGHT].value = outputs[MAX_OUTPUT].value / 10.0;
+	lights[COMPARATOR_LIGHT].value = outputs[COMPARATOR_OUTPUT].value / 10.0;
+	lights[MIN_LIGHT].value = outputs[MIN_OUTPUT].value / 10.0;
+	lights[MAX_LIGHT].value = outputs[MAX_OUTPUT].value / 10.0;
 }
 
 
@@ -225,13 +228,13 @@ RampageWidget::RampageWidget() {
 	addOutput(createOutput<PJ301MPort>(Vec(89, 157), module, Rampage::MIN_OUTPUT));
 	addOutput(createOutput<PJ301MPort>(Vec(155, 157), module, Rampage::MAX_OUTPUT));
 
-	addChild(createValueLight<SmallLight<RedValueLight>>(Vec(131, 167), &module->outputs[Rampage::COMPARATOR_LIGHT].value));
-	addChild(createValueLight<SmallLight<RedValueLight>>(Vec(122, 174), &module->outputs[Rampage::MIN_LIGHT].value));
-	addChild(createValueLight<SmallLight<RedValueLight>>(Vec(140, 174), &module->outputs[Rampage::MAX_LIGHT].value));
-	addChild(createValueLight<SmallLight<RedValueLight>>(Vec(125, 185), &module->outputs[Rampage::OUT_A_LIGHT].value));
-	addChild(createValueLight<SmallLight<RedValueLight>>(Vec(137, 185), &module->outputs[Rampage::OUT_B_LIGHT].value));
-	addChild(createValueLight<SmallLight<RedValueLight>>(Vec(17, 312), &module->outputs[Rampage::RISING_A_LIGHT].value));
-	addChild(createValueLight<SmallLight<RedValueLight>>(Vec(77, 312), &module->outputs[Rampage::FALLING_A_LIGHT].value));
-	addChild(createValueLight<SmallLight<RedValueLight>>(Vec(186, 312), &module->outputs[Rampage::RISING_B_LIGHT].value));
-	addChild(createValueLight<SmallLight<RedValueLight>>(Vec(246, 312), &module->outputs[Rampage::FALLING_B_LIGHT].value));
+	addChild(createLight<SmallLight<RedLight>>(Vec(131, 167), module, Rampage::COMPARATOR_LIGHT));
+	addChild(createLight<SmallLight<RedLight>>(Vec(122, 174), module, Rampage::MIN_LIGHT));
+	addChild(createLight<SmallLight<RedLight>>(Vec(140, 174), module, Rampage::MAX_LIGHT));
+	addChild(createLight<SmallLight<RedLight>>(Vec(125, 185), module, Rampage::OUT_A_LIGHT));
+	addChild(createLight<SmallLight<RedLight>>(Vec(137, 185), module, Rampage::OUT_B_LIGHT));
+	addChild(createLight<SmallLight<RedLight>>(Vec(17, 312), module, Rampage::RISING_A_LIGHT));
+	addChild(createLight<SmallLight<RedLight>>(Vec(77, 312), module, Rampage::FALLING_A_LIGHT));
+	addChild(createLight<SmallLight<RedLight>>(Vec(186, 312), module, Rampage::RISING_B_LIGHT));
+	addChild(createLight<SmallLight<RedLight>>(Vec(246, 312), module, Rampage::FALLING_B_LIGHT));
 }

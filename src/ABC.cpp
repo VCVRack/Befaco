@@ -23,10 +23,15 @@ struct ABC : Module {
 		OUT2_OUTPUT,
 		NUM_OUTPUTS
 	};
+	enum LightIds {
+		OUT1_POS_LIGHT,
+		OUT1_NEG_LIGHT,
+		OUT2_POS_LIGHT,
+		OUT2_NEG_LIGHT,
+		NUM_LIGHTS
+	};
 
-	float lights[2] = {};
-
-	ABC() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS) {}
+	ABC() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
 	void step() override;
 };
 
@@ -44,7 +49,7 @@ void ABC::step() {
 
 	float a2 = inputs[A2_INPUT].value;
 	float b2 = inputs[B2_INPUT].normalize(5.0) * 2.0*exponentialBipolar(80.0, params[B2_LEVEL_PARAM].value);
-	float c2 = inputs[C2_INPUT].normalize(20.0) * exponentialBipolar(80.0, params[C2_LEVEL_PARAM].value);
+	float c2 = inputs[C2_INPUT].normalize(10.0) * exponentialBipolar(80.0, params[C2_LEVEL_PARAM].value);
 	float out2 = a2 * b2 / 5.0 + c2;
 
 	// Set outputs
@@ -57,8 +62,12 @@ void ABC::step() {
 	if (outputs[OUT2_OUTPUT].active) {
 		outputs[OUT2_OUTPUT].value = clip(out2 / 10.0) * 10.0;
 	}
-	lights[0] = out1 / 5.0;
-	lights[1] = out2 / 5.0;
+
+	// Lights
+	lights[OUT1_POS_LIGHT].value = fmaxf(0.0, out1 / 5.0);
+	lights[OUT1_NEG_LIGHT].value = fmaxf(0.0, -out1 / 5.0);
+	lights[OUT2_POS_LIGHT].value = fmaxf(0.0, out2 / 5.0);
+	lights[OUT2_NEG_LIGHT].value = fmaxf(0.0, -out2 / 5.0);
 }
 
 
@@ -91,6 +100,6 @@ ABCWidget::ABCWidget() {
 	addInput(createInput<PJ301MPort>(Vec(7, 279), module, ABC::C2_INPUT));
 	addOutput(createOutput<PJ301MPort>(Vec(7, 321), module, ABC::OUT2_OUTPUT));
 
-	addChild(createValueLight<SmallLight<GreenRedPolarityLight>>(Vec(38, 162), &module->lights[0]));
-	addChild(createValueLight<SmallLight<GreenRedPolarityLight>>(Vec(38, 330), &module->lights[1]));
+	addChild(createLight<SmallLight<GreenRedLight>>(Vec(38, 162), module, ABC::OUT1_POS_LIGHT));
+	addChild(createLight<SmallLight<GreenRedLight>>(Vec(38, 330), module, ABC::OUT2_POS_LIGHT));
 }
