@@ -9,8 +9,8 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="3.96875mm"
-   height="3.9684556mm"
+   width="15"
+   height="14.998887"
    viewBox="0 0 3.9687499 3.9684557"
    version="1.1"
    id="svg18800"
@@ -26,7 +26,7 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="22.4"
-     inkscape:cx="-2.2475488"
+     inkscape:cx="-17.002013"
      inkscape:cy="6.0114243"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
@@ -35,15 +35,16 @@
      fit-margin-left="0"
      fit-margin-right="0"
      fit-margin-bottom="0"
-     inkscape:window-width="1600"
-     inkscape:window-height="882"
+     inkscape:window-width="2560"
+     inkscape:window-height="1422"
      inkscape:window-x="0"
      inkscape:window-y="18"
      inkscape:window-maximized="0"
      inkscape:snap-bbox="true"
      inkscape:snap-bbox-midpoints="true"
      inkscape:snap-object-midpoints="true"
-     inkscape:snap-page="true" />
+     inkscape:snap-page="true"
+     units="px" />
   <metadata
      id="metadata18797">
     <rdf:RDF>
@@ -52,7 +53,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
