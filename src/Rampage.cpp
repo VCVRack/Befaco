@@ -228,13 +228,13 @@ RampageWidget::RampageWidget() {
 	addOutput(createOutput<PJ301MPort>(Vec(89, 157), module, Rampage::MIN_OUTPUT));
 	addOutput(createOutput<PJ301MPort>(Vec(155, 157), module, Rampage::MAX_OUTPUT));
 
-	addChild(createLight<SmallLight<RedLight>>(Vec(131, 167), module, Rampage::COMPARATOR_LIGHT));
-	addChild(createLight<SmallLight<RedLight>>(Vec(122, 174), module, Rampage::MIN_LIGHT));
-	addChild(createLight<SmallLight<RedLight>>(Vec(140, 174), module, Rampage::MAX_LIGHT));
-	addChild(createLight<SmallLight<RedLight>>(Vec(125, 185), module, Rampage::OUT_A_LIGHT));
-	addChild(createLight<SmallLight<RedLight>>(Vec(137, 185), module, Rampage::OUT_B_LIGHT));
-	addChild(createLight<SmallLight<RedLight>>(Vec(17, 312), module, Rampage::RISING_A_LIGHT));
-	addChild(createLight<SmallLight<RedLight>>(Vec(77, 312), module, Rampage::FALLING_A_LIGHT));
-	addChild(createLight<SmallLight<RedLight>>(Vec(186, 312), module, Rampage::RISING_B_LIGHT));
-	addChild(createLight<SmallLight<RedLight>>(Vec(246, 312), module, Rampage::FALLING_B_LIGHT));
+	addChild(createLight<SmallLight<RedLight>>(Vec(132, 167), module, Rampage::COMPARATOR_LIGHT));
+	addChild(createLight<SmallLight<RedLight>>(Vec(123, 174), module, Rampage::MIN_LIGHT));
+	addChild(createLight<SmallLight<RedLight>>(Vec(141, 174), module, Rampage::MAX_LIGHT));
+	addChild(createLight<SmallLight<RedLight>>(Vec(126, 185), module, Rampage::OUT_A_LIGHT));
+	addChild(createLight<SmallLight<RedLight>>(Vec(138, 185), module, Rampage::OUT_B_LIGHT));
+	addChild(createLight<SmallLight<RedLight>>(Vec(18, 312), module, Rampage::RISING_A_LIGHT));
+	addChild(createLight<SmallLight<RedLight>>(Vec(78, 312), module, Rampage::FALLING_A_LIGHT));
+	addChild(createLight<SmallLight<RedLight>>(Vec(187, 312), module, Rampage::RISING_B_LIGHT));
+	addChild(createLight<SmallLight<RedLight>>(Vec(247, 312), module, Rampage::FALLING_B_LIGHT));
 }

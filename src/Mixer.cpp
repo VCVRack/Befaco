@@ -41,8 +41,8 @@ void Mixer::step() {
 	float out = in1 + in2 + in3 + in4;
 	outputs[OUT1_OUTPUT].value = out;
 	outputs[OUT2_OUTPUT].value = -out;
-	lights[OUT_POS_LIGHT].value = fmaxf(0.0, out / 5.0);
-	lights[OUT_NEG_LIGHT].value = fmaxf(0.0, -out / 5.0);
+	lights[OUT_POS_LIGHT].setBrightnessSmooth(out / 5.0);
+	lights[OUT_NEG_LIGHT].setBrightnessSmooth(-out / 5.0);
 }
 
 
@@ -75,5 +75,5 @@ MixerWidget::MixerWidget() {
 	addOutput(createOutput<PJ301MPort>(Vec(7, 324), module, Mixer::OUT1_OUTPUT));
 	addOutput(createOutput<PJ301MPort>(Vec(43, 324), module, Mixer::OUT2_OUTPUT));
 
-	addChild(createLight<MediumLight<GreenRedLight>>(Vec(31, 309), module, Mixer::OUT_POS_LIGHT));
+	addChild(createLight<MediumLight<GreenRedLight>>(Vec(32.7, 310), module, Mixer::OUT_POS_LIGHT));
 }

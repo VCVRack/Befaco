@@ -100,6 +100,6 @@ ABCWidget::ABCWidget() {
 	addInput(createInput<PJ301MPort>(Vec(7, 279), module, ABC::C2_INPUT));
 	addOutput(createOutput<PJ301MPort>(Vec(7, 321), module, ABC::OUT2_OUTPUT));
 
-	addChild(createLight<SmallLight<GreenRedLight>>(Vec(38, 162), module, ABC::OUT1_POS_LIGHT));
-	addChild(createLight<SmallLight<GreenRedLight>>(Vec(38, 330), module, ABC::OUT2_POS_LIGHT));
+	addChild(createLight<MediumLight<GreenRedLight>>(Vec(37, 162), module, ABC::OUT1_POS_LIGHT));
+	addChild(createLight<MediumLight<GreenRedLight>>(Vec(37, 329), module, ABC::OUT2_POS_LIGHT));
 }

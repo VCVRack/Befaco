@@ -295,12 +295,12 @@ SpringReverbWidget::SpringReverbWidget() {
 	addInput(createInput<PJ301MPort>(Vec(47, 324), module, SpringReverb::MIX_CV_INPUT));
 	addOutput(createOutput<PJ301MPort>(Vec(88, 317), module, SpringReverb::WET_OUTPUT));
 
-	addChild(createLight<SmallLight<GreenRedLight>>(Vec(56, 270), module, SpringReverb::PEAK_LIGHT));
-	addChild(createLight<SmallLight<RedLight>>(Vec(56, 114), module, SpringReverb::VU1_LIGHT + 0));
-	addChild(createLight<SmallLight<YellowLight>>(Vec(56, 127), module, SpringReverb::VU1_LIGHT + 1));
-	addChild(createLight<SmallLight<YellowLight>>(Vec(56, 139), module, SpringReverb::VU1_LIGHT + 2));
-	addChild(createLight<SmallLight<GreenLight>>(Vec(56, 151), module, SpringReverb::VU1_LIGHT + 3));
-	addChild(createLight<SmallLight<GreenLight>>(Vec(56, 164), module, SpringReverb::VU1_LIGHT + 4));
-	addChild(createLight<SmallLight<GreenLight>>(Vec(56, 176), module, SpringReverb::VU1_LIGHT + 5));
-	addChild(createLight<SmallLight<GreenLight>>(Vec(56, 189), module, SpringReverb::VU1_LIGHT + 6));
+	addChild(createLight<MediumLight<GreenRedLight>>(Vec(55, 269), module, SpringReverb::PEAK_LIGHT));
+	addChild(createLight<MediumLight<RedLight>>(Vec(55, 113), module, SpringReverb::VU1_LIGHT + 0));
+	addChild(createLight<MediumLight<YellowLight>>(Vec(55, 126), module, SpringReverb::VU1_LIGHT + 1));
+	addChild(createLight<MediumLight<YellowLight>>(Vec(55, 138), module, SpringReverb::VU1_LIGHT + 2));
+	addChild(createLight<MediumLight<GreenLight>>(Vec(55, 150), module, SpringReverb::VU1_LIGHT + 3));
+	addChild(createLight<MediumLight<GreenLight>>(Vec(55, 163), module, SpringReverb::VU1_LIGHT + 4));
+	addChild(createLight<MediumLight<GreenLight>>(Vec(55, 175), module, SpringReverb::VU1_LIGHT + 5));
+	addChild(createLight<MediumLight<GreenLight>>(Vec(55, 188), module, SpringReverb::VU1_LIGHT + 6));
 }

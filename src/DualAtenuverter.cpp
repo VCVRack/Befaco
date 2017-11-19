@@ -73,6 +73,6 @@ DualAtenuverterWidget::DualAtenuverterWidget() {
 	addInput(createInput<PJ301MPort>(Vec(7, 319), module, DualAtenuverter::IN2_INPUT));
 	addOutput(createOutput<PJ301MPort>(Vec(43, 319), module, DualAtenuverter::OUT2_OUTPUT));
 
-	addChild(createLight<SmallLight<GreenRedLight>>(Vec(33, 143), module, DualAtenuverter::OUT1_POS_LIGHT));
-	addChild(createLight<SmallLight<GreenRedLight>>(Vec(33, 311), module, DualAtenuverter::OUT2_POS_LIGHT));
+	addChild(createLight<MediumLight<GreenRedLight>>(Vec(33, 143), module, DualAtenuverter::OUT1_POS_LIGHT));
+	addChild(createLight<MediumLight<GreenRedLight>>(Vec(33, 311), module, DualAtenuverter::OUT2_POS_LIGHT));
 }
