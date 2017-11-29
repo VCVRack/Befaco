@@ -249,13 +249,13 @@ void SpringReverb::step() {
 	// Set lights
 	float lightRate = 5.0 / engineGetSampleRate();
 	vuFilter.setRate(lightRate);
-	vuFilter.process(fabsf(wet));
+	vuFilter.process(std::abs(wet));
 	lightFilter.setRate(lightRate);
-	lightFilter.process(fabsf(dry*50.0));
+	lightFilter.process(std::abs(dry*50.0f));
 
 	float vuValue = vuFilter.peak();
 	for (int i = 0; i < 7; i++) {
-		float light = powf(1.413, i) * vuValue / 10.0 - 1.0;
+		float light = powf(1.413f, i) * vuValue / 10.0 - 1.0;
 		lights[VU1_LIGHT + i].value = clampf(light, 0.0, 1.0);
 	}
 	lights[PEAK_LIGHT].value = lightFilter.peak();
