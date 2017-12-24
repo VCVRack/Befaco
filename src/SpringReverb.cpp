@@ -216,7 +216,7 @@ void SpringReverb::step() {
 		float output[BLOCKSIZE];
 		// Convert input buffer
 		{
-			inputSrc.setRatio(48000.0 / engineGetSampleRate());
+			inputSrc.setRates(engineGetSampleRate(), 48000);
 			int inLen = inputBuffer.size();
 			int outLen = BLOCKSIZE;
 			inputSrc.process(inputBuffer.startData(), &inLen, (Frame<1>*) input, &outLen);
@@ -228,7 +228,7 @@ void SpringReverb::step() {
 
 		// Convert output buffer
 		{
-			outputSrc.setRatio(engineGetSampleRate() / 48000.0);
+			outputSrc.setRates(48000, engineGetSampleRate());
 			int inLen = BLOCKSIZE;
 			int outLen = outputBuffer.capacity();
 			outputSrc.process((Frame<1>*) output, &inLen, outputBuffer.endData(), &outLen);
