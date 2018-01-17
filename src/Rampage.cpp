@@ -68,7 +68,7 @@ struct Rampage : Module {
 
 	Rampage() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {
 		for (int c = 0; c < 2; c++) {
-			trigger[c].setThresholds(0.0, 4.0);
+			trigger[c].setThresholds(0.0, 2.0);
 		}
 	}
 	void step() override;
