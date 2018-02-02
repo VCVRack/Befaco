@@ -1,4 +1,5 @@
 #include "Befaco.hpp"
+#include "dsp/functions.hpp"
 
 
 struct ABC : Module {

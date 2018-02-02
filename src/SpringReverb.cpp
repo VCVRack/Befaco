@@ -1,5 +1,6 @@
 #include <string.h>
 #include "Befaco.hpp"
+#include "dsp/functions.hpp"
 #include "dsp/samplerate.hpp"
 #include "dsp/ringbuffer.hpp"
 #include "dsp/filter.hpp"
