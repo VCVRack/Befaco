@@ -35,8 +35,8 @@ struct DualAtenuverter : Module {
 void DualAtenuverter::step() {
 	float out1 = inputs[IN1_INPUT].value * params[ATEN1_PARAM].value + params[OFFSET1_PARAM].value;
 	float out2 = inputs[IN2_INPUT].value * params[ATEN2_PARAM].value + params[OFFSET2_PARAM].value;
-	out1 = clampf(out1, -10.0, 10.0);
-	out2 = clampf(out2, -10.0, 10.0);
+	out1 = clamp(out1, -10.0f, 10.0f);
+	out2 = clamp(out2, -10.0f, 10.0f);
 
 	outputs[OUT1_OUTPUT].value = out1;
 	outputs[OUT2_OUTPUT].value = out2;

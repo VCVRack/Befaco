@@ -70,15 +70,15 @@ void EvenVCO::step() {
 	pitch += inputs[PITCH1_INPUT].value + inputs[PITCH2_INPUT].value;
 	pitch += inputs[FM_INPUT].value / 4.0;
 	float freq = 261.626 * powf(2.0, pitch);
-	freq = clampf(freq, 0.0, 20000.0);
+	freq = clamp(freq, 0.0f, 20000.0f);
 
 	// Pulse width
 	float pw = params[PWM_PARAM].value + inputs[PWM_INPUT].value / 5.0;
 	const float minPw = 0.05;
-	pw = rescalef(clampf(pw, -1.0, 1.0), -1.0, 1.0, minPw, 1.0-minPw);
+	pw = rescale(clamp(pw, -1.0f, 1.0f), -1.0f, 1.0f, minPw, 1.0f - minPw);
 
 	// Advance phase
-	float deltaPhase = clampf(freq / engineGetSampleRate(), 1e-6, 0.5);
+	float deltaPhase = clamp(freq * engineGetSampleTime(), 1e-6f, 0.5f);
 	float oldPhase = phase;
 	phase += deltaPhase;
 
@@ -110,8 +110,8 @@ void EvenVCO::step() {
 	triSquare += triSquareMinBLEP.shift();
 
 	// Integrate square for triangle
-	tri += 4.0 * triSquare * freq / engineGetSampleRate();
-	tri *= (1.0 - 40.0 / engineGetSampleRate());
+	tri += 4.0 * triSquare * freq * engineGetSampleTime();
+	tri *= (1.0 - 40.0 * engineGetSampleTime());
 
 	float sine = -cosf(2*M_PI * phase);
 	float doubleSaw = (phase < 0.5) ? (-1.0 + 4.0*phase) : (-1.0 + 4.0*(phase - 0.5));

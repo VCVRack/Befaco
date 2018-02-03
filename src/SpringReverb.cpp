@@ -86,7 +86,7 @@ struct RealTimeConvolver {
 		for (size_t i = 0; i < kernelBlocks; i++) {
 			// Pad each block with zeros
 			memset(tmpBlock, 0, sizeof(float) * blockSize*2);
-			size_t len = mini(blockSize, length - i*blockSize);
+			size_t len = min(blockSize, length - i*blockSize);
 			memcpy(tmpBlock, &kernel[i*blockSize], sizeof(float)*len);
 			// Compute fft
 			pffft_transform(pffft, tmpBlock, &kernelFfts[blockSize*2 * i], NULL, PFFFT_FORWARD);
@@ -200,7 +200,7 @@ void SpringReverb::step() {
 	float dry = in1 * level1 + in2 * level2;
 
 	// HPF on dry
-	float dryCutoff = 200.0 * powf(20.0, params[HPF_PARAM].value) / engineGetSampleRate();
+	float dryCutoff = 200.0 * powf(20.0, params[HPF_PARAM].value) * engineGetSampleTime();
 	dryFilter.setCutoff(dryCutoff);
 	dryFilter.process(dry);
 
@@ -241,14 +241,14 @@ void SpringReverb::step() {
 	if (outputBuffer.empty())
 		return;
 	float wet = outputBuffer.shift().samples[0];
-	float crossfade = clampf(params[WET_PARAM].value + inputs[MIX_CV_INPUT].value / 10.0, 0.0, 1.0);
-	float mix = crossf(in1, wet, crossfade);
+	float balance = clamp(params[WET_PARAM].value + inputs[MIX_CV_INPUT].value / 10.0f, 0.0f, 1.0f);
+	float mix = crossfade(in1, wet, balance);
 
-	outputs[WET_OUTPUT].value =clampf(wet, -10.0, 10.0);
-	outputs[MIX_OUTPUT].value =clampf(mix, -10.0, 10.0);
+	outputs[WET_OUTPUT].value = clamp(wet, -10.0f, 10.0f);
+	outputs[MIX_OUTPUT].value = clamp(mix, -10.0f, 10.0f);
 
 	// Set lights
-	float lightRate = 5.0 / engineGetSampleRate();
+	float lightRate = 5.0 * engineGetSampleTime();
 	vuFilter.setRate(lightRate);
 	vuFilter.process(fabsf(wet));
 	lightFilter.setRate(lightRate);
@@ -257,7 +257,7 @@ void SpringReverb::step() {
 	float vuValue = vuFilter.peak();
 	for (int i = 0; i < 7; i++) {
 		float light = powf(1.413, i) * vuValue / 10.0 - 1.0;
-		lights[VU1_LIGHT + i].value = clampf(light, 0.0, 1.0);
+		lights[VU1_LIGHT + i].value = clamp(light, 0.0f, 1.0f);
 	}
 	lights[PEAK_LIGHT].value = lightFilter.peak();
 }

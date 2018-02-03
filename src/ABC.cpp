@@ -38,7 +38,7 @@ struct ABC : Module {
 
 
 static float clip(float x) {
-	x = clampf(x, -2.0, 2.0);
+	x = clamp(x, -2.0f, 2.0f);
 	return x / powf(1.0 + powf(x, 24.0), 1/24.0);
 }
 

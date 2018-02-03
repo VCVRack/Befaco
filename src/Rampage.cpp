@@ -76,14 +76,14 @@ struct Rampage : Module {
 
 
 static float shapeDelta(float delta, float tau, float shape) {
-	float lin = sgnf(delta) * 10.0 / tau;
+	float lin = sgn(delta) * 10.0 / tau;
 	if (shape < 0.0) {
-		float log = sgnf(delta) * 40.0 / tau / (fabsf(delta) + 1.0);
-		return crossf(lin, log, -shape * 0.95);
+		float log = sgn(delta) * 40.0 / tau / (fabsf(delta) + 1.0);
+		return crossfade(lin, log, -shape * 0.95f);
 	}
 	else {
 		float exp = M_E * delta / tau;
-		return crossf(lin, exp, shape * 0.90);
+		return crossfade(lin, exp, shape * 0.90f);
 	}
 }
 
@@ -114,9 +114,9 @@ void Rampage::step() {
 		if (delta > 0) {
 			// Rise
 			float riseCv = params[RISE_A_PARAM + c].value - inputs[EXP_CV_A_INPUT + c].value / 10.0 + inputs[RISE_CV_A_INPUT + c].value / 10.0;
-			riseCv = clampf(riseCv, 0.0, 1.0);
+			riseCv = clamp(riseCv, 0.0f, 1.0f);
 			float rise = minTime * powf(2.0, riseCv * 10.0);
-			out[c] += shapeDelta(delta, rise, shape) / engineGetSampleRate();
+			out[c] += shapeDelta(delta, rise, shape) * engineGetSampleTime();
 			rising = (in - out[c] > 1e-3);
 			if (!rising) {
 				gate[c] = false;
@@ -125,9 +125,9 @@ void Rampage::step() {
 		else if (delta < 0) {
 			// Fall
 			float fallCv = params[FALL_A_PARAM + c].value - inputs[EXP_CV_A_INPUT + c].value / 10.0 + inputs[FALL_CV_A_INPUT + c].value / 10.0;
-			fallCv = clampf(fallCv, 0.0, 1.0);
+			fallCv = clamp(fallCv, 0.0f, 1.0f);
 			float fall = minTime * powf(2.0, fallCv * 10.0);
-			out[c] += shapeDelta(delta, fall, shape) / engineGetSampleRate();
+			out[c] += shapeDelta(delta, fall, shape) * engineGetSampleTime();
 			falling = (in - out[c] < -1e-3);
 			if (!falling) {
 				// End of cycle, check if we should turn the gate back on (cycle mode)
@@ -149,7 +149,7 @@ void Rampage::step() {
 		outputs[FALLING_A_OUTPUT + c].value = (falling ? 10.0 : 0.0);
 		lights[RISING_A_LIGHT + c].value = (rising ? 1.0 : 0.0);
 		lights[FALLING_A_LIGHT + c].value = (falling ? 1.0 : 0.0);
-		outputs[EOC_A_OUTPUT + c].value = (endOfCyclePulse[c].process(1.0 / engineGetSampleRate()) ? 10.0 : 0.0);
+		outputs[EOC_A_OUTPUT + c].value = (endOfCyclePulse[c].process(engineGetSampleTime()) ? 10.0 : 0.0);
 		outputs[OUT_A_OUTPUT + c].value = out[c];
 		lights[OUT_A_LIGHT + c].value = out[c] / 10.0;
 	}
