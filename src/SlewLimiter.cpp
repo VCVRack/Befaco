@@ -69,17 +69,17 @@ SlewLimiterWidget::SlewLimiterWidget() {
 		addChild(panel);
 	}
 
-	addChild(createScrew<Knurlie>(Vec(15, 0)));
-	addChild(createScrew<Knurlie>(Vec(15, 365)));
+	addChild(Widget::create<Knurlie>(Vec(15, 0)));
+	addChild(Widget::create<Knurlie>(Vec(15, 365)));
 
-	addParam(createParam<Davies1900hWhiteKnob>(Vec(27, 39), module, ::SlewLimiter::SHAPE_PARAM, 0.0, 1.0, 0.0));
+	addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(27, 39), module, ::SlewLimiter::SHAPE_PARAM, 0.0, 1.0, 0.0));
 
-	addParam(createParam<BefacoSlidePot>(Vec(15, 102), module, ::SlewLimiter::RISE_PARAM, 0.0, 1.0, 0.0));
-	addParam(createParam<BefacoSlidePot>(Vec(60, 102), module, ::SlewLimiter::FALL_PARAM, 0.0, 1.0, 0.0));
+	addParam(ParamWidget::create<BefacoSlidePot>(Vec(15, 102), module, ::SlewLimiter::RISE_PARAM, 0.0, 1.0, 0.0));
+	addParam(ParamWidget::create<BefacoSlidePot>(Vec(60, 102), module, ::SlewLimiter::FALL_PARAM, 0.0, 1.0, 0.0));
 
-	addInput(createInput<PJ301MPort>(Vec(10, 273), module, ::SlewLimiter::RISE_INPUT));
-	addInput(createInput<PJ301MPort>(Vec(55, 273), module, ::SlewLimiter::FALL_INPUT));
+	addInput(Port::create<PJ301MPort>(Vec(10, 273), Port::INPUT, module, ::SlewLimiter::RISE_INPUT));
+	addInput(Port::create<PJ301MPort>(Vec(55, 273), Port::INPUT, module, ::SlewLimiter::FALL_INPUT));
 
-	addInput(createInput<PJ301MPort>(Vec(10, 323), module, ::SlewLimiter::IN_INPUT));
-	addOutput(createOutput<PJ301MPort>(Vec(55, 323), module, ::SlewLimiter::OUT_OUTPUT));
+	addInput(Port::create<PJ301MPort>(Vec(10, 323), Port::INPUT, module, ::SlewLimiter::IN_INPUT));
+	addOutput(Port::create<PJ301MPort>(Vec(55, 323), Port::OUTPUT, module, ::SlewLimiter::OUT_OUTPUT));
 }

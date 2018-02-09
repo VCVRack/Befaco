@@ -143,25 +143,25 @@ EvenVCOWidget::EvenVCOWidget() {
 		addChild(panel);
 	}
 
-	addChild(createScrew<Knurlie>(Vec(15, 0)));
-	addChild(createScrew<Knurlie>(Vec(15, 365)));
-	addChild(createScrew<Knurlie>(Vec(15*6, 0)));
-	addChild(createScrew<Knurlie>(Vec(15*6, 365)));
+	addChild(Widget::create<Knurlie>(Vec(15, 0)));
+	addChild(Widget::create<Knurlie>(Vec(15, 365)));
+	addChild(Widget::create<Knurlie>(Vec(15*6, 0)));
+	addChild(Widget::create<Knurlie>(Vec(15*6, 365)));
 
-	addParam(createParam<BefacoBigSnapKnob>(Vec(22, 32), module, EvenVCO::OCTAVE_PARAM, -5.0, 4.0, 0.0));
-	addParam(createParam<BefacoTinyKnob>(Vec(73, 131), module, EvenVCO::TUNE_PARAM, -7.0, 7.0, 0.0));
-	addParam(createParam<Davies1900hRedKnob>(Vec(16, 230), module, EvenVCO::PWM_PARAM, -1.0, 1.0, 0.0));
+	addParam(ParamWidget::create<BefacoBigSnapKnob>(Vec(22, 32), module, EvenVCO::OCTAVE_PARAM, -5.0, 4.0, 0.0));
+	addParam(ParamWidget::create<BefacoTinyKnob>(Vec(73, 131), module, EvenVCO::TUNE_PARAM, -7.0, 7.0, 0.0));
+	addParam(ParamWidget::create<Davies1900hRedKnob>(Vec(16, 230), module, EvenVCO::PWM_PARAM, -1.0, 1.0, 0.0));
 
-	addInput(createInput<PJ301MPort>(Vec(8, 120), module, EvenVCO::PITCH1_INPUT));
-	addInput(createInput<PJ301MPort>(Vec(19, 157), module, EvenVCO::PITCH2_INPUT));
-	addInput(createInput<PJ301MPort>(Vec(48, 183), module, EvenVCO::FM_INPUT));
-	addInput(createInput<PJ301MPort>(Vec(86, 189), module, EvenVCO::SYNC_INPUT));
+	addInput(Port::create<PJ301MPort>(Vec(8, 120), Port::INPUT, module, EvenVCO::PITCH1_INPUT));
+	addInput(Port::create<PJ301MPort>(Vec(19, 157), Port::INPUT, module, EvenVCO::PITCH2_INPUT));
+	addInput(Port::create<PJ301MPort>(Vec(48, 183), Port::INPUT, module, EvenVCO::FM_INPUT));
+	addInput(Port::create<PJ301MPort>(Vec(86, 189), Port::INPUT, module, EvenVCO::SYNC_INPUT));
 
-	addInput(createInput<PJ301MPort>(Vec(72, 236), module, EvenVCO::PWM_INPUT));
+	addInput(Port::create<PJ301MPort>(Vec(72, 236), Port::INPUT, module, EvenVCO::PWM_INPUT));
 
-	addOutput(createOutput<PJ301MPort>(Vec(10, 283), module, EvenVCO::TRI_OUTPUT));
-	addOutput(createOutput<PJ301MPort>(Vec(87, 283), module, EvenVCO::SINE_OUTPUT));
-	addOutput(createOutput<PJ301MPort>(Vec(48, 306), module, EvenVCO::EVEN_OUTPUT));
-	addOutput(createOutput<PJ301MPort>(Vec(10, 327), module, EvenVCO::SAW_OUTPUT));
-	addOutput(createOutput<PJ301MPort>(Vec(87, 327), module, EvenVCO::SQUARE_OUTPUT));
+	addOutput(Port::create<PJ301MPort>(Vec(10, 283), Port::OUTPUT, module, EvenVCO::TRI_OUTPUT));
+	addOutput(Port::create<PJ301MPort>(Vec(87, 283), Port::OUTPUT, module, EvenVCO::SINE_OUTPUT));
+	addOutput(Port::create<PJ301MPort>(Vec(48, 306), Port::OUTPUT, module, EvenVCO::EVEN_OUTPUT));
+	addOutput(Port::create<PJ301MPort>(Vec(10, 327), Port::OUTPUT, module, EvenVCO::SAW_OUTPUT));
+	addOutput(Port::create<PJ301MPort>(Vec(87, 327), Port::OUTPUT, module, EvenVCO::SQUARE_OUTPUT));
 }

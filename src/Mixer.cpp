@@ -58,22 +58,22 @@ MixerWidget::MixerWidget() {
 		addChild(panel);
 	}
 
-	addChild(createScrew<Knurlie>(Vec(15, 0)));
-	addChild(createScrew<Knurlie>(Vec(15, 365)));
+	addChild(Widget::create<Knurlie>(Vec(15, 0)));
+	addChild(Widget::create<Knurlie>(Vec(15, 365)));
 
-	addParam(createParam<Davies1900hWhiteKnob>(Vec(19, 32), module, Mixer::CH1_PARAM, 0.0, 1.0, 0.0));
-	addParam(createParam<Davies1900hWhiteKnob>(Vec(19, 85), module, Mixer::CH2_PARAM, 0.0, 1.0, 0.0));
-	addParam(createParam<Davies1900hWhiteKnob>(Vec(19, 137), module, Mixer::CH3_PARAM, 0.0, 1.0, 0.0));
-	addParam(createParam<Davies1900hWhiteKnob>(Vec(19, 190), module, Mixer::CH4_PARAM, 0.0, 1.0, 0.0));
+	addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(19, 32), module, Mixer::CH1_PARAM, 0.0, 1.0, 0.0));
+	addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(19, 85), module, Mixer::CH2_PARAM, 0.0, 1.0, 0.0));
+	addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(19, 137), module, Mixer::CH3_PARAM, 0.0, 1.0, 0.0));
+	addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(19, 190), module, Mixer::CH4_PARAM, 0.0, 1.0, 0.0));
 
-	addInput(createInput<PJ301MPort>(Vec(7, 242), module, Mixer::IN1_INPUT));
-	addInput(createInput<PJ301MPort>(Vec(43, 242), module, Mixer::IN2_INPUT));
+	addInput(Port::create<PJ301MPort>(Vec(7, 242), Port::INPUT, module, Mixer::IN1_INPUT));
+	addInput(Port::create<PJ301MPort>(Vec(43, 242), Port::INPUT, module, Mixer::IN2_INPUT));
 
-	addInput(createInput<PJ301MPort>(Vec(7, 281), module, Mixer::IN3_INPUT));
-	addInput(createInput<PJ301MPort>(Vec(43, 281), module, Mixer::IN4_INPUT));
+	addInput(Port::create<PJ301MPort>(Vec(7, 281), Port::INPUT, module, Mixer::IN3_INPUT));
+	addInput(Port::create<PJ301MPort>(Vec(43, 281), Port::INPUT, module, Mixer::IN4_INPUT));
 
-	addOutput(createOutput<PJ301MPort>(Vec(7, 324), module, Mixer::OUT1_OUTPUT));
-	addOutput(createOutput<PJ301MPort>(Vec(43, 324), module, Mixer::OUT2_OUTPUT));
+	addOutput(Port::create<PJ301MPort>(Vec(7, 324), Port::OUTPUT, module, Mixer::OUT1_OUTPUT));
+	addOutput(Port::create<PJ301MPort>(Vec(43, 324), Port::OUTPUT, module, Mixer::OUT2_OUTPUT));
 
-	addChild(createLight<MediumLight<GreenRedLight>>(Vec(32.7, 310), module, Mixer::OUT_POS_LIGHT));
+	addChild(ModuleLightWidget::create<MediumLight<GreenRedLight>>(Vec(32.7, 310), module, Mixer::OUT_POS_LIGHT));
 }
