@@ -66,11 +66,7 @@ struct Rampage : Module {
 	SchmittTrigger trigger[2];
 	PulseGenerator endOfCyclePulse[2];
 
-	Rampage() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {
-		for (int c = 0; c < 2; c++) {
-			trigger[c].setThresholds(0.0, 2.0);
-		}
-	}
+	Rampage() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
 	void step() override;
 };
 
@@ -90,7 +86,7 @@ static float shapeDelta(float delta, float tau, float shape) {
 void Rampage::step() {
 	for (int c = 0; c < 2; c++) {
 		float in = inputs[IN_A_INPUT + c].value;
-		if (trigger[c].process(params[TRIGG_A_PARAM + c].value * 10.0 + inputs[TRIGG_A_INPUT + c].value)) {
+		if (trigger[c].process(params[TRIGG_A_PARAM + c].value * 10.0 + inputs[TRIGG_A_INPUT + c].value / 2.0)) {
 			gate[c] = true;
 		}
 		if (gate[c]) {

@@ -5,10 +5,8 @@ Plugin *plugin;
 
 void init(rack::Plugin *p) {
 	plugin = p;
-	p->slug = "Befaco";
-#ifdef VERSION
+	p->slug = TOSTRING(SLUG);
 	p->version = TOSTRING(VERSION);
-#endif
 
 	p->addModel(createModel<EvenVCOWidget>("Befaco", "EvenVCO", "EvenVCO", OSCILLATOR_TAG));
 	p->addModel(createModel<RampageWidget>("Befaco", "Rampage", "Rampage", FUNCTION_GENERATOR_TAG, LOGIC_TAG, SLEW_LIMITER_TAG, ENVELOPE_FOLLOWER_TAG, DUAL_TAG));
