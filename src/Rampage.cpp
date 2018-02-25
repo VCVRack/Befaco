@@ -168,69 +168,65 @@ void Rampage::step() {
 }
 
 
-RampageWidget::RampageWidget() {
-	Rampage *module = new Rampage();
-	setModule(module);
-	box.size = Vec(15*18, 380);
+struct RampageWidget : ModuleWidget {
+	RampageWidget(Rampage *module) : ModuleWidget(module) {
+		setPanel(SVG::load(assetPlugin(plugin, "res/Rampage.svg")));
 
-	{
-		SVGPanel *panel = new SVGPanel();
-		panel->box.size = box.size;
-		panel->setBackground(SVG::load(assetPlugin(plugin, "res/Rampage.svg")));
-		addChild(panel);
+		addChild(Widget::create<Knurlie>(Vec(15, 0)));
+		addChild(Widget::create<Knurlie>(Vec(box.size.x-30, 0)));
+		addChild(Widget::create<Knurlie>(Vec(15, 365)));
+		addChild(Widget::create<Knurlie>(Vec(box.size.x-30, 365)));
+
+		addInput(Port::create<PJ301MPort>(Vec(14, 30), Port::INPUT, module, Rampage::IN_A_INPUT));
+		addInput(Port::create<PJ301MPort>(Vec(52, 37), Port::INPUT, module, Rampage::TRIGG_A_INPUT));
+		addInput(Port::create<PJ301MPort>(Vec(8, 268), Port::INPUT, module, Rampage::RISE_CV_A_INPUT));
+		addInput(Port::create<PJ301MPort>(Vec(67, 268), Port::INPUT, module, Rampage::FALL_CV_A_INPUT));
+		addInput(Port::create<PJ301MPort>(Vec(38, 297), Port::INPUT, module, Rampage::EXP_CV_A_INPUT));
+		addInput(Port::create<PJ301MPort>(Vec(102, 290), Port::INPUT, module, Rampage::CYCLE_A_INPUT));
+		addInput(Port::create<PJ301MPort>(Vec(229, 30), Port::INPUT, module, Rampage::IN_B_INPUT));
+		addInput(Port::create<PJ301MPort>(Vec(192, 37), Port::INPUT, module, Rampage::TRIGG_B_INPUT));
+		addInput(Port::create<PJ301MPort>(Vec(176, 268), Port::INPUT, module, Rampage::RISE_CV_B_INPUT));
+		addInput(Port::create<PJ301MPort>(Vec(237, 268), Port::INPUT, module, Rampage::FALL_CV_B_INPUT));
+		addInput(Port::create<PJ301MPort>(Vec(207, 297), Port::INPUT, module, Rampage::EXP_CV_B_INPUT));
+		addInput(Port::create<PJ301MPort>(Vec(143, 290), Port::INPUT, module, Rampage::CYCLE_B_INPUT));
+
+		addParam(ParamWidget::create<BefacoSwitch>(Vec(94, 32), module, Rampage::RANGE_A_PARAM, 0.0, 2.0, 0.0));
+		addParam(ParamWidget::create<BefacoTinyKnob>(Vec(27, 90), module, Rampage::SHAPE_A_PARAM, -1.0, 1.0, 0.0));
+		addParam(ParamWidget::create<BefacoPush>(Vec(72, 82), module, Rampage::TRIGG_A_PARAM, 0.0, 1.0, 0.0));
+		addParam(ParamWidget::create<BefacoSlidePot>(Vec(16, 135), module, Rampage::RISE_A_PARAM, 0.0, 1.0, 0.0));
+		addParam(ParamWidget::create<BefacoSlidePot>(Vec(57, 135), module, Rampage::FALL_A_PARAM, 0.0, 1.0, 0.0));
+		addParam(ParamWidget::create<BefacoSwitch>(Vec(101, 238), module, Rampage::CYCLE_A_PARAM, 0.0, 1.0, 0.0));
+		addParam(ParamWidget::create<BefacoSwitch>(Vec(147, 32), module, Rampage::RANGE_B_PARAM, 0.0, 2.0, 0.0));
+		addParam(ParamWidget::create<BefacoTinyKnob>(Vec(217, 90), module, Rampage::SHAPE_B_PARAM, -1.0, 1.0, 0.0));
+		addParam(ParamWidget::create<BefacoPush>(Vec(170, 82), module, Rampage::TRIGG_B_PARAM, 0.0, 1.0, 0.0));
+		addParam(ParamWidget::create<BefacoSlidePot>(Vec(197, 135), module, Rampage::RISE_B_PARAM, 0.0, 1.0, 0.0));
+		addParam(ParamWidget::create<BefacoSlidePot>(Vec(238, 135), module, Rampage::FALL_B_PARAM, 0.0, 1.0, 0.0));
+		addParam(ParamWidget::create<BefacoSwitch>(Vec(141, 238), module, Rampage::CYCLE_B_PARAM, 0.0, 1.0, 0.0));
+		addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(117, 76), module, Rampage::BALANCE_PARAM, 0.0, 1.0, 0.5));
+
+		addOutput(Port::create<PJ301MPort>(Vec(8, 326), Port::OUTPUT, module, Rampage::RISING_A_OUTPUT));
+		addOutput(Port::create<PJ301MPort>(Vec(68, 326), Port::OUTPUT, module, Rampage::FALLING_A_OUTPUT));
+		addOutput(Port::create<PJ301MPort>(Vec(104, 326), Port::OUTPUT, module, Rampage::EOC_A_OUTPUT));
+		addOutput(Port::create<PJ301MPort>(Vec(102, 195), Port::OUTPUT, module, Rampage::OUT_A_OUTPUT));
+		addOutput(Port::create<PJ301MPort>(Vec(177, 326), Port::OUTPUT, module, Rampage::RISING_B_OUTPUT));
+		addOutput(Port::create<PJ301MPort>(Vec(237, 326), Port::OUTPUT, module, Rampage::FALLING_B_OUTPUT));
+		addOutput(Port::create<PJ301MPort>(Vec(140, 326), Port::OUTPUT, module, Rampage::EOC_B_OUTPUT));
+		addOutput(Port::create<PJ301MPort>(Vec(142, 195), Port::OUTPUT, module, Rampage::OUT_B_OUTPUT));
+		addOutput(Port::create<PJ301MPort>(Vec(122, 133), Port::OUTPUT, module, Rampage::COMPARATOR_OUTPUT));
+		addOutput(Port::create<PJ301MPort>(Vec(89, 157), Port::OUTPUT, module, Rampage::MIN_OUTPUT));
+		addOutput(Port::create<PJ301MPort>(Vec(155, 157), Port::OUTPUT, module, Rampage::MAX_OUTPUT));
+
+		addChild(ModuleLightWidget::create<SmallLight<RedLight>>(Vec(132, 167), module, Rampage::COMPARATOR_LIGHT));
+		addChild(ModuleLightWidget::create<SmallLight<RedLight>>(Vec(123, 174), module, Rampage::MIN_LIGHT));
+		addChild(ModuleLightWidget::create<SmallLight<RedLight>>(Vec(141, 174), module, Rampage::MAX_LIGHT));
+		addChild(ModuleLightWidget::create<SmallLight<RedLight>>(Vec(126, 185), module, Rampage::OUT_A_LIGHT));
+		addChild(ModuleLightWidget::create<SmallLight<RedLight>>(Vec(138, 185), module, Rampage::OUT_B_LIGHT));
+		addChild(ModuleLightWidget::create<SmallLight<RedLight>>(Vec(18, 312), module, Rampage::RISING_A_LIGHT));
+		addChild(ModuleLightWidget::create<SmallLight<RedLight>>(Vec(78, 312), module, Rampage::FALLING_A_LIGHT));
+		addChild(ModuleLightWidget::create<SmallLight<RedLight>>(Vec(187, 312), module, Rampage::RISING_B_LIGHT));
+		addChild(ModuleLightWidget::create<SmallLight<RedLight>>(Vec(247, 312), module, Rampage::FALLING_B_LIGHT));
 	}
+};
 
-	addChild(Widget::create<Knurlie>(Vec(15, 0)));
-	addChild(Widget::create<Knurlie>(Vec(box.size.x-30, 0)));
-	addChild(Widget::create<Knurlie>(Vec(15, 365)));
-	addChild(Widget::create<Knurlie>(Vec(box.size.x-30, 365)));
 
-	addInput(Port::create<PJ301MPort>(Vec(14, 30), Port::INPUT, module, Rampage::IN_A_INPUT));
-	addInput(Port::create<PJ301MPort>(Vec(52, 37), Port::INPUT, module, Rampage::TRIGG_A_INPUT));
-	addInput(Port::create<PJ301MPort>(Vec(8, 268), Port::INPUT, module, Rampage::RISE_CV_A_INPUT));
-	addInput(Port::create<PJ301MPort>(Vec(67, 268), Port::INPUT, module, Rampage::FALL_CV_A_INPUT));
-	addInput(Port::create<PJ301MPort>(Vec(38, 297), Port::INPUT, module, Rampage::EXP_CV_A_INPUT));
-	addInput(Port::create<PJ301MPort>(Vec(102, 290), Port::INPUT, module, Rampage::CYCLE_A_INPUT));
-	addInput(Port::create<PJ301MPort>(Vec(229, 30), Port::INPUT, module, Rampage::IN_B_INPUT));
-	addInput(Port::create<PJ301MPort>(Vec(192, 37), Port::INPUT, module, Rampage::TRIGG_B_INPUT));
-	addInput(Port::create<PJ301MPort>(Vec(176, 268), Port::INPUT, module, Rampage::RISE_CV_B_INPUT));
-	addInput(Port::create<PJ301MPort>(Vec(237, 268), Port::INPUT, module, Rampage::FALL_CV_B_INPUT));
-	addInput(Port::create<PJ301MPort>(Vec(207, 297), Port::INPUT, module, Rampage::EXP_CV_B_INPUT));
-	addInput(Port::create<PJ301MPort>(Vec(143, 290), Port::INPUT, module, Rampage::CYCLE_B_INPUT));
-
-	addParam(ParamWidget::create<BefacoSwitch>(Vec(94, 32), module, Rampage::RANGE_A_PARAM, 0.0, 2.0, 0.0));
-	addParam(ParamWidget::create<BefacoTinyKnob>(Vec(27, 90), module, Rampage::SHAPE_A_PARAM, -1.0, 1.0, 0.0));
-	addParam(ParamWidget::create<BefacoPush>(Vec(72, 82), module, Rampage::TRIGG_A_PARAM, 0.0, 1.0, 0.0));
-	addParam(ParamWidget::create<BefacoSlidePot>(Vec(16, 135), module, Rampage::RISE_A_PARAM, 0.0, 1.0, 0.0));
-	addParam(ParamWidget::create<BefacoSlidePot>(Vec(57, 135), module, Rampage::FALL_A_PARAM, 0.0, 1.0, 0.0));
-	addParam(ParamWidget::create<BefacoSwitch>(Vec(101, 238), module, Rampage::CYCLE_A_PARAM, 0.0, 1.0, 0.0));
-	addParam(ParamWidget::create<BefacoSwitch>(Vec(147, 32), module, Rampage::RANGE_B_PARAM, 0.0, 2.0, 0.0));
-	addParam(ParamWidget::create<BefacoTinyKnob>(Vec(217, 90), module, Rampage::SHAPE_B_PARAM, -1.0, 1.0, 0.0));
-	addParam(ParamWidget::create<BefacoPush>(Vec(170, 82), module, Rampage::TRIGG_B_PARAM, 0.0, 1.0, 0.0));
-	addParam(ParamWidget::create<BefacoSlidePot>(Vec(197, 135), module, Rampage::RISE_B_PARAM, 0.0, 1.0, 0.0));
-	addParam(ParamWidget::create<BefacoSlidePot>(Vec(238, 135), module, Rampage::FALL_B_PARAM, 0.0, 1.0, 0.0));
-	addParam(ParamWidget::create<BefacoSwitch>(Vec(141, 238), module, Rampage::CYCLE_B_PARAM, 0.0, 1.0, 0.0));
-	addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(117, 76), module, Rampage::BALANCE_PARAM, 0.0, 1.0, 0.5));
-
-	addOutput(Port::create<PJ301MPort>(Vec(8, 326), Port::OUTPUT, module, Rampage::RISING_A_OUTPUT));
-	addOutput(Port::create<PJ301MPort>(Vec(68, 326), Port::OUTPUT, module, Rampage::FALLING_A_OUTPUT));
-	addOutput(Port::create<PJ301MPort>(Vec(104, 326), Port::OUTPUT, module, Rampage::EOC_A_OUTPUT));
-	addOutput(Port::create<PJ301MPort>(Vec(102, 195), Port::OUTPUT, module, Rampage::OUT_A_OUTPUT));
-	addOutput(Port::create<PJ301MPort>(Vec(177, 326), Port::OUTPUT, module, Rampage::RISING_B_OUTPUT));
-	addOutput(Port::create<PJ301MPort>(Vec(237, 326), Port::OUTPUT, module, Rampage::FALLING_B_OUTPUT));
-	addOutput(Port::create<PJ301MPort>(Vec(140, 326), Port::OUTPUT, module, Rampage::EOC_B_OUTPUT));
-	addOutput(Port::create<PJ301MPort>(Vec(142, 195), Port::OUTPUT, module, Rampage::OUT_B_OUTPUT));
-	addOutput(Port::create<PJ301MPort>(Vec(122, 133), Port::OUTPUT, module, Rampage::COMPARATOR_OUTPUT));
-	addOutput(Port::create<PJ301MPort>(Vec(89, 157), Port::OUTPUT, module, Rampage::MIN_OUTPUT));
-	addOutput(Port::create<PJ301MPort>(Vec(155, 157), Port::OUTPUT, module, Rampage::MAX_OUTPUT));
-
-	addChild(ModuleLightWidget::create<SmallLight<RedLight>>(Vec(132, 167), module, Rampage::COMPARATOR_LIGHT));
-	addChild(ModuleLightWidget::create<SmallLight<RedLight>>(Vec(123, 174), module, Rampage::MIN_LIGHT));
-	addChild(ModuleLightWidget::create<SmallLight<RedLight>>(Vec(141, 174), module, Rampage::MAX_LIGHT));
-	addChild(ModuleLightWidget::create<SmallLight<RedLight>>(Vec(126, 185), module, Rampage::OUT_A_LIGHT));
-	addChild(ModuleLightWidget::create<SmallLight<RedLight>>(Vec(138, 185), module, Rampage::OUT_B_LIGHT));
-	addChild(ModuleLightWidget::create<SmallLight<RedLight>>(Vec(18, 312), module, Rampage::RISING_A_LIGHT));
-	addChild(ModuleLightWidget::create<SmallLight<RedLight>>(Vec(78, 312), module, Rampage::FALLING_A_LIGHT));
-	addChild(ModuleLightWidget::create<SmallLight<RedLight>>(Vec(187, 312), module, Rampage::RISING_B_LIGHT));
-	addChild(ModuleLightWidget::create<SmallLight<RedLight>>(Vec(247, 312), module, Rampage::FALLING_B_LIGHT));
-}
+Model *modelRampage = Model::create<Rampage, RampageWidget>("Befaco", "Rampage", "Rampage", FUNCTION_GENERATOR_TAG, LOGIC_TAG, SLEW_LIMITER_TAG, ENVELOPE_FOLLOWER_TAG, DUAL_TAG);

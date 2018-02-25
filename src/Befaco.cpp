@@ -8,13 +8,13 @@ void init(rack::Plugin *p) {
 	p->slug = TOSTRING(SLUG);
 	p->version = TOSTRING(VERSION);
 
-	p->addModel(createModel<EvenVCOWidget>("Befaco", "EvenVCO", "EvenVCO", OSCILLATOR_TAG));
-	p->addModel(createModel<RampageWidget>("Befaco", "Rampage", "Rampage", FUNCTION_GENERATOR_TAG, LOGIC_TAG, SLEW_LIMITER_TAG, ENVELOPE_FOLLOWER_TAG, DUAL_TAG));
-	p->addModel(createModel<ABCWidget>("Befaco", "ABC", "A*B+C", RING_MODULATOR_TAG, ATTENUATOR_TAG, DUAL_TAG));
-	p->addModel(createModel<SpringReverbWidget>("Befaco", "SpringReverb", "Spring Reverb", REVERB_TAG, DUAL_TAG));
-	p->addModel(createModel<MixerWidget>("Befaco", "Mixer", "Mixer", MIXER_TAG));
-	p->addModel(createModel<SlewLimiterWidget>("Befaco", "SlewLimiter", "Slew Limiter", SLEW_LIMITER_TAG, ENVELOPE_FOLLOWER_TAG));
-	p->addModel(createModel<DualAtenuverterWidget>("Befaco", "DualAtenuverter", "Dual Atenuverter", ATTENUATOR_TAG, DUAL_TAG));
+	p->addModel(modelEvenVCO);
+	p->addModel(modelRampage);
+	p->addModel(modelABC);
+	p->addModel(modelSpringReverb);
+	p->addModel(modelMixer);
+	p->addModel(modelSlewLimiter);
+	p->addModel(modelDualAtenuverter);
 
 	springReverbInit();
 }

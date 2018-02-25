@@ -72,35 +72,31 @@ void ABC::step() {
 }
 
 
-ABCWidget::ABCWidget() {
-	ABC *module = new ABC();
-	setModule(module);
-	box.size = Vec(15*6, 380);
+struct ABCWidget : ModuleWidget {
+	ABCWidget(ABC *module) : ModuleWidget(module) {
+		setPanel(SVG::load(assetPlugin(plugin, "res/ABC.svg")));
 
-	{
-		SVGPanel *panel = new SVGPanel();
-		panel->box.size = box.size;
-		panel->setBackground(SVG::load(assetPlugin(plugin, "res/ABC.svg")));
-		addChild(panel);
+		addChild(Widget::create<Knurlie>(Vec(15, 0)));
+		addChild(Widget::create<Knurlie>(Vec(15, 365)));
+
+		addParam(ParamWidget::create<Davies1900hRedKnob>(Vec(45, 37), module, ABC::B1_LEVEL_PARAM, -1.0, 1.0, 0.0));
+		addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(45, 107), module, ABC::C1_LEVEL_PARAM, -1.0, 1.0, 0.0));
+		addParam(ParamWidget::create<Davies1900hRedKnob>(Vec(45, 204), module, ABC::B2_LEVEL_PARAM, -1.0, 1.0, 0.0));
+		addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(45, 274), module, ABC::C2_LEVEL_PARAM, -1.0, 1.0, 0.0));
+
+		addInput(Port::create<PJ301MPort>(Vec(7, 28), Port::INPUT, module, ABC::A1_INPUT));
+		addInput(Port::create<PJ301MPort>(Vec(7, 70), Port::INPUT, module, ABC::B1_INPUT));
+		addInput(Port::create<PJ301MPort>(Vec(7, 112), Port::INPUT, module, ABC::C1_INPUT));
+		addOutput(Port::create<PJ301MPort>(Vec(7, 154), Port::OUTPUT, module, ABC::OUT1_OUTPUT));
+		addInput(Port::create<PJ301MPort>(Vec(7, 195), Port::INPUT, module, ABC::A2_INPUT));
+		addInput(Port::create<PJ301MPort>(Vec(7, 237), Port::INPUT, module, ABC::B2_INPUT));
+		addInput(Port::create<PJ301MPort>(Vec(7, 279), Port::INPUT, module, ABC::C2_INPUT));
+		addOutput(Port::create<PJ301MPort>(Vec(7, 321), Port::OUTPUT, module, ABC::OUT2_OUTPUT));
+
+		addChild(ModuleLightWidget::create<MediumLight<GreenRedLight>>(Vec(37, 162), module, ABC::OUT1_POS_LIGHT));
+		addChild(ModuleLightWidget::create<MediumLight<GreenRedLight>>(Vec(37, 329), module, ABC::OUT2_POS_LIGHT));
 	}
+};
 
-	addChild(Widget::create<Knurlie>(Vec(15, 0)));
-	addChild(Widget::create<Knurlie>(Vec(15, 365)));
 
-	addParam(ParamWidget::create<Davies1900hRedKnob>(Vec(45, 37), module, ABC::B1_LEVEL_PARAM, -1.0, 1.0, 0.0));
-	addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(45, 107), module, ABC::C1_LEVEL_PARAM, -1.0, 1.0, 0.0));
-	addParam(ParamWidget::create<Davies1900hRedKnob>(Vec(45, 204), module, ABC::B2_LEVEL_PARAM, -1.0, 1.0, 0.0));
-	addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(45, 274), module, ABC::C2_LEVEL_PARAM, -1.0, 1.0, 0.0));
-
-	addInput(Port::create<PJ301MPort>(Vec(7, 28), Port::INPUT, module, ABC::A1_INPUT));
-	addInput(Port::create<PJ301MPort>(Vec(7, 70), Port::INPUT, module, ABC::B1_INPUT));
-	addInput(Port::create<PJ301MPort>(Vec(7, 112), Port::INPUT, module, ABC::C1_INPUT));
-	addOutput(Port::create<PJ301MPort>(Vec(7, 154), Port::OUTPUT, module, ABC::OUT1_OUTPUT));
-	addInput(Port::create<PJ301MPort>(Vec(7, 195), Port::INPUT, module, ABC::A2_INPUT));
-	addInput(Port::create<PJ301MPort>(Vec(7, 237), Port::INPUT, module, ABC::B2_INPUT));
-	addInput(Port::create<PJ301MPort>(Vec(7, 279), Port::INPUT, module, ABC::C2_INPUT));
-	addOutput(Port::create<PJ301MPort>(Vec(7, 321), Port::OUTPUT, module, ABC::OUT2_OUTPUT));
-
-	addChild(ModuleLightWidget::create<MediumLight<GreenRedLight>>(Vec(37, 162), module, ABC::OUT1_POS_LIGHT));
-	addChild(ModuleLightWidget::create<MediumLight<GreenRedLight>>(Vec(37, 329), module, ABC::OUT2_POS_LIGHT));
-}
+Model *modelABC = Model::create<ABC, ABCWidget>("Befaco", "ABC", "A*B+C", RING_MODULATOR_TAG, ATTENUATOR_TAG, DUAL_TAG);

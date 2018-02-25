@@ -46,34 +46,30 @@ void Mixer::step() {
 }
 
 
-MixerWidget::MixerWidget() {
-	Mixer *module = new Mixer();
-	setModule(module);
-	box.size = Vec(15*5, 380);
+struct MixerWidget : ModuleWidget {
+	MixerWidget(Mixer *module) : ModuleWidget(module) {
+		setPanel(SVG::load(assetPlugin(plugin, "res/Mixer.svg")));
 
-	{
-		SVGPanel *panel = new SVGPanel();
-		panel->box.size = box.size;
-		panel->setBackground(SVG::load(assetPlugin(plugin, "res/Mixer.svg")));
-		addChild(panel);
+		addChild(Widget::create<Knurlie>(Vec(15, 0)));
+		addChild(Widget::create<Knurlie>(Vec(15, 365)));
+
+		addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(19, 32), module, Mixer::CH1_PARAM, 0.0, 1.0, 0.0));
+		addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(19, 85), module, Mixer::CH2_PARAM, 0.0, 1.0, 0.0));
+		addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(19, 137), module, Mixer::CH3_PARAM, 0.0, 1.0, 0.0));
+		addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(19, 190), module, Mixer::CH4_PARAM, 0.0, 1.0, 0.0));
+
+		addInput(Port::create<PJ301MPort>(Vec(7, 242), Port::INPUT, module, Mixer::IN1_INPUT));
+		addInput(Port::create<PJ301MPort>(Vec(43, 242), Port::INPUT, module, Mixer::IN2_INPUT));
+
+		addInput(Port::create<PJ301MPort>(Vec(7, 281), Port::INPUT, module, Mixer::IN3_INPUT));
+		addInput(Port::create<PJ301MPort>(Vec(43, 281), Port::INPUT, module, Mixer::IN4_INPUT));
+
+		addOutput(Port::create<PJ301MPort>(Vec(7, 324), Port::OUTPUT, module, Mixer::OUT1_OUTPUT));
+		addOutput(Port::create<PJ301MPort>(Vec(43, 324), Port::OUTPUT, module, Mixer::OUT2_OUTPUT));
+
+		addChild(ModuleLightWidget::create<MediumLight<GreenRedLight>>(Vec(32.7, 310), module, Mixer::OUT_POS_LIGHT));
 	}
+};
 
-	addChild(Widget::create<Knurlie>(Vec(15, 0)));
-	addChild(Widget::create<Knurlie>(Vec(15, 365)));
 
-	addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(19, 32), module, Mixer::CH1_PARAM, 0.0, 1.0, 0.0));
-	addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(19, 85), module, Mixer::CH2_PARAM, 0.0, 1.0, 0.0));
-	addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(19, 137), module, Mixer::CH3_PARAM, 0.0, 1.0, 0.0));
-	addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(19, 190), module, Mixer::CH4_PARAM, 0.0, 1.0, 0.0));
-
-	addInput(Port::create<PJ301MPort>(Vec(7, 242), Port::INPUT, module, Mixer::IN1_INPUT));
-	addInput(Port::create<PJ301MPort>(Vec(43, 242), Port::INPUT, module, Mixer::IN2_INPUT));
-
-	addInput(Port::create<PJ301MPort>(Vec(7, 281), Port::INPUT, module, Mixer::IN3_INPUT));
-	addInput(Port::create<PJ301MPort>(Vec(43, 281), Port::INPUT, module, Mixer::IN4_INPUT));
-
-	addOutput(Port::create<PJ301MPort>(Vec(7, 324), Port::OUTPUT, module, Mixer::OUT1_OUTPUT));
-	addOutput(Port::create<PJ301MPort>(Vec(43, 324), Port::OUTPUT, module, Mixer::OUT2_OUTPUT));
-
-	addChild(ModuleLightWidget::create<MediumLight<GreenRedLight>>(Vec(32.7, 310), module, Mixer::OUT_POS_LIGHT));
-}
+Model *modelMixer = Model::create<Mixer, MixerWidget>("Befaco", "Mixer", "Mixer", MIXER_TAG);

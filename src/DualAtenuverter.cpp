@@ -47,32 +47,28 @@ void DualAtenuverter::step() {
 }
 
 
-DualAtenuverterWidget::DualAtenuverterWidget() {
-	DualAtenuverter *module = new DualAtenuverter();
-	setModule(module);
-	box.size = Vec(15*5, 380);
+struct DualAtenuverterWidget : ModuleWidget {
+	DualAtenuverterWidget(DualAtenuverter *module) : ModuleWidget(module) {
+		setPanel(SVG::load(assetPlugin(plugin, "res/DualAtenuverter.svg")));
 
-	{
-		SVGPanel *panel = new SVGPanel();
-		panel->box.size = box.size;
-		panel->setBackground(SVG::load(assetPlugin(plugin, "res/DualAtenuverter.svg")));
-		addChild(panel);
+		addChild(Widget::create<Knurlie>(Vec(15, 0)));
+		addChild(Widget::create<Knurlie>(Vec(15, 365)));
+
+		addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(20, 33), module, DualAtenuverter::ATEN1_PARAM, -1.0, 1.0, 0.0));
+		addParam(ParamWidget::create<Davies1900hRedKnob>(Vec(20, 91), module, DualAtenuverter::OFFSET1_PARAM, -10.0, 10.0, 0.0));
+		addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(20, 201), module, DualAtenuverter::ATEN2_PARAM, -1.0, 1.0, 0.0));
+		addParam(ParamWidget::create<Davies1900hRedKnob>(Vec(20, 260), module, DualAtenuverter::OFFSET2_PARAM, -10.0, 10.0, 0.0));
+
+		addInput(Port::create<PJ301MPort>(Vec(7, 152), Port::INPUT, module, DualAtenuverter::IN1_INPUT));
+		addOutput(Port::create<PJ301MPort>(Vec(43, 152), Port::OUTPUT, module, DualAtenuverter::OUT1_OUTPUT));
+
+		addInput(Port::create<PJ301MPort>(Vec(7, 319), Port::INPUT, module, DualAtenuverter::IN2_INPUT));
+		addOutput(Port::create<PJ301MPort>(Vec(43, 319), Port::OUTPUT, module, DualAtenuverter::OUT2_OUTPUT));
+
+		addChild(ModuleLightWidget::create<MediumLight<GreenRedLight>>(Vec(33, 143), module, DualAtenuverter::OUT1_POS_LIGHT));
+		addChild(ModuleLightWidget::create<MediumLight<GreenRedLight>>(Vec(33, 311), module, DualAtenuverter::OUT2_POS_LIGHT));
 	}
+};
 
-	addChild(Widget::create<Knurlie>(Vec(15, 0)));
-	addChild(Widget::create<Knurlie>(Vec(15, 365)));
 
-	addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(20, 33), module, DualAtenuverter::ATEN1_PARAM, -1.0, 1.0, 0.0));
-	addParam(ParamWidget::create<Davies1900hRedKnob>(Vec(20, 91), module, DualAtenuverter::OFFSET1_PARAM, -10.0, 10.0, 0.0));
-	addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(20, 201), module, DualAtenuverter::ATEN2_PARAM, -1.0, 1.0, 0.0));
-	addParam(ParamWidget::create<Davies1900hRedKnob>(Vec(20, 260), module, DualAtenuverter::OFFSET2_PARAM, -10.0, 10.0, 0.0));
-
-	addInput(Port::create<PJ301MPort>(Vec(7, 152), Port::INPUT, module, DualAtenuverter::IN1_INPUT));
-	addOutput(Port::create<PJ301MPort>(Vec(43, 152), Port::OUTPUT, module, DualAtenuverter::OUT1_OUTPUT));
-
-	addInput(Port::create<PJ301MPort>(Vec(7, 319), Port::INPUT, module, DualAtenuverter::IN2_INPUT));
-	addOutput(Port::create<PJ301MPort>(Vec(43, 319), Port::OUTPUT, module, DualAtenuverter::OUT2_OUTPUT));
-
-	addChild(ModuleLightWidget::create<MediumLight<GreenRedLight>>(Vec(33, 143), module, DualAtenuverter::OUT1_POS_LIGHT));
-	addChild(ModuleLightWidget::create<MediumLight<GreenRedLight>>(Vec(33, 311), module, DualAtenuverter::OUT2_POS_LIGHT));
-}
+Model *modelDualAtenuverter = Model::create<DualAtenuverter, DualAtenuverterWidget>("Befaco", "DualAtenuverter", "Dual Atenuverter", ATTENUATOR_TAG, DUAL_TAG);
