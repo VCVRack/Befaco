@@ -1,5 +1,5 @@
 SLUG = Befaco
-VERSION = 0.6.0dev
+VERSION = 0.6.0
 
 FLAGS = -I./pffft -DPFFFT_SIMD_DISABLE
 
