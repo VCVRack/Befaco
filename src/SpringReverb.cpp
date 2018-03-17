@@ -86,7 +86,7 @@ struct RealTimeConvolver {
 		for (size_t i = 0; i < kernelBlocks; i++) {
 			// Pad each block with zeros
 			memset(tmpBlock, 0, sizeof(float) * blockSize*2);
-			size_t len = min(blockSize, length - i*blockSize);
+			size_t len = min((int) blockSize, (int) (length - i*blockSize));
 			memcpy(tmpBlock, &kernel[i*blockSize], sizeof(float)*len);
 			// Compute fft
 			pffft_transform(pffft, tmpBlock, &kernelFfts[blockSize*2 * i], NULL, PFFFT_FORWARD);
