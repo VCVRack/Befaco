@@ -143,11 +143,11 @@ void Rampage::step() {
 
 		outputs[RISING_A_OUTPUT + c].value = (rising ? 10.0 : 0.0);
 		outputs[FALLING_A_OUTPUT + c].value = (falling ? 10.0 : 0.0);
-		lights[RISING_A_LIGHT + c].value = (rising ? 1.0 : 0.0);
-		lights[FALLING_A_LIGHT + c].value = (falling ? 1.0 : 0.0);
+		lights[RISING_A_LIGHT + c].setBrightnessSmooth(rising ? 1.0 : 0.0);
+		lights[FALLING_A_LIGHT + c].setBrightnessSmooth(falling ? 1.0 : 0.0);
 		outputs[EOC_A_OUTPUT + c].value = (endOfCyclePulse[c].process(engineGetSampleTime()) ? 10.0 : 0.0);
 		outputs[OUT_A_OUTPUT + c].value = out[c];
-		lights[OUT_A_LIGHT + c].value = out[c] / 10.0;
+		lights[OUT_A_LIGHT + c].setBrightnessSmooth(out[c] / 10.0);
 	}
 
 	// Logic
@@ -162,9 +162,9 @@ void Rampage::step() {
 	outputs[MIN_OUTPUT].value = fminf(a, b);
 	outputs[MAX_OUTPUT].value = fmaxf(a, b);
 	// Lights
-	lights[COMPARATOR_LIGHT].value = outputs[COMPARATOR_OUTPUT].value / 10.0;
-	lights[MIN_LIGHT].value = outputs[MIN_OUTPUT].value / 10.0;
-	lights[MAX_LIGHT].value = outputs[MAX_OUTPUT].value / 10.0;
+	lights[COMPARATOR_LIGHT].setBrightnessSmooth(outputs[COMPARATOR_OUTPUT].value / 10.0);
+	lights[MIN_LIGHT].setBrightnessSmooth(outputs[MIN_OUTPUT].value / 10.0);
+	lights[MAX_LIGHT].setBrightnessSmooth(outputs[MAX_OUTPUT].value / 10.0);
 }
 
 

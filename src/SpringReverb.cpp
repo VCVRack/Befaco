@@ -4,6 +4,7 @@
 #include "dsp/samplerate.hpp"
 #include "dsp/ringbuffer.hpp"
 #include "dsp/filter.hpp"
+#include "dsp/fir.hpp"
 #include "pffft.h"
 
 
@@ -25,115 +26,6 @@ void springReverbInit() {
 
 	// TODO Add springReverbDestroy() function once plugins have destroy() callbacks
 }
-
-
-struct RealTimeConvolver {
-	// `kernelBlocks` number of contiguous FFT blocks of size `blockSize`
-	// indexed by [i * blockSize*2 + j]
-	float *kernelFfts = NULL;
-	float *inputFfts = NULL;
-	float *outputTail = NULL;
-	float *tmpBlock = NULL;
-	size_t blockSize;
-	size_t kernelBlocks = 0;
-	size_t inputPos = 0;
-	// kiss_fftr_cfg fft_cfg;
-	// kiss_fftr_cfg ifft_cfg;
-	PFFFT_Setup *pffft;
-
-	/** blocksize should be >=32 and a power of 2 */
-	RealTimeConvolver(size_t blockSize) {
-		this->blockSize = blockSize;
-		pffft = pffft_new_setup(blockSize*2, PFFFT_REAL);
-		outputTail = new float[blockSize]();
-		tmpBlock = new float[blockSize*2]();
-	}
-
-	~RealTimeConvolver() {
-		clear();
-		delete[] outputTail;
-		delete[] tmpBlock;
-		pffft_destroy_setup(pffft);
-	}
-
-	void clear() {
-		if (kernelFfts) {
-			pffft_aligned_free(kernelFfts);
-			kernelFfts = NULL;
-		}
-		if (inputFfts) {
-			pffft_aligned_free(inputFfts);
-			inputFfts = NULL;
-		}
-		kernelBlocks = 0;
-		inputPos = 0;
-	}
-
-	void setKernel(const float *kernel, size_t length) {
-		clear();
-
-		if (!kernel || length == 0)
-			return;
-
-		// Round up to the nearest factor blockSize
-		kernelBlocks = (length - 1) / blockSize + 1;
-
-		// Allocate blocks
-		kernelFfts = (float*) pffft_aligned_malloc(sizeof(float) * blockSize*2 * kernelBlocks);
-		inputFfts = (float*) pffft_aligned_malloc(sizeof(float) * blockSize*2 * kernelBlocks);
-		memset(inputFfts, 0, sizeof(float) * blockSize*2 * kernelBlocks);
-
-		for (size_t i = 0; i < kernelBlocks; i++) {
-			// Pad each block with zeros
-			memset(tmpBlock, 0, sizeof(float) * blockSize*2);
-			size_t len = min((int) blockSize, (int) (length - i*blockSize));
-			memcpy(tmpBlock, &kernel[i*blockSize], sizeof(float)*len);
-			// Compute fft
-			pffft_transform(pffft, tmpBlock, &kernelFfts[blockSize*2 * i], NULL, PFFFT_FORWARD);
-		}
-	}
-
-	/** Applies reverb to input
-	input and output must be size blockSize
-	*/
-	void processBlock(const float *input, float *output) {
-		if (kernelBlocks == 0) {
-			memset(output, 0, sizeof(float) * blockSize);
-			return;
-		}
-
-		// Step input position
-		inputPos = (inputPos + 1) % kernelBlocks;
-		// Pad block with zeros
-		memset(tmpBlock, 0, sizeof(float) * blockSize*2);
-		memcpy(tmpBlock, input, sizeof(float) * blockSize);
-		// Compute input fft
-		pffft_transform(pffft, tmpBlock, &inputFfts[blockSize*2 * inputPos], NULL, PFFFT_FORWARD);
-		// Create output fft
-		memset(tmpBlock, 0, sizeof(float) * blockSize*2);
-		// convolve input fft by kernel fft
-		// Note: This is the CPU bottleneck loop
-		for (size_t i = 0; i < kernelBlocks; i++) {
-			size_t pos = (inputPos - i + kernelBlocks) % kernelBlocks;
-			pffft_zconvolve_accumulate(pffft, &kernelFfts[blockSize*2 * i], &inputFfts[blockSize*2 * pos], tmpBlock, 1.0);
-		}
-		// Compute output
-		pffft_transform(pffft, tmpBlock, tmpBlock, NULL, PFFFT_BACKWARD);
-		// Add block tail from last output block
-		for (size_t i = 0; i < blockSize; i++) {
-			tmpBlock[i] += outputTail[i];
-		}
-		// Copy output block to output
-		for (size_t i = 0; i < blockSize; i++) {
-			// Scale based on FFT
-			output[i] = tmpBlock[i] / blockSize;
-		}
-		// Set tail
-		for (size_t i = 0; i < blockSize; i++) {
-			outputTail[i] = tmpBlock[i + blockSize];
-		}
-	}
-};
 
 
 #define BLOCKSIZE 1024
