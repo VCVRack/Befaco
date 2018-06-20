@@ -8,27 +8,10 @@
 #include "pffft.h"
 
 
-float *springReverbIR;
-int springReverbIRLen;
-
-void springReverbInit() {
-	std::string irFilename = assetPlugin(plugin, "res/SpringReverbIR.pcm");
-	FILE *f = fopen(irFilename.c_str(), "rb");
-	assert(f);
-	fseek(f, 0, SEEK_END);
-	int size = ftell(f);
-	fseek(f, 0, SEEK_SET);
-
-	springReverbIRLen = size / sizeof(float);
-	springReverbIR = new float[springReverbIRLen];
-	fread(springReverbIR, sizeof(float), springReverbIRLen, f);
-	fclose(f);
-
-	// TODO Add springReverbDestroy() function once plugins have destroy() callbacks
-}
+BINARY(src_SpringReverbIR_pcm);
 
 
-#define BLOCKSIZE 1024
+static const size_t BLOCK_SIZE = 1024;
 
 struct SpringReverb : Module {
 	enum ParamIds {
@@ -60,8 +43,8 @@ struct SpringReverb : Module {
 	RealTimeConvolver *convolver = NULL;
 	SampleRateConverter<1> inputSrc;
 	SampleRateConverter<1> outputSrc;
-	DoubleRingBuffer<Frame<1>, 16*BLOCKSIZE> inputBuffer;
-	DoubleRingBuffer<Frame<1>, 16*BLOCKSIZE> outputBuffer;
+	DoubleRingBuffer<Frame<1>, 16*BLOCK_SIZE> inputBuffer;
+	DoubleRingBuffer<Frame<1>, 16*BLOCK_SIZE> outputBuffer;
 
 	RCFilter dryFilter;
 	PeakFilter vuFilter;
@@ -74,8 +57,11 @@ struct SpringReverb : Module {
 
 
 SpringReverb::SpringReverb() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {
-	convolver = new RealTimeConvolver(BLOCKSIZE);
-	convolver->setKernel(springReverbIR, springReverbIRLen);
+	convolver = new RealTimeConvolver(BLOCK_SIZE);
+
+	const float *kernel = (const float*) BINARY_START(src_SpringReverbIR_pcm);
+	size_t kernelLen = BINARY_SIZE(src_SpringReverbIR_pcm) / sizeof(float);
+	convolver->setKernel(kernel, kernelLen);
 }
 
 SpringReverb::~SpringReverb() {
@@ -105,13 +91,13 @@ void SpringReverb::step() {
 
 
 	if (outputBuffer.empty()) {
-		float input[BLOCKSIZE] = {};
-		float output[BLOCKSIZE];
+		float input[BLOCK_SIZE] = {};
+		float output[BLOCK_SIZE];
 		// Convert input buffer
 		{
 			inputSrc.setRates(engineGetSampleRate(), 48000);
 			int inLen = inputBuffer.size();
-			int outLen = BLOCKSIZE;
+			int outLen = BLOCK_SIZE;
 			inputSrc.process(inputBuffer.startData(), &inLen, (Frame<1>*) input, &outLen);
 			inputBuffer.startIncr(inLen);
 		}
@@ -122,7 +108,7 @@ void SpringReverb::step() {
 		// Convert output buffer
 		{
 			outputSrc.setRates(48000, engineGetSampleRate());
-			int inLen = BLOCKSIZE;
+			int inLen = BLOCK_SIZE;
 			int outLen = outputBuffer.capacity();
 			outputSrc.process((Frame<1>*) output, &inLen, outputBuffer.endData(), &outLen);
 			outputBuffer.endIncr(outLen);

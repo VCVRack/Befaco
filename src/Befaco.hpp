@@ -22,5 +22,3 @@ struct Knurlie : SVGScrew {
 		box.size = sw->box.size;
 	}
 };
-
-void springReverbInit();
