@@ -145,37 +145,37 @@ struct SpringReverbWidget : ModuleWidget {
 	SpringReverbWidget(SpringReverb *module) : ModuleWidget(module) {
 		setPanel(SVG::load(assetPlugin(plugin, "res/SpringReverb.svg")));
 
-		addChild(Widget::create<Knurlie>(Vec(15, 0)));
-		addChild(Widget::create<Knurlie>(Vec(15, 365)));
-		addChild(Widget::create<Knurlie>(Vec(15*6, 0)));
-		addChild(Widget::create<Knurlie>(Vec(15*6, 365)));
+		addChild(createWidget<Knurlie>(Vec(15, 0)));
+		addChild(createWidget<Knurlie>(Vec(15, 365)));
+		addChild(createWidget<Knurlie>(Vec(15*6, 0)));
+		addChild(createWidget<Knurlie>(Vec(15*6, 365)));
 
-		addParam(ParamWidget::create<BefacoBigKnob>(Vec(22, 29), module, SpringReverb::WET_PARAM, 0.0, 1.0, 0.5));
+		addParam(createParam<BefacoBigKnob>(Vec(22, 29), module, SpringReverb::WET_PARAM, 0.0, 1.0, 0.5));
 
-		addParam(ParamWidget::create<BefacoSlidePot>(Vec(12, 116), module, SpringReverb::LEVEL1_PARAM, 0.0, 1.0, 0.0));
-		addParam(ParamWidget::create<BefacoSlidePot>(Vec(93, 116), module, SpringReverb::LEVEL2_PARAM, 0.0, 1.0, 0.0));
+		addParam(createParam<BefacoSlidePot>(Vec(12, 116), module, SpringReverb::LEVEL1_PARAM, 0.0, 1.0, 0.0));
+		addParam(createParam<BefacoSlidePot>(Vec(93, 116), module, SpringReverb::LEVEL2_PARAM, 0.0, 1.0, 0.0));
 
-		addParam(ParamWidget::create<Davies1900hWhiteKnob>(Vec(42, 210), module, SpringReverb::HPF_PARAM, 0.0, 1.0, 0.5));
+		addParam(createParam<Davies1900hWhiteKnob>(Vec(42, 210), module, SpringReverb::HPF_PARAM, 0.0, 1.0, 0.5));
 
-		addInput(Port::create<PJ301MPort>(Vec(7, 243), Port::INPUT, module, SpringReverb::CV1_INPUT));
-		addInput(Port::create<PJ301MPort>(Vec(88, 243), Port::INPUT, module, SpringReverb::CV2_INPUT));
-		addInput(Port::create<PJ301MPort>(Vec(27, 281), Port::INPUT, module, SpringReverb::IN1_INPUT));
-		addInput(Port::create<PJ301MPort>(Vec(67, 281), Port::INPUT, module, SpringReverb::IN2_INPUT));
+		addInput(createPort<PJ301MPort>(Vec(7, 243), PortWidget::INPUT, module, SpringReverb::CV1_INPUT));
+		addInput(createPort<PJ301MPort>(Vec(88, 243), PortWidget::INPUT, module, SpringReverb::CV2_INPUT));
+		addInput(createPort<PJ301MPort>(Vec(27, 281), PortWidget::INPUT, module, SpringReverb::IN1_INPUT));
+		addInput(createPort<PJ301MPort>(Vec(67, 281), PortWidget::INPUT, module, SpringReverb::IN2_INPUT));
 
-		addOutput(Port::create<PJ301MPort>(Vec(7, 317), Port::OUTPUT, module, SpringReverb::MIX_OUTPUT));
-		addInput(Port::create<PJ301MPort>(Vec(47, 324), Port::INPUT, module, SpringReverb::MIX_CV_INPUT));
-		addOutput(Port::create<PJ301MPort>(Vec(88, 317), Port::OUTPUT, module, SpringReverb::WET_OUTPUT));
+		addOutput(createPort<PJ301MPort>(Vec(7, 317), PortWidget::OUTPUT, module, SpringReverb::MIX_OUTPUT));
+		addInput(createPort<PJ301MPort>(Vec(47, 324), PortWidget::INPUT, module, SpringReverb::MIX_CV_INPUT));
+		addOutput(createPort<PJ301MPort>(Vec(88, 317), PortWidget::OUTPUT, module, SpringReverb::WET_OUTPUT));
 
-		addChild(ModuleLightWidget::create<MediumLight<GreenRedLight>>(Vec(55, 269), module, SpringReverb::PEAK_LIGHT));
-		addChild(ModuleLightWidget::create<MediumLight<RedLight>>(Vec(55, 113), module, SpringReverb::VU1_LIGHT + 0));
-		addChild(ModuleLightWidget::create<MediumLight<YellowLight>>(Vec(55, 126), module, SpringReverb::VU1_LIGHT + 1));
-		addChild(ModuleLightWidget::create<MediumLight<YellowLight>>(Vec(55, 138), module, SpringReverb::VU1_LIGHT + 2));
-		addChild(ModuleLightWidget::create<MediumLight<GreenLight>>(Vec(55, 150), module, SpringReverb::VU1_LIGHT + 3));
-		addChild(ModuleLightWidget::create<MediumLight<GreenLight>>(Vec(55, 163), module, SpringReverb::VU1_LIGHT + 4));
-		addChild(ModuleLightWidget::create<MediumLight<GreenLight>>(Vec(55, 175), module, SpringReverb::VU1_LIGHT + 5));
-		addChild(ModuleLightWidget::create<MediumLight<GreenLight>>(Vec(55, 188), module, SpringReverb::VU1_LIGHT + 6));
+		addChild(createLight<MediumLight<GreenRedLight>>(Vec(55, 269), module, SpringReverb::PEAK_LIGHT));
+		addChild(createLight<MediumLight<RedLight>>(Vec(55, 113), module, SpringReverb::VU1_LIGHT + 0));
+		addChild(createLight<MediumLight<YellowLight>>(Vec(55, 126), module, SpringReverb::VU1_LIGHT + 1));
+		addChild(createLight<MediumLight<YellowLight>>(Vec(55, 138), module, SpringReverb::VU1_LIGHT + 2));
+		addChild(createLight<MediumLight<GreenLight>>(Vec(55, 150), module, SpringReverb::VU1_LIGHT + 3));
+		addChild(createLight<MediumLight<GreenLight>>(Vec(55, 163), module, SpringReverb::VU1_LIGHT + 4));
+		addChild(createLight<MediumLight<GreenLight>>(Vec(55, 175), module, SpringReverb::VU1_LIGHT + 5));
+		addChild(createLight<MediumLight<GreenLight>>(Vec(55, 188), module, SpringReverb::VU1_LIGHT + 6));
 	}
 };
 
 
-Model *modelSpringReverb = Model::create<SpringReverb, SpringReverbWidget>("Befaco", "SpringReverb", "Spring Reverb", REVERB_TAG, DUAL_TAG);
+Model *modelSpringReverb = createModel<SpringReverb, SpringReverbWidget>("SpringReverb");

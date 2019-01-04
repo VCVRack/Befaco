@@ -1,0 +1,40 @@
+{
+	"slug": "Befaco",
+	"name": "Befaco",
+	"author": "VCV",
+	"license": "BSD-3-Clause",
+	"authorEmail": "contact@vcvrack.com",
+	"authorUrl": "https://vcvrack.com/",
+	"sourceUrl": "https://github.com/VCVRack/Befaco",
+	"version": "1.0.0",
+	"modules": {
+		"EvenVCO": {
+			"name": "EvenVCO",
+			"tags": ["VCO"]
+		},
+		"Rampage": {
+			"name": "Rampage",
+			"tags": ["Function Generator", "Logic", "Slew Limiter", "Envelope Follower", "Dual"]
+		},
+		"ABC": {
+			"name": "A*B+C",
+			"tags": ["Ring Modulator", "Attenuator", "Dual"]
+		},
+		"SpringReverb": {
+			"name": "Spring Reverb",
+			"tags": ["Reverb"]
+		},
+		"Mixer": {
+			"name": "Mixer",
+			"tags": ["Mixer"]
+		},
+		"SlewLimiter": {
+			"name": "Slew Limiter",
+			"tags": ["Slew Limiter", "Envelope Follower"]
+		},
+		"DualAtenuverter": {
+			"name": "Dual Atenuverter",
+			"tags": ["Attenuator", "Dual"]
+		}
+	}
+}
