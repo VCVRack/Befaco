@@ -29,10 +29,10 @@ struct DualAtenuverter : Module {
 
 	DualAtenuverter() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
-		params[ATEN1_PARAM].config(-1.0, 1.0, 0.0);
-		params[OFFSET1_PARAM].config(-10.0, 10.0, 0.0);
-		params[ATEN2_PARAM].config(-1.0, 1.0, 0.0);
-		params[OFFSET2_PARAM].config(-10.0, 10.0, 0.0);
+		params[ATEN1_PARAM].config(-1.0, 1.0, 0.0, "Ch 1 gain");
+		params[OFFSET1_PARAM].config(-10.0, 10.0, 0.0, "Ch 1 offset", " V");
+		params[ATEN2_PARAM].config(-1.0, 1.0, 0.0, "Ch 2 gain");
+		params[OFFSET2_PARAM].config(-10.0, 10.0, 0.0, "Ch 2 offset", " V");
 	}
 
 	void step() override {

@@ -23,9 +23,9 @@ struct SlewLimiter : Module {
 
 	SlewLimiter() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
-		params[SHAPE_PARAM].config(0.0, 1.0, 0.0);
-		params[RISE_PARAM].config(0.0, 1.0, 0.0);
-		params[FALL_PARAM].config(0.0, 1.0, 0.0);
+		params[SHAPE_PARAM].config(0.0, 1.0, 0.0, "Shape");
+		params[RISE_PARAM].config(0.0, 1.0, 0.0, "Rise time");
+		params[FALL_PARAM].config(0.0, 1.0, 0.0, "Fall time");
 	}
 
 	void step() override {
