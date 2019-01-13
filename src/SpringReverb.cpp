@@ -1,10 +1,5 @@
 #include <string.h>
 #include "Befaco.hpp"
-#include "dsp/functions.hpp"
-#include "dsp/samplerate.hpp"
-#include "dsp/ringbuffer.hpp"
-#include "dsp/filter.hpp"
-#include "dsp/fir.hpp"
 #include "pffft.h"
 
 
@@ -12,6 +7,7 @@ BINARY(src_SpringReverbIR_pcm);
 
 
 static const size_t BLOCK_SIZE = 1024;
+
 
 struct SpringReverb : Module {
 	enum ParamIds {
@@ -40,131 +36,132 @@ struct SpringReverb : Module {
 		NUM_LIGHTS = VU1_LIGHT + 7
 	};
 
-	RealTimeConvolver *convolver = NULL;
-	SampleRateConverter<1> inputSrc;
-	SampleRateConverter<1> outputSrc;
-	DoubleRingBuffer<Frame<1>, 16*BLOCK_SIZE> inputBuffer;
-	DoubleRingBuffer<Frame<1>, 16*BLOCK_SIZE> outputBuffer;
+	dsp::RealTimeConvolver *convolver = NULL;
+	dsp::SampleRateConverter<1> inputSrc;
+	dsp::SampleRateConverter<1> outputSrc;
+	dsp::DoubleRingBuffer<dsp::Frame<1>, 16*BLOCK_SIZE> inputBuffer;
+	dsp::DoubleRingBuffer<dsp::Frame<1>, 16*BLOCK_SIZE> outputBuffer;
 
-	RCFilter dryFilter;
-	PeakFilter vuFilter;
-	PeakFilter lightFilter;
+	dsp::RCFilter dryFilter;
+	dsp::PeakFilter vuFilter;
+	dsp::PeakFilter lightFilter;
 
-	SpringReverb();
-	~SpringReverb();
-	void step() override;
+	SpringReverb() {
+		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
+		params[WET_PARAM].config(0.0, 1.0, 0.5);
+		params[LEVEL1_PARAM].config(0.0, 1.0, 0.0);
+		params[LEVEL2_PARAM].config(0.0, 1.0, 0.0);
+		params[HPF_PARAM].config(0.0, 1.0, 0.5);
+
+		convolver = new dsp::RealTimeConvolver(BLOCK_SIZE);
+
+		const float *kernel = (const float*) BINARY_START(src_SpringReverbIR_pcm);
+		size_t kernelLen = BINARY_SIZE(src_SpringReverbIR_pcm) / sizeof(float);
+		convolver->setKernel(kernel, kernelLen);
+	}
+
+	~SpringReverb() {
+		delete convolver;
+	}
+
+	void step() override {
+		float in1 = inputs[IN1_INPUT].value;
+		float in2 = inputs[IN2_INPUT].value;
+		const float levelScale = 0.030;
+		const float levelBase = 25.0;
+		float level1 = levelScale * dsp::exponentialBipolar(levelBase, params[LEVEL1_PARAM].value) * inputs[CV1_INPUT].normalize(10.0) / 10.0;
+		float level2 = levelScale * dsp::exponentialBipolar(levelBase, params[LEVEL2_PARAM].value) * inputs[CV2_INPUT].normalize(10.0) / 10.0;
+		float dry = in1 * level1 + in2 * level2;
+
+		// HPF on dry
+		float dryCutoff = 200.0 * std::pow(20.0, params[HPF_PARAM].value) * app()->engine->getSampleTime();
+		dryFilter.setCutoff(dryCutoff);
+		dryFilter.process(dry);
+
+		// Add dry to input buffer
+		if (!inputBuffer.full()) {
+			dsp::Frame<1> inputFrame;
+			inputFrame.samples[0] = dryFilter.highpass();
+			inputBuffer.push(inputFrame);
+		}
+
+
+		if (outputBuffer.empty()) {
+			float input[BLOCK_SIZE] = {};
+			float output[BLOCK_SIZE];
+			// Convert input buffer
+			{
+				inputSrc.setRates(app()->engine->getSampleRate(), 48000);
+				int inLen = inputBuffer.size();
+				int outLen = BLOCK_SIZE;
+				inputSrc.process(inputBuffer.startData(), &inLen, (dsp::Frame<1>*) input, &outLen);
+				inputBuffer.startIncr(inLen);
+			}
+
+			// Convolve block
+			convolver->processBlock(input, output);
+
+			// Convert output buffer
+			{
+				outputSrc.setRates(48000, app()->engine->getSampleRate());
+				int inLen = BLOCK_SIZE;
+				int outLen = outputBuffer.capacity();
+				outputSrc.process((dsp::Frame<1>*) output, &inLen, outputBuffer.endData(), &outLen);
+				outputBuffer.endIncr(outLen);
+			}
+		}
+
+		// Set output
+		if (outputBuffer.empty())
+			return;
+		float wet = outputBuffer.shift().samples[0];
+		float balance = clamp(params[WET_PARAM].value + inputs[MIX_CV_INPUT].value / 10.0f, 0.0f, 1.0f);
+		float mix = crossfade(in1, wet, balance);
+
+		outputs[WET_OUTPUT].value = clamp(wet, -10.0f, 10.0f);
+		outputs[MIX_OUTPUT].value = clamp(mix, -10.0f, 10.0f);
+
+		// Set lights
+		float lightRate = 5.0 * app()->engine->getSampleTime();
+		vuFilter.setRate(lightRate);
+		vuFilter.process(std::abs(wet));
+		lightFilter.setRate(lightRate);
+		lightFilter.process(std::abs(dry*50.0));
+
+		float vuValue = vuFilter.peak();
+		for (int i = 0; i < 7; i++) {
+			float light = std::pow(1.413, i) * vuValue / 10.0 - 1.0;
+			lights[VU1_LIGHT + i].value = clamp(light, 0.0f, 1.0f);
+		}
+		lights[PEAK_LIGHT].value = lightFilter.peak();
+	}
 };
-
-
-SpringReverb::SpringReverb() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {
-	convolver = new RealTimeConvolver(BLOCK_SIZE);
-
-	const float *kernel = (const float*) BINARY_START(src_SpringReverbIR_pcm);
-	size_t kernelLen = BINARY_SIZE(src_SpringReverbIR_pcm) / sizeof(float);
-	convolver->setKernel(kernel, kernelLen);
-}
-
-SpringReverb::~SpringReverb() {
-	delete convolver;
-}
-
-void SpringReverb::step() {
-	float in1 = inputs[IN1_INPUT].value;
-	float in2 = inputs[IN2_INPUT].value;
-	const float levelScale = 0.030;
-	const float levelBase = 25.0;
-	float level1 = levelScale * exponentialBipolar(levelBase, params[LEVEL1_PARAM].value) * inputs[CV1_INPUT].normalize(10.0) / 10.0;
-	float level2 = levelScale * exponentialBipolar(levelBase, params[LEVEL2_PARAM].value) * inputs[CV2_INPUT].normalize(10.0) / 10.0;
-	float dry = in1 * level1 + in2 * level2;
-
-	// HPF on dry
-	float dryCutoff = 200.0 * powf(20.0, params[HPF_PARAM].value) * engineGetSampleTime();
-	dryFilter.setCutoff(dryCutoff);
-	dryFilter.process(dry);
-
-	// Add dry to input buffer
-	if (!inputBuffer.full()) {
-		Frame<1> inputFrame;
-		inputFrame.samples[0] = dryFilter.highpass();
-		inputBuffer.push(inputFrame);
-	}
-
-
-	if (outputBuffer.empty()) {
-		float input[BLOCK_SIZE] = {};
-		float output[BLOCK_SIZE];
-		// Convert input buffer
-		{
-			inputSrc.setRates(engineGetSampleRate(), 48000);
-			int inLen = inputBuffer.size();
-			int outLen = BLOCK_SIZE;
-			inputSrc.process(inputBuffer.startData(), &inLen, (Frame<1>*) input, &outLen);
-			inputBuffer.startIncr(inLen);
-		}
-
-		// Convolve block
-		convolver->processBlock(input, output);
-
-		// Convert output buffer
-		{
-			outputSrc.setRates(48000, engineGetSampleRate());
-			int inLen = BLOCK_SIZE;
-			int outLen = outputBuffer.capacity();
-			outputSrc.process((Frame<1>*) output, &inLen, outputBuffer.endData(), &outLen);
-			outputBuffer.endIncr(outLen);
-		}
-	}
-
-	// Set output
-	if (outputBuffer.empty())
-		return;
-	float wet = outputBuffer.shift().samples[0];
-	float balance = clamp(params[WET_PARAM].value + inputs[MIX_CV_INPUT].value / 10.0f, 0.0f, 1.0f);
-	float mix = crossfade(in1, wet, balance);
-
-	outputs[WET_OUTPUT].value = clamp(wet, -10.0f, 10.0f);
-	outputs[MIX_OUTPUT].value = clamp(mix, -10.0f, 10.0f);
-
-	// Set lights
-	float lightRate = 5.0 * engineGetSampleTime();
-	vuFilter.setRate(lightRate);
-	vuFilter.process(fabsf(wet));
-	lightFilter.setRate(lightRate);
-	lightFilter.process(fabsf(dry*50.0));
-
-	float vuValue = vuFilter.peak();
-	for (int i = 0; i < 7; i++) {
-		float light = powf(1.413, i) * vuValue / 10.0 - 1.0;
-		lights[VU1_LIGHT + i].value = clamp(light, 0.0f, 1.0f);
-	}
-	lights[PEAK_LIGHT].value = lightFilter.peak();
-}
 
 
 struct SpringReverbWidget : ModuleWidget {
 	SpringReverbWidget(SpringReverb *module) : ModuleWidget(module) {
-		setPanel(SVG::load(assetPlugin(plugin, "res/SpringReverb.svg")));
+		setPanel(SVG::load(asset::plugin(plugin, "res/SpringReverb.svg")));
 
 		addChild(createWidget<Knurlie>(Vec(15, 0)));
 		addChild(createWidget<Knurlie>(Vec(15, 365)));
 		addChild(createWidget<Knurlie>(Vec(15*6, 0)));
 		addChild(createWidget<Knurlie>(Vec(15*6, 365)));
 
-		addParam(createParam<BefacoBigKnob>(Vec(22, 29), module, SpringReverb::WET_PARAM, 0.0, 1.0, 0.5));
+		addParam(createParam<BefacoBigKnob>(Vec(22, 29), module, SpringReverb::WET_PARAM));
 
-		addParam(createParam<BefacoSlidePot>(Vec(12, 116), module, SpringReverb::LEVEL1_PARAM, 0.0, 1.0, 0.0));
-		addParam(createParam<BefacoSlidePot>(Vec(93, 116), module, SpringReverb::LEVEL2_PARAM, 0.0, 1.0, 0.0));
+		addParam(createParam<BefacoSlidePot>(Vec(12, 116), module, SpringReverb::LEVEL1_PARAM));
+		addParam(createParam<BefacoSlidePot>(Vec(93, 116), module, SpringReverb::LEVEL2_PARAM));
 
-		addParam(createParam<Davies1900hWhiteKnob>(Vec(42, 210), module, SpringReverb::HPF_PARAM, 0.0, 1.0, 0.5));
+		addParam(createParam<Davies1900hWhiteKnob>(Vec(42, 210), module, SpringReverb::HPF_PARAM));
 
-		addInput(createPort<PJ301MPort>(Vec(7, 243), PortWidget::INPUT, module, SpringReverb::CV1_INPUT));
-		addInput(createPort<PJ301MPort>(Vec(88, 243), PortWidget::INPUT, module, SpringReverb::CV2_INPUT));
-		addInput(createPort<PJ301MPort>(Vec(27, 281), PortWidget::INPUT, module, SpringReverb::IN1_INPUT));
-		addInput(createPort<PJ301MPort>(Vec(67, 281), PortWidget::INPUT, module, SpringReverb::IN2_INPUT));
+		addInput(createInput<PJ301MPort>(Vec(7, 243), module, SpringReverb::CV1_INPUT));
+		addInput(createInput<PJ301MPort>(Vec(88, 243), module, SpringReverb::CV2_INPUT));
+		addInput(createInput<PJ301MPort>(Vec(27, 281), module, SpringReverb::IN1_INPUT));
+		addInput(createInput<PJ301MPort>(Vec(67, 281), module, SpringReverb::IN2_INPUT));
 
-		addOutput(createPort<PJ301MPort>(Vec(7, 317), PortWidget::OUTPUT, module, SpringReverb::MIX_OUTPUT));
-		addInput(createPort<PJ301MPort>(Vec(47, 324), PortWidget::INPUT, module, SpringReverb::MIX_CV_INPUT));
-		addOutput(createPort<PJ301MPort>(Vec(88, 317), PortWidget::OUTPUT, module, SpringReverb::WET_OUTPUT));
+		addOutput(createOutput<PJ301MPort>(Vec(7, 317), module, SpringReverb::MIX_OUTPUT));
+		addInput(createInput<PJ301MPort>(Vec(47, 324), module, SpringReverb::MIX_CV_INPUT));
+		addOutput(createOutput<PJ301MPort>(Vec(88, 317), module, SpringReverb::WET_OUTPUT));
 
 		addChild(createLight<MediumLight<GreenRedLight>>(Vec(55, 269), module, SpringReverb::PEAK_LIGHT));
 		addChild(createLight<MediumLight<RedLight>>(Vec(55, 113), module, SpringReverb::VU1_LIGHT + 0));

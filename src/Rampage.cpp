@@ -1,5 +1,17 @@
 #include "Befaco.hpp"
-#include "dsp/digital.hpp"
+
+
+static float shapeDelta(float delta, float tau, float shape) {
+	float lin = sgn(delta) * 10.f / tau;
+	if (shape < 0.f) {
+		float log = sgn(delta) * 40.f / tau / (std::abs(delta) + 1.f);
+		return crossfade(lin, log, -shape * 0.95f);
+	}
+	else {
+		float exp = M_E * delta / tau;
+		return crossfade(lin, exp, shape * 0.90f);
+	}
+}
 
 
 struct Rampage : Module {
@@ -63,158 +75,161 @@ struct Rampage : Module {
 
 	float out[2] = {};
 	bool gate[2] = {};
-	SchmittTrigger trigger[2];
-	PulseGenerator endOfCyclePulse[2];
+	dsp::SchmittTrigger trigger[2];
+	dsp::PulseGenerator endOfCyclePulse[2];
 
-	Rampage() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
-	void step() override;
+	Rampage() {
+		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
+		params[RANGE_A_PARAM].config(0.0, 2.0, 0.0);
+		params[SHAPE_A_PARAM].config(-1.0, 1.0, 0.0);
+		params[TRIGG_A_PARAM].config(0.0, 1.0, 0.0);
+		params[RISE_A_PARAM].config(0.0, 1.0, 0.0);
+		params[FALL_A_PARAM].config(0.0, 1.0, 0.0);
+		params[CYCLE_A_PARAM].config(0.0, 1.0, 0.0);
+		params[RANGE_B_PARAM].config(0.0, 2.0, 0.0);
+		params[SHAPE_B_PARAM].config(-1.0, 1.0, 0.0);
+		params[TRIGG_B_PARAM].config(0.0, 1.0, 0.0);
+		params[RISE_B_PARAM].config(0.0, 1.0, 0.0);
+		params[FALL_B_PARAM].config(0.0, 1.0, 0.0);
+		params[CYCLE_B_PARAM].config(0.0, 1.0, 0.0);
+		params[BALANCE_PARAM].config(0.0, 1.0, 0.5);
+	}
+
+	void step() override {
+		for (int c = 0; c < 2; c++) {
+			float in = inputs[IN_A_INPUT + c].value;
+			if (trigger[c].process(params[TRIGG_A_PARAM + c].value * 10.0 + inputs[TRIGG_A_INPUT + c].value / 2.0)) {
+				gate[c] = true;
+			}
+			if (gate[c]) {
+				in = 10.0;
+			}
+
+			float shape = params[SHAPE_A_PARAM + c].value;
+			float delta = in - out[c];
+
+			// Integrator
+			float minTime;
+			switch ((int) params[RANGE_A_PARAM + c].value) {
+				case 0: minTime = 1e-2; break;
+				case 1: minTime = 1e-3; break;
+				default: minTime = 1e-1; break;
+			}
+
+			bool rising = false;
+			bool falling = false;
+
+			if (delta > 0) {
+				// Rise
+				float riseCv = params[RISE_A_PARAM + c].value - inputs[EXP_CV_A_INPUT + c].value / 10.0 + inputs[RISE_CV_A_INPUT + c].value / 10.0;
+				riseCv = clamp(riseCv, 0.0f, 1.0f);
+				float rise = minTime * std::pow(2.0, riseCv * 10.0);
+				out[c] += shapeDelta(delta, rise, shape) * app()->engine->getSampleTime();
+				rising = (in - out[c] > 1e-3);
+				if (!rising) {
+					gate[c] = false;
+				}
+			}
+			else if (delta < 0) {
+				// Fall
+				float fallCv = params[FALL_A_PARAM + c].value - inputs[EXP_CV_A_INPUT + c].value / 10.0 + inputs[FALL_CV_A_INPUT + c].value / 10.0;
+				fallCv = clamp(fallCv, 0.0f, 1.0f);
+				float fall = minTime * std::pow(2.0, fallCv * 10.0);
+				out[c] += shapeDelta(delta, fall, shape) * app()->engine->getSampleTime();
+				falling = (in - out[c] < -1e-3);
+				if (!falling) {
+					// End of cycle, check if we should turn the gate back on (cycle mode)
+					endOfCyclePulse[c].trigger(1e-3);
+					if (params[CYCLE_A_PARAM + c].value * 10.0 + inputs[CYCLE_A_INPUT + c].value >= 4.0) {
+						gate[c] = true;
+					}
+				}
+			}
+			else {
+				gate[c] = false;
+			}
+
+			if (!rising && !falling) {
+				out[c] = in;
+			}
+
+			outputs[RISING_A_OUTPUT + c].value = (rising ? 10.0 : 0.0);
+			outputs[FALLING_A_OUTPUT + c].value = (falling ? 10.0 : 0.0);
+			lights[RISING_A_LIGHT + c].setBrightnessSmooth(rising ? 1.0 : 0.0);
+			lights[FALLING_A_LIGHT + c].setBrightnessSmooth(falling ? 1.0 : 0.0);
+			outputs[EOC_A_OUTPUT + c].value = (endOfCyclePulse[c].process(app()->engine->getSampleTime()) ? 10.0 : 0.0);
+			outputs[OUT_A_OUTPUT + c].value = out[c];
+			lights[OUT_A_LIGHT + c].setBrightnessSmooth(out[c] / 10.0);
+		}
+
+		// Logic
+		float balance = params[BALANCE_PARAM].value;
+		float a = out[0];
+		float b = out[1];
+		if (balance < 0.5)
+			b *= 2.0 * balance;
+		else if (balance > 0.5)
+			a *= 2.0 * (1.0 - balance);
+		outputs[COMPARATOR_OUTPUT].value = (b > a ? 10.0 : 0.0);
+		outputs[MIN_OUTPUT].value = std::min(a, b);
+		outputs[MAX_OUTPUT].value = std::max(a, b);
+		// Lights
+		lights[COMPARATOR_LIGHT].setBrightnessSmooth(outputs[COMPARATOR_OUTPUT].value / 10.0);
+		lights[MIN_LIGHT].setBrightnessSmooth(outputs[MIN_OUTPUT].value / 10.0);
+		lights[MAX_LIGHT].setBrightnessSmooth(outputs[MAX_OUTPUT].value / 10.0);
+	}
 };
 
 
-static float shapeDelta(float delta, float tau, float shape) {
-	float lin = sgn(delta) * 10.0 / tau;
-	if (shape < 0.0) {
-		float log = sgn(delta) * 40.0 / tau / (fabsf(delta) + 1.0);
-		return crossfade(lin, log, -shape * 0.95f);
-	}
-	else {
-		float exp = M_E * delta / tau;
-		return crossfade(lin, exp, shape * 0.90f);
-	}
-}
-
-void Rampage::step() {
-	for (int c = 0; c < 2; c++) {
-		float in = inputs[IN_A_INPUT + c].value;
-		if (trigger[c].process(params[TRIGG_A_PARAM + c].value * 10.0 + inputs[TRIGG_A_INPUT + c].value / 2.0)) {
-			gate[c] = true;
-		}
-		if (gate[c]) {
-			in = 10.0;
-		}
-
-		float shape = params[SHAPE_A_PARAM + c].value;
-		float delta = in - out[c];
-
-		// Integrator
-		float minTime;
-		switch ((int) params[RANGE_A_PARAM + c].value) {
-			case 0: minTime = 1e-2; break;
-			case 1: minTime = 1e-3; break;
-			default: minTime = 1e-1; break;
-		}
-
-		bool rising = false;
-		bool falling = false;
-
-		if (delta > 0) {
-			// Rise
-			float riseCv = params[RISE_A_PARAM + c].value - inputs[EXP_CV_A_INPUT + c].value / 10.0 + inputs[RISE_CV_A_INPUT + c].value / 10.0;
-			riseCv = clamp(riseCv, 0.0f, 1.0f);
-			float rise = minTime * powf(2.0, riseCv * 10.0);
-			out[c] += shapeDelta(delta, rise, shape) * engineGetSampleTime();
-			rising = (in - out[c] > 1e-3);
-			if (!rising) {
-				gate[c] = false;
-			}
-		}
-		else if (delta < 0) {
-			// Fall
-			float fallCv = params[FALL_A_PARAM + c].value - inputs[EXP_CV_A_INPUT + c].value / 10.0 + inputs[FALL_CV_A_INPUT + c].value / 10.0;
-			fallCv = clamp(fallCv, 0.0f, 1.0f);
-			float fall = minTime * powf(2.0, fallCv * 10.0);
-			out[c] += shapeDelta(delta, fall, shape) * engineGetSampleTime();
-			falling = (in - out[c] < -1e-3);
-			if (!falling) {
-				// End of cycle, check if we should turn the gate back on (cycle mode)
-				endOfCyclePulse[c].trigger(1e-3);
-				if (params[CYCLE_A_PARAM + c].value * 10.0 + inputs[CYCLE_A_INPUT + c].value >= 4.0) {
-					gate[c] = true;
-				}
-			}
-		}
-		else {
-			gate[c] = false;
-		}
-
-		if (!rising && !falling) {
-			out[c] = in;
-		}
-
-		outputs[RISING_A_OUTPUT + c].value = (rising ? 10.0 : 0.0);
-		outputs[FALLING_A_OUTPUT + c].value = (falling ? 10.0 : 0.0);
-		lights[RISING_A_LIGHT + c].setBrightnessSmooth(rising ? 1.0 : 0.0);
-		lights[FALLING_A_LIGHT + c].setBrightnessSmooth(falling ? 1.0 : 0.0);
-		outputs[EOC_A_OUTPUT + c].value = (endOfCyclePulse[c].process(engineGetSampleTime()) ? 10.0 : 0.0);
-		outputs[OUT_A_OUTPUT + c].value = out[c];
-		lights[OUT_A_LIGHT + c].setBrightnessSmooth(out[c] / 10.0);
-	}
-
-	// Logic
-	float balance = params[BALANCE_PARAM].value;
-	float a = out[0];
-	float b = out[1];
-	if (balance < 0.5)
-		b *= 2.0 * balance;
-	else if (balance > 0.5)
-		a *= 2.0 * (1.0 - balance);
-	outputs[COMPARATOR_OUTPUT].value = (b > a ? 10.0 : 0.0);
-	outputs[MIN_OUTPUT].value = fminf(a, b);
-	outputs[MAX_OUTPUT].value = fmaxf(a, b);
-	// Lights
-	lights[COMPARATOR_LIGHT].setBrightnessSmooth(outputs[COMPARATOR_OUTPUT].value / 10.0);
-	lights[MIN_LIGHT].setBrightnessSmooth(outputs[MIN_OUTPUT].value / 10.0);
-	lights[MAX_LIGHT].setBrightnessSmooth(outputs[MAX_OUTPUT].value / 10.0);
-}
 
 
 struct RampageWidget : ModuleWidget {
 	RampageWidget(Rampage *module) : ModuleWidget(module) {
-		setPanel(SVG::load(assetPlugin(plugin, "res/Rampage.svg")));
+		setPanel(SVG::load(asset::plugin(plugin, "res/Rampage.svg")));
 
 		addChild(createWidget<Knurlie>(Vec(15, 0)));
 		addChild(createWidget<Knurlie>(Vec(box.size.x-30, 0)));
 		addChild(createWidget<Knurlie>(Vec(15, 365)));
 		addChild(createWidget<Knurlie>(Vec(box.size.x-30, 365)));
 
-		addInput(createPort<PJ301MPort>(Vec(14, 30), PortWidget::INPUT, module, Rampage::IN_A_INPUT));
-		addInput(createPort<PJ301MPort>(Vec(52, 37), PortWidget::INPUT, module, Rampage::TRIGG_A_INPUT));
-		addInput(createPort<PJ301MPort>(Vec(8, 268), PortWidget::INPUT, module, Rampage::RISE_CV_A_INPUT));
-		addInput(createPort<PJ301MPort>(Vec(67, 268), PortWidget::INPUT, module, Rampage::FALL_CV_A_INPUT));
-		addInput(createPort<PJ301MPort>(Vec(38, 297), PortWidget::INPUT, module, Rampage::EXP_CV_A_INPUT));
-		addInput(createPort<PJ301MPort>(Vec(102, 290), PortWidget::INPUT, module, Rampage::CYCLE_A_INPUT));
-		addInput(createPort<PJ301MPort>(Vec(229, 30), PortWidget::INPUT, module, Rampage::IN_B_INPUT));
-		addInput(createPort<PJ301MPort>(Vec(192, 37), PortWidget::INPUT, module, Rampage::TRIGG_B_INPUT));
-		addInput(createPort<PJ301MPort>(Vec(176, 268), PortWidget::INPUT, module, Rampage::RISE_CV_B_INPUT));
-		addInput(createPort<PJ301MPort>(Vec(237, 268), PortWidget::INPUT, module, Rampage::FALL_CV_B_INPUT));
-		addInput(createPort<PJ301MPort>(Vec(207, 297), PortWidget::INPUT, module, Rampage::EXP_CV_B_INPUT));
-		addInput(createPort<PJ301MPort>(Vec(143, 290), PortWidget::INPUT, module, Rampage::CYCLE_B_INPUT));
+		addParam(createParam<BefacoSwitch>(Vec(94, 32), module, Rampage::RANGE_A_PARAM));
+		addParam(createParam<BefacoTinyKnob>(Vec(27, 90), module, Rampage::SHAPE_A_PARAM));
+		addParam(createParam<BefacoPush>(Vec(72, 82), module, Rampage::TRIGG_A_PARAM));
+		addParam(createParam<BefacoSlidePot>(Vec(16, 135), module, Rampage::RISE_A_PARAM));
+		addParam(createParam<BefacoSlidePot>(Vec(57, 135), module, Rampage::FALL_A_PARAM));
+		addParam(createParam<BefacoSwitch>(Vec(101, 238), module, Rampage::CYCLE_A_PARAM));
+		addParam(createParam<BefacoSwitch>(Vec(147, 32), module, Rampage::RANGE_B_PARAM));
+		addParam(createParam<BefacoTinyKnob>(Vec(217, 90), module, Rampage::SHAPE_B_PARAM));
+		addParam(createParam<BefacoPush>(Vec(170, 82), module, Rampage::TRIGG_B_PARAM));
+		addParam(createParam<BefacoSlidePot>(Vec(197, 135), module, Rampage::RISE_B_PARAM));
+		addParam(createParam<BefacoSlidePot>(Vec(238, 135), module, Rampage::FALL_B_PARAM));
+		addParam(createParam<BefacoSwitch>(Vec(141, 238), module, Rampage::CYCLE_B_PARAM));
+		addParam(createParam<Davies1900hWhiteKnob>(Vec(117, 76), module, Rampage::BALANCE_PARAM));
 
-		addParam(createParam<BefacoSwitch>(Vec(94, 32), module, Rampage::RANGE_A_PARAM, 0.0, 2.0, 0.0));
-		addParam(createParam<BefacoTinyKnob>(Vec(27, 90), module, Rampage::SHAPE_A_PARAM, -1.0, 1.0, 0.0));
-		addParam(createParam<BefacoPush>(Vec(72, 82), module, Rampage::TRIGG_A_PARAM, 0.0, 1.0, 0.0));
-		addParam(createParam<BefacoSlidePot>(Vec(16, 135), module, Rampage::RISE_A_PARAM, 0.0, 1.0, 0.0));
-		addParam(createParam<BefacoSlidePot>(Vec(57, 135), module, Rampage::FALL_A_PARAM, 0.0, 1.0, 0.0));
-		addParam(createParam<BefacoSwitch>(Vec(101, 238), module, Rampage::CYCLE_A_PARAM, 0.0, 1.0, 0.0));
-		addParam(createParam<BefacoSwitch>(Vec(147, 32), module, Rampage::RANGE_B_PARAM, 0.0, 2.0, 0.0));
-		addParam(createParam<BefacoTinyKnob>(Vec(217, 90), module, Rampage::SHAPE_B_PARAM, -1.0, 1.0, 0.0));
-		addParam(createParam<BefacoPush>(Vec(170, 82), module, Rampage::TRIGG_B_PARAM, 0.0, 1.0, 0.0));
-		addParam(createParam<BefacoSlidePot>(Vec(197, 135), module, Rampage::RISE_B_PARAM, 0.0, 1.0, 0.0));
-		addParam(createParam<BefacoSlidePot>(Vec(238, 135), module, Rampage::FALL_B_PARAM, 0.0, 1.0, 0.0));
-		addParam(createParam<BefacoSwitch>(Vec(141, 238), module, Rampage::CYCLE_B_PARAM, 0.0, 1.0, 0.0));
-		addParam(createParam<Davies1900hWhiteKnob>(Vec(117, 76), module, Rampage::BALANCE_PARAM, 0.0, 1.0, 0.5));
+		addInput(createInput<PJ301MPort>(Vec(14, 30), module, Rampage::IN_A_INPUT));
+		addInput(createInput<PJ301MPort>(Vec(52, 37), module, Rampage::TRIGG_A_INPUT));
+		addInput(createInput<PJ301MPort>(Vec(8, 268), module, Rampage::RISE_CV_A_INPUT));
+		addInput(createInput<PJ301MPort>(Vec(67, 268), module, Rampage::FALL_CV_A_INPUT));
+		addInput(createInput<PJ301MPort>(Vec(38, 297), module, Rampage::EXP_CV_A_INPUT));
+		addInput(createInput<PJ301MPort>(Vec(102, 290), module, Rampage::CYCLE_A_INPUT));
+		addInput(createInput<PJ301MPort>(Vec(229, 30), module, Rampage::IN_B_INPUT));
+		addInput(createInput<PJ301MPort>(Vec(192, 37), module, Rampage::TRIGG_B_INPUT));
+		addInput(createInput<PJ301MPort>(Vec(176, 268), module, Rampage::RISE_CV_B_INPUT));
+		addInput(createInput<PJ301MPort>(Vec(237, 268), module, Rampage::FALL_CV_B_INPUT));
+		addInput(createInput<PJ301MPort>(Vec(207, 297), module, Rampage::EXP_CV_B_INPUT));
+		addInput(createInput<PJ301MPort>(Vec(143, 290), module, Rampage::CYCLE_B_INPUT));
 
-		addOutput(createPort<PJ301MPort>(Vec(8, 326), PortWidget::OUTPUT, module, Rampage::RISING_A_OUTPUT));
-		addOutput(createPort<PJ301MPort>(Vec(68, 326), PortWidget::OUTPUT, module, Rampage::FALLING_A_OUTPUT));
-		addOutput(createPort<PJ301MPort>(Vec(104, 326), PortWidget::OUTPUT, module, Rampage::EOC_A_OUTPUT));
-		addOutput(createPort<PJ301MPort>(Vec(102, 195), PortWidget::OUTPUT, module, Rampage::OUT_A_OUTPUT));
-		addOutput(createPort<PJ301MPort>(Vec(177, 326), PortWidget::OUTPUT, module, Rampage::RISING_B_OUTPUT));
-		addOutput(createPort<PJ301MPort>(Vec(237, 326), PortWidget::OUTPUT, module, Rampage::FALLING_B_OUTPUT));
-		addOutput(createPort<PJ301MPort>(Vec(140, 326), PortWidget::OUTPUT, module, Rampage::EOC_B_OUTPUT));
-		addOutput(createPort<PJ301MPort>(Vec(142, 195), PortWidget::OUTPUT, module, Rampage::OUT_B_OUTPUT));
-		addOutput(createPort<PJ301MPort>(Vec(122, 133), PortWidget::OUTPUT, module, Rampage::COMPARATOR_OUTPUT));
-		addOutput(createPort<PJ301MPort>(Vec(89, 157), PortWidget::OUTPUT, module, Rampage::MIN_OUTPUT));
-		addOutput(createPort<PJ301MPort>(Vec(155, 157), PortWidget::OUTPUT, module, Rampage::MAX_OUTPUT));
+		addOutput(createOutput<PJ301MPort>(Vec(8, 326), module, Rampage::RISING_A_OUTPUT));
+		addOutput(createOutput<PJ301MPort>(Vec(68, 326), module, Rampage::FALLING_A_OUTPUT));
+		addOutput(createOutput<PJ301MPort>(Vec(104, 326), module, Rampage::EOC_A_OUTPUT));
+		addOutput(createOutput<PJ301MPort>(Vec(102, 195), module, Rampage::OUT_A_OUTPUT));
+		addOutput(createOutput<PJ301MPort>(Vec(177, 326), module, Rampage::RISING_B_OUTPUT));
+		addOutput(createOutput<PJ301MPort>(Vec(237, 326), module, Rampage::FALLING_B_OUTPUT));
+		addOutput(createOutput<PJ301MPort>(Vec(140, 326), module, Rampage::EOC_B_OUTPUT));
+		addOutput(createOutput<PJ301MPort>(Vec(142, 195), module, Rampage::OUT_B_OUTPUT));
+		addOutput(createOutput<PJ301MPort>(Vec(122, 133), module, Rampage::COMPARATOR_OUTPUT));
+		addOutput(createOutput<PJ301MPort>(Vec(89, 157), module, Rampage::MIN_OUTPUT));
+		addOutput(createOutput<PJ301MPort>(Vec(155, 157), module, Rampage::MAX_OUTPUT));
 
 		addChild(createLight<SmallLight<RedLight>>(Vec(132, 167), module, Rampage::COMPARATOR_LIGHT));
 		addChild(createLight<SmallLight<RedLight>>(Vec(123, 174), module, Rampage::MIN_LIGHT));

@@ -1,4 +1,5 @@
-#include "rack0.hpp"
+#include "rack.hpp"
+#include "componentlibrary.hpp"
 
 
 using namespace rack;
@@ -17,7 +18,7 @@ extern Model *modelDualAtenuverter;
 
 struct Knurlie : SVGScrew {
 	Knurlie() {
-		sw->svg = SVG::load(assetPlugin(plugin, "res/Knurlie.svg"));
+		sw->svg = SVG::load(asset::plugin(plugin, "res/Knurlie.svg"));
 		sw->wrap();
 		box.size = sw->box.size;
 	}
