@@ -33,12 +33,12 @@ struct EvenVCO : Module {
 	/** Whether we are past the pulse width already */
 	bool halfPhase = false;
 
-	dsp::MinBLEP<16> triSquareMinBLEP;
-	dsp::MinBLEP<16> triMinBLEP;
-	dsp::MinBLEP<16> sineMinBLEP;
-	dsp::MinBLEP<16> doubleSawMinBLEP;
-	dsp::MinBLEP<16> sawMinBLEP;
-	dsp::MinBLEP<16> squareMinBLEP;
+	dsp::MinBlepGenerator<16, 32> triSquareMinBlep;
+	dsp::MinBlepGenerator<16, 32> triMinBlep;
+	dsp::MinBlepGenerator<16, 32> sineMinBlep;
+	dsp::MinBlepGenerator<16, 32> doubleSawMinBlep;
+	dsp::MinBlepGenerator<16, 32> sawMinBlep;
+	dsp::MinBlepGenerator<16, 32> squareMinBlep;
 
 	dsp::RCFilter triFilter;
 
@@ -47,19 +47,6 @@ struct EvenVCO : Module {
 		params[OCTAVE_PARAM].config(-5.0, 4.0, 0.0, "Octave", "'", 0.5);
 		params[TUNE_PARAM].config(-7.0, 7.0, 0.0, "Tune", " semitones");
 		params[PWM_PARAM].config(-1.0, 1.0, 0.0, "Pulse width");
-
-		triSquareMinBLEP.minblep = dsp::minblep_16_32;
-		triSquareMinBLEP.oversample = 32;
-		triMinBLEP.minblep = dsp::minblep_16_32;
-		triMinBLEP.oversample = 32;
-		sineMinBLEP.minblep = dsp::minblep_16_32;
-		sineMinBLEP.oversample = 32;
-		doubleSawMinBLEP.minblep = dsp::minblep_16_32;
-		doubleSawMinBLEP.oversample = 32;
-		sawMinBLEP.minblep = dsp::minblep_16_32;
-		sawMinBLEP.oversample = 32;
-		squareMinBLEP.minblep = dsp::minblep_16_32;
-		squareMinBLEP.oversample = 32;
 	}
 
 	void step() override {
@@ -82,13 +69,13 @@ struct EvenVCO : Module {
 
 		if (oldPhase < 0.5 && phase >= 0.5) {
 			float crossing = -(phase - 0.5) / deltaPhase;
-			triSquareMinBLEP.jump(crossing, 2.f);
-			doubleSawMinBLEP.jump(crossing, -2.f);
+			triSquareMinBlep.insertDiscontinuity(crossing, 2.f);
+			doubleSawMinBlep.insertDiscontinuity(crossing, -2.f);
 		}
 
 		if (!halfPhase && phase >= pw) {
 			float crossing  = -(phase - pw) / deltaPhase;
-			squareMinBLEP.jump(crossing, 2.f);
+			squareMinBlep.insertDiscontinuity(crossing, 2.f);
 			halfPhase = true;
 		}
 
@@ -96,16 +83,16 @@ struct EvenVCO : Module {
 		if (phase >= 1.f) {
 			phase -= 1.f;
 			float crossing = -phase / deltaPhase;
-			triSquareMinBLEP.jump(crossing, -2.f);
-			doubleSawMinBLEP.jump(crossing, -2.f);
-			squareMinBLEP.jump(crossing, -2.f);
-			sawMinBLEP.jump(crossing, -2.f);
+			triSquareMinBlep.insertDiscontinuity(crossing, -2.f);
+			doubleSawMinBlep.insertDiscontinuity(crossing, -2.f);
+			squareMinBlep.insertDiscontinuity(crossing, -2.f);
+			sawMinBlep.insertDiscontinuity(crossing, -2.f);
 			halfPhase = false;
 		}
 
 		// Outputs
 		float triSquare = (phase < 0.5) ? -1.f : 1.f;
-		triSquare += triSquareMinBLEP.shift();
+		triSquare += triSquareMinBlep.process();
 
 		// Integrate square for triangle
 		tri += 4.f * triSquare * freq * app()->engine->getSampleTime();
@@ -113,12 +100,12 @@ struct EvenVCO : Module {
 
 		float sine = -std::cos(2*M_PI * phase);
 		float doubleSaw = (phase < 0.5) ? (-1.f + 4.f*phase) : (-1.f + 4.f*(phase - 0.5));
-		doubleSaw += doubleSawMinBLEP.shift();
+		doubleSaw += doubleSawMinBlep.process();
 		float even = 0.55 * (doubleSaw + 1.27 * sine);
 		float saw = -1.f + 2.f*phase;
-		saw += sawMinBLEP.shift();
+		saw += sawMinBlep.process();
 		float square = (phase < pw) ? -1.f : 1.f;
-		square += squareMinBLEP.shift();
+		square += squareMinBlep.process();
 
 		// Set outputs
 		outputs[TRI_OUTPUT].value = 5.f*tri;
