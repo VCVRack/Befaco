@@ -52,7 +52,8 @@ struct DualAtenuverter : Module {
 
 
 struct DualAtenuverterWidget : ModuleWidget {
-	DualAtenuverterWidget(DualAtenuverter *module) : ModuleWidget(module) {
+	DualAtenuverterWidget(DualAtenuverter *module) {
+		setModule(module);
 		setPanel(SVG::load(asset::plugin(plugin, "res/DualAtenuverter.svg")));
 
 		addChild(createWidget<Knurlie>(Vec(15, 0)));

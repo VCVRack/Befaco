@@ -53,7 +53,8 @@ struct Mixer : Module {
 
 
 struct MixerWidget : ModuleWidget {
-	MixerWidget(Mixer *module) : ModuleWidget(module) {
+	MixerWidget(Mixer *module) {
+		setModule(module);
 		setPanel(SVG::load(asset::plugin(plugin, "res/Mixer.svg")));
 
 		addChild(createWidget<Knurlie>(Vec(15, 0)));
