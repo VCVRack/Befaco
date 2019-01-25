@@ -48,13 +48,13 @@ struct ABC : Module {
 
 	void step() override {
 		float a1 = inputs[A1_INPUT].value;
-		float b1 = inputs[B1_INPUT].normalize(5.f) * 2.f*dsp::exponentialBipolar(80.f, params[B1_LEVEL_PARAM].value);
-		float c1 = inputs[C1_INPUT].normalize(10.f) * dsp::exponentialBipolar(80.f, params[C1_LEVEL_PARAM].value);
+		float b1 = inputs[B1_INPUT].getNormalVoltage(5.f) * 2.f*dsp::exponentialBipolar(80.f, params[B1_LEVEL_PARAM].value);
+		float c1 = inputs[C1_INPUT].getNormalVoltage(10.f) * dsp::exponentialBipolar(80.f, params[C1_LEVEL_PARAM].value);
 		float out1 = a1 * b1 / 5.f + c1;
 
 		float a2 = inputs[A2_INPUT].value;
-		float b2 = inputs[B2_INPUT].normalize(5.f) * 2.f*dsp::exponentialBipolar(80.f, params[B2_LEVEL_PARAM].value);
-		float c2 = inputs[C2_INPUT].normalize(10.f) * dsp::exponentialBipolar(80.f, params[C2_LEVEL_PARAM].value);
+		float b2 = inputs[B2_INPUT].getNormalVoltage(5.f) * 2.f*dsp::exponentialBipolar(80.f, params[B2_LEVEL_PARAM].value);
+		float c2 = inputs[C2_INPUT].getNormalVoltage(10.f) * dsp::exponentialBipolar(80.f, params[C2_LEVEL_PARAM].value);
 		float out2 = a2 * b2 / 5.f + c2;
 
 		// Set outputs

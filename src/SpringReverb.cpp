@@ -69,8 +69,8 @@ struct SpringReverb : Module {
 		float in2 = inputs[IN2_INPUT].value;
 		const float levelScale = 0.030;
 		const float levelBase = 25.0;
-		float level1 = levelScale * dsp::exponentialBipolar(levelBase, params[LEVEL1_PARAM].value) * inputs[CV1_INPUT].normalize(10.0) / 10.0;
-		float level2 = levelScale * dsp::exponentialBipolar(levelBase, params[LEVEL2_PARAM].value) * inputs[CV2_INPUT].normalize(10.0) / 10.0;
+		float level1 = levelScale * dsp::exponentialBipolar(levelBase, params[LEVEL1_PARAM].value) * inputs[CV1_INPUT].getNormalVoltage(10.0) / 10.0;
+		float level2 = levelScale * dsp::exponentialBipolar(levelBase, params[LEVEL2_PARAM].value) * inputs[CV2_INPUT].getNormalVoltage(10.0) / 10.0;
 		float dry = in1 * level1 + in2 * level2;
 
 		// HPF on dry
