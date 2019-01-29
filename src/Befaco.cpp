@@ -1,10 +1,10 @@
 #include "Befaco.hpp"
 
 
-Plugin *plugin;
+Plugin *pluginInstance;
 
 void init(rack::Plugin *p) {
-	plugin = p;
+	pluginInstance = p;
 
 	p->addModel(modelEvenVCO);
 	p->addModel(modelRampage);

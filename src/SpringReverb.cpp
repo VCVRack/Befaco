@@ -141,7 +141,7 @@ struct SpringReverb : Module {
 struct SpringReverbWidget : ModuleWidget {
 	SpringReverbWidget(SpringReverb *module) {
 		setModule(module);
-		setPanel(SVG::load(asset::plugin(plugin, "res/SpringReverb.svg")));
+		setPanel(SVG::load(asset::plugin(pluginInstance, "res/SpringReverb.svg")));
 
 		addChild(createWidget<Knurlie>(Vec(15, 0)));
 		addChild(createWidget<Knurlie>(Vec(15, 365)));

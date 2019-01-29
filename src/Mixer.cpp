@@ -55,7 +55,7 @@ struct Mixer : Module {
 struct MixerWidget : ModuleWidget {
 	MixerWidget(Mixer *module) {
 		setModule(module);
-		setPanel(SVG::load(asset::plugin(plugin, "res/Mixer.svg")));
+		setPanel(SVG::load(asset::plugin(pluginInstance, "res/Mixer.svg")));
 
 		addChild(createWidget<Knurlie>(Vec(15, 0)));
 		addChild(createWidget<Knurlie>(Vec(15, 365)));
