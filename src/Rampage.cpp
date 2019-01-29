@@ -124,7 +124,7 @@ struct Rampage : Module {
 				float riseCv = params[RISE_A_PARAM + c].value - inputs[EXP_CV_A_INPUT + c].value / 10.0 + inputs[RISE_CV_A_INPUT + c].value / 10.0;
 				riseCv = clamp(riseCv, 0.0f, 1.0f);
 				float rise = minTime * std::pow(2.0, riseCv * 10.0);
-				out[c] += shapeDelta(delta, rise, shape) * app()->engine->getSampleTime();
+				out[c] += shapeDelta(delta, rise, shape) * APP->engine->getSampleTime();
 				rising = (in - out[c] > 1e-3);
 				if (!rising) {
 					gate[c] = false;
@@ -135,7 +135,7 @@ struct Rampage : Module {
 				float fallCv = params[FALL_A_PARAM + c].value - inputs[EXP_CV_A_INPUT + c].value / 10.0 + inputs[FALL_CV_A_INPUT + c].value / 10.0;
 				fallCv = clamp(fallCv, 0.0f, 1.0f);
 				float fall = minTime * std::pow(2.0, fallCv * 10.0);
-				out[c] += shapeDelta(delta, fall, shape) * app()->engine->getSampleTime();
+				out[c] += shapeDelta(delta, fall, shape) * APP->engine->getSampleTime();
 				falling = (in - out[c] < -1e-3);
 				if (!falling) {
 					// End of cycle, check if we should turn the gate back on (cycle mode)
@@ -157,7 +157,7 @@ struct Rampage : Module {
 			outputs[FALLING_A_OUTPUT + c].value = (falling ? 10.0 : 0.0);
 			lights[RISING_A_LIGHT + c].setBrightnessSmooth(rising ? 1.0 : 0.0);
 			lights[FALLING_A_LIGHT + c].setBrightnessSmooth(falling ? 1.0 : 0.0);
-			outputs[EOC_A_OUTPUT + c].value = (endOfCyclePulse[c].process(app()->engine->getSampleTime()) ? 10.0 : 0.0);
+			outputs[EOC_A_OUTPUT + c].value = (endOfCyclePulse[c].process(APP->engine->getSampleTime()) ? 10.0 : 0.0);
 			outputs[OUT_A_OUTPUT + c].value = out[c];
 			lights[OUT_A_LIGHT + c].setBrightnessSmooth(out[c] / 10.0);
 		}

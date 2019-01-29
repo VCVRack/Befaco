@@ -74,7 +74,7 @@ struct SpringReverb : Module {
 		float dry = in1 * level1 + in2 * level2;
 
 		// HPF on dry
-		float dryCutoff = 200.0 * std::pow(20.0, params[HPF_PARAM].value) * app()->engine->getSampleTime();
+		float dryCutoff = 200.0 * std::pow(20.0, params[HPF_PARAM].value) * APP->engine->getSampleTime();
 		dryFilter.setCutoff(dryCutoff);
 		dryFilter.process(dry);
 
@@ -91,7 +91,7 @@ struct SpringReverb : Module {
 			float output[BLOCK_SIZE];
 			// Convert input buffer
 			{
-				inputSrc.setRates(app()->engine->getSampleRate(), 48000);
+				inputSrc.setRates(APP->engine->getSampleRate(), 48000);
 				int inLen = inputBuffer.size();
 				int outLen = BLOCK_SIZE;
 				inputSrc.process(inputBuffer.startData(), &inLen, (dsp::Frame<1>*) input, &outLen);
@@ -103,7 +103,7 @@ struct SpringReverb : Module {
 
 			// Convert output buffer
 			{
-				outputSrc.setRates(48000, app()->engine->getSampleRate());
+				outputSrc.setRates(48000, APP->engine->getSampleRate());
 				int inLen = BLOCK_SIZE;
 				int outLen = outputBuffer.capacity();
 				outputSrc.process((dsp::Frame<1>*) output, &inLen, outputBuffer.endData(), &outLen);
@@ -122,7 +122,7 @@ struct SpringReverb : Module {
 		outputs[MIX_OUTPUT].value = clamp(mix, -10.0f, 10.0f);
 
 		// Set lights
-		float lightRate = 5.0 * app()->engine->getSampleTime();
+		float lightRate = 5.0 * APP->engine->getSampleTime();
 		vuFilter.setRate(lightRate);
 		vuFilter.process(std::abs(wet));
 		lightFilter.setRate(lightRate);

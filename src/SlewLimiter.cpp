@@ -42,7 +42,7 @@ struct SlewLimiter : Module {
 		if (in > out) {
 			float rise = inputs[RISE_INPUT].value / 10.f + params[RISE_PARAM].value;
 			float slew = slewMax * powf(slewMin / slewMax, rise);
-			out += slew * crossfade(1.f, shapeScale * (in - out), shape) * app()->engine->getSampleTime();
+			out += slew * crossfade(1.f, shapeScale * (in - out), shape) * APP->engine->getSampleTime();
 			if (out > in)
 				out = in;
 		}
@@ -50,7 +50,7 @@ struct SlewLimiter : Module {
 		else if (in < out) {
 			float fall = inputs[FALL_INPUT].value / 10.f + params[FALL_PARAM].value;
 			float slew = slewMax * powf(slewMin / slewMax, fall);
-			out -= slew * crossfade(1.f, shapeScale * (out - in), shape) * app()->engine->getSampleTime();
+			out -= slew * crossfade(1.f, shapeScale * (out - in), shape) * APP->engine->getSampleTime();
 			if (out < in)
 				out = in;
 		}
