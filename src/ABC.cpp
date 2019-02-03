@@ -80,7 +80,7 @@ struct ABC : Module {
 struct ABCWidget : ModuleWidget {
 	ABCWidget(ABC *module) {
 		setModule(module);
-		setPanel(SVG::load(asset::plugin(pluginInstance, "res/ABC.svg")));
+		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/ABC.svg")));
 
 		addChild(createWidget<Knurlie>(Vec(15, 0)));
 		addChild(createWidget<Knurlie>(Vec(15, 365)));

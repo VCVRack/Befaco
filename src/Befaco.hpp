@@ -18,7 +18,7 @@ extern Model *modelDualAtenuverter;
 
 struct Knurlie : SVGScrew {
 	Knurlie() {
-		sw->svg = SVG::load(asset::plugin(pluginInstance, "res/Knurlie.svg"));
+		sw->svg = APP->window->loadSvg(asset::plugin(pluginInstance, "res/Knurlie.svg"));
 		sw->wrap();
 		box.size = sw->box.size;
 	}

@@ -63,7 +63,7 @@ struct SlewLimiter : Module {
 struct SlewLimiterWidget : ModuleWidget {
 	SlewLimiterWidget(::SlewLimiter *module) {
 		setModule(module);
-		setPanel(SVG::load(asset::plugin(pluginInstance, "res/SlewLimiter.svg")));
+		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/SlewLimiter.svg")));
 
 		addChild(createWidget<Knurlie>(Vec(15, 0)));
 		addChild(createWidget<Knurlie>(Vec(15, 365)));

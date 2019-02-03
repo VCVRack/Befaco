@@ -120,7 +120,7 @@ struct EvenVCO : Module {
 struct EvenVCOWidget : ModuleWidget {
 	EvenVCOWidget(EvenVCO *module) {
 		setModule(module);
-		setPanel(SVG::load(asset::plugin(pluginInstance, "res/EvenVCO.svg")));
+		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/EvenVCO.svg")));
 
 		addChild(createWidget<Knurlie>(Vec(15, 0)));
 		addChild(createWidget<Knurlie>(Vec(15, 365)));
