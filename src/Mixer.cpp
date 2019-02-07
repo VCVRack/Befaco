@@ -1,4 +1,4 @@
-#include "Befaco.hpp"
+#include "plugin.hpp"
 
 
 struct Mixer : Module {

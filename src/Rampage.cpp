@@ -1,4 +1,4 @@
-#include "Befaco.hpp"
+#include "plugin.hpp"
 
 
 static float shapeDelta(float delta, float tau, float shape) {
