@@ -46,7 +46,7 @@ struct ABC : Module {
 		params[C2_LEVEL_PARAM].config(-1.0, 1.0, 0.0, "C2 Level");
 	}
 
-	void step() override {
+	void process(const ProcessArgs &args) override {
 		float a1 = inputs[A1_INPUT].value;
 		float b1 = inputs[B1_INPUT].getNormalVoltage(5.f) * 2.f*dsp::exponentialBipolar(80.f, params[B1_LEVEL_PARAM].value);
 		float c1 = inputs[C1_INPUT].getNormalVoltage(10.f) * dsp::exponentialBipolar(80.f, params[C1_LEVEL_PARAM].value);
@@ -69,10 +69,10 @@ struct ABC : Module {
 		}
 
 		// Lights
-		lights[OUT1_POS_LIGHT].setBrightnessSmooth(std::max(0.f, out1 / 5.f));
-		lights[OUT1_NEG_LIGHT].setBrightnessSmooth(std::max(0.f, -out1 / 5.f));
-		lights[OUT2_POS_LIGHT].setBrightnessSmooth(std::max(0.f, out2 / 5.f));
-		lights[OUT2_NEG_LIGHT].setBrightnessSmooth(std::max(0.f, -out2 / 5.f));
+		lights[OUT1_POS_LIGHT].setSmoothBrightness(out1 / 5.f, args.sampleTime);
+		lights[OUT1_NEG_LIGHT].setSmoothBrightness(-out1 / 5.f, args.sampleTime);
+		lights[OUT2_POS_LIGHT].setSmoothBrightness(out2 / 5.f, args.sampleTime);
+		lights[OUT2_NEG_LIGHT].setSmoothBrightness(-out2 / 5.f, args.sampleTime);
 	}
 };
 

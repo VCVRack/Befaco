@@ -35,7 +35,7 @@ struct DualAtenuverter : Module {
 		params[OFFSET2_PARAM].config(-10.0, 10.0, 0.0, "Ch 2 offset", " V");
 	}
 
-	void step() override {
+	void process(const ProcessArgs &args) override {
 		float out1 = inputs[IN1_INPUT].value * params[ATEN1_PARAM].value + params[OFFSET1_PARAM].value;
 		float out2 = inputs[IN2_INPUT].value * params[ATEN2_PARAM].value + params[OFFSET2_PARAM].value;
 		out1 = clamp(out1, -10.f, 10.f);
@@ -43,10 +43,10 @@ struct DualAtenuverter : Module {
 
 		outputs[OUT1_OUTPUT].value = out1;
 		outputs[OUT2_OUTPUT].value = out2;
-		lights[OUT1_POS_LIGHT].setBrightnessSmooth(std::max(0.f, out1 / 5.f));
-		lights[OUT1_NEG_LIGHT].setBrightnessSmooth(std::max(0.f, -out1 / 5.f));
-		lights[OUT2_POS_LIGHT].setBrightnessSmooth(std::max(0.f, out2 / 5.f));
-		lights[OUT2_NEG_LIGHT].setBrightnessSmooth(std::max(0.f, -out2 / 5.f));
+		lights[OUT1_POS_LIGHT].setSmoothBrightness(out1 / 5.f, args.sampleTime);
+		lights[OUT1_NEG_LIGHT].setSmoothBrightness(-out1 / 5.f, args.sampleTime);
+		lights[OUT2_POS_LIGHT].setSmoothBrightness(out2 / 5.f, args.sampleTime);
+		lights[OUT2_NEG_LIGHT].setSmoothBrightness(-out2 / 5.f, args.sampleTime);
 	}
 };
 

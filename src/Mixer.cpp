@@ -35,17 +35,17 @@ struct Mixer : Module {
 		params[CH4_PARAM].config(0.0, 1.0, 0.0, "Ch 4 level", "%", 0, 100);
 	}
 
-	void step() override {
-		float in1 = inputs[IN1_INPUT].value * params[CH1_PARAM].value;
-		float in2 = inputs[IN2_INPUT].value * params[CH2_PARAM].value;
-		float in3 = inputs[IN3_INPUT].value * params[CH3_PARAM].value;
-		float in4 = inputs[IN4_INPUT].value * params[CH4_PARAM].value;
+	void process(const ProcessArgs &args) override {
+		float in1 = inputs[IN1_INPUT].getVoltage() * params[CH1_PARAM].getValue();
+		float in2 = inputs[IN2_INPUT].getVoltage() * params[CH2_PARAM].getValue();
+		float in3 = inputs[IN3_INPUT].getVoltage() * params[CH3_PARAM].getValue();
+		float in4 = inputs[IN4_INPUT].getVoltage() * params[CH4_PARAM].getValue();
 
 		float out = in1 + in2 + in3 + in4;
-		outputs[OUT1_OUTPUT].value = out;
-		outputs[OUT2_OUTPUT].value = -out;
-		lights[OUT_POS_LIGHT].setBrightnessSmooth(out / 5.f);
-		lights[OUT_NEG_LIGHT].setBrightnessSmooth(-out / 5.f);
+		outputs[OUT1_OUTPUT].setVoltage(out);
+		outputs[OUT2_OUTPUT].setVoltage(-out);
+		lights[OUT_POS_LIGHT].setSmoothBrightness(out / 5.f, args.sampleTime);
+		lights[OUT_NEG_LIGHT].setSmoothBrightness(-out / 5.f, args.sampleTime);
 	}
 };
 

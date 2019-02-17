@@ -28,7 +28,7 @@ struct SlewLimiter : Module {
 		params[FALL_PARAM].config(0.0, 1.0, 0.0, "Fall time");
 	}
 
-	void step() override {
+	void process(const ProcessArgs &args) override {
 		float in = inputs[IN_INPUT].value;
 		float shape = params[SHAPE_PARAM].value;
 
@@ -41,16 +41,16 @@ struct SlewLimiter : Module {
 		// Rise
 		if (in > out) {
 			float rise = inputs[RISE_INPUT].value / 10.f + params[RISE_PARAM].value;
-			float slew = slewMax * powf(slewMin / slewMax, rise);
-			out += slew * crossfade(1.f, shapeScale * (in - out), shape) * APP->engine->getSampleTime();
+			float slew = slewMax * std::pow(slewMin / slewMax, rise);
+			out += slew * crossfade(1.f, shapeScale * (in - out), shape) * args.sampleTime;
 			if (out > in)
 				out = in;
 		}
 		// Fall
 		else if (in < out) {
 			float fall = inputs[FALL_INPUT].value / 10.f + params[FALL_PARAM].value;
-			float slew = slewMax * powf(slewMin / slewMax, fall);
-			out -= slew * crossfade(1.f, shapeScale * (out - in), shape) * APP->engine->getSampleTime();
+			float slew = slewMax * std::pow(slewMin / slewMax, fall);
+			out -= slew * crossfade(1.f, shapeScale * (out - in), shape) * args.sampleTime;
 			if (out < in)
 				out = in;
 		}

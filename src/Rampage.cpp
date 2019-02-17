@@ -4,7 +4,7 @@
 static float shapeDelta(float delta, float tau, float shape) {
 	float lin = sgn(delta) * 10.f / tau;
 	if (shape < 0.f) {
-		float log = sgn(delta) * 40.f / tau / (std::abs(delta) + 1.f);
+		float log = sgn(delta) * 40.f / tau / (std::fabs(delta) + 1.f);
 		return crossfade(lin, log, -shape * 0.95f);
 	}
 	else {
@@ -95,7 +95,7 @@ struct Rampage : Module {
 		params[BALANCE_PARAM].config(0.0, 1.0, 0.5, "Balance");
 	}
 
-	void step() override {
+	void process(const ProcessArgs &args) override {
 		for (int c = 0; c < 2; c++) {
 			float in = inputs[IN_A_INPUT + c].value;
 			if (trigger[c].process(params[TRIGG_A_PARAM + c].value * 10.0 + inputs[TRIGG_A_INPUT + c].value / 2.0)) {
@@ -124,7 +124,7 @@ struct Rampage : Module {
 				float riseCv = params[RISE_A_PARAM + c].value - inputs[EXP_CV_A_INPUT + c].value / 10.0 + inputs[RISE_CV_A_INPUT + c].value / 10.0;
 				riseCv = clamp(riseCv, 0.0f, 1.0f);
 				float rise = minTime * std::pow(2.0, riseCv * 10.0);
-				out[c] += shapeDelta(delta, rise, shape) * APP->engine->getSampleTime();
+				out[c] += shapeDelta(delta, rise, shape) * args.sampleTime;
 				rising = (in - out[c] > 1e-3);
 				if (!rising) {
 					gate[c] = false;
@@ -135,7 +135,7 @@ struct Rampage : Module {
 				float fallCv = params[FALL_A_PARAM + c].value - inputs[EXP_CV_A_INPUT + c].value / 10.0 + inputs[FALL_CV_A_INPUT + c].value / 10.0;
 				fallCv = clamp(fallCv, 0.0f, 1.0f);
 				float fall = minTime * std::pow(2.0, fallCv * 10.0);
-				out[c] += shapeDelta(delta, fall, shape) * APP->engine->getSampleTime();
+				out[c] += shapeDelta(delta, fall, shape) * args.sampleTime;
 				falling = (in - out[c] < -1e-3);
 				if (!falling) {
 					// End of cycle, check if we should turn the gate back on (cycle mode)
@@ -155,11 +155,11 @@ struct Rampage : Module {
 
 			outputs[RISING_A_OUTPUT + c].value = (rising ? 10.0 : 0.0);
 			outputs[FALLING_A_OUTPUT + c].value = (falling ? 10.0 : 0.0);
-			lights[RISING_A_LIGHT + c].setBrightnessSmooth(rising ? 1.0 : 0.0);
-			lights[FALLING_A_LIGHT + c].setBrightnessSmooth(falling ? 1.0 : 0.0);
-			outputs[EOC_A_OUTPUT + c].value = (endOfCyclePulse[c].process(APP->engine->getSampleTime()) ? 10.0 : 0.0);
+			lights[RISING_A_LIGHT + c].setSmoothBrightness(rising ? 1.0 : 0.0, args.sampleTime);
+			lights[FALLING_A_LIGHT + c].setSmoothBrightness(falling ? 1.0 : 0.0, args.sampleTime);
+			outputs[EOC_A_OUTPUT + c].value = (endOfCyclePulse[c].process(args.sampleTime) ? 10.0 : 0.0);
 			outputs[OUT_A_OUTPUT + c].value = out[c];
-			lights[OUT_A_LIGHT + c].setBrightnessSmooth(out[c] / 10.0);
+			lights[OUT_A_LIGHT + c].setSmoothBrightness(out[c] / 10.0, args.sampleTime);
 		}
 
 		// Logic
@@ -174,9 +174,9 @@ struct Rampage : Module {
 		outputs[MIN_OUTPUT].value = std::min(a, b);
 		outputs[MAX_OUTPUT].value = std::max(a, b);
 		// Lights
-		lights[COMPARATOR_LIGHT].setBrightnessSmooth(outputs[COMPARATOR_OUTPUT].value / 10.0);
-		lights[MIN_LIGHT].setBrightnessSmooth(outputs[MIN_OUTPUT].value / 10.0);
-		lights[MAX_LIGHT].setBrightnessSmooth(outputs[MAX_OUTPUT].value / 10.0);
+		lights[COMPARATOR_LIGHT].setSmoothBrightness(outputs[COMPARATOR_OUTPUT].value / 10.0, args.sampleTime);
+		lights[MIN_LIGHT].setSmoothBrightness(outputs[MIN_OUTPUT].value / 10.0, args.sampleTime);
+		lights[MAX_LIGHT].setSmoothBrightness(outputs[MAX_OUTPUT].value / 10.0, args.sampleTime);
 	}
 };
 

@@ -49,7 +49,7 @@ struct EvenVCO : Module {
 		params[PWM_PARAM].config(-1.0, 1.0, 0.0, "Pulse width");
 	}
 
-	void step() override {
+	void process(const ProcessArgs &args) override {
 		// Compute frequency, pitch is 1V/oct
 		float pitch = 1.f + std::round(params[OCTAVE_PARAM].value) + params[TUNE_PARAM].value / 12.f;
 		pitch += inputs[PITCH1_INPUT].value + inputs[PITCH2_INPUT].value;
@@ -63,7 +63,7 @@ struct EvenVCO : Module {
 		pw = rescale(clamp(pw, -1.f, 1.f), -1.f, 1.f, minPw, 1.f - minPw);
 
 		// Advance phase
-		float deltaPhase = clamp(freq * APP->engine->getSampleTime(), 1e-6f, 0.5f);
+		float deltaPhase = clamp(freq * args.sampleTime, 1e-6f, 0.5f);
 		float oldPhase = phase;
 		phase += deltaPhase;
 
@@ -95,8 +95,8 @@ struct EvenVCO : Module {
 		triSquare += triSquareMinBlep.process();
 
 		// Integrate square for triangle
-		tri += 4.f * triSquare * freq * APP->engine->getSampleTime();
-		tri *= (1.f - 40.f * APP->engine->getSampleTime());
+		tri += 4.f * triSquare * freq * args.sampleTime;
+		tri *= (1.f - 40.f * args.sampleTime);
 
 		float sine = -std::cos(2*M_PI * phase);
 		float doubleSaw = (phase < 0.5) ? (-1.f + 4.f*phase) : (-1.f + 4.f*(phase - 0.5));

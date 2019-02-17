@@ -64,7 +64,7 @@ struct SpringReverb : Module {
 		delete convolver;
 	}
 
-	void step() override {
+	void process(const ProcessArgs &args) override {
 		float in1 = inputs[IN1_INPUT].value;
 		float in2 = inputs[IN2_INPUT].value;
 		const float levelScale = 0.030;
@@ -74,7 +74,7 @@ struct SpringReverb : Module {
 		float dry = in1 * level1 + in2 * level2;
 
 		// HPF on dry
-		float dryCutoff = 200.0 * std::pow(20.0, params[HPF_PARAM].value) * APP->engine->getSampleTime();
+		float dryCutoff = 200.0 * std::pow(20.0, params[HPF_PARAM].value) * args.sampleTime;
 		dryFilter.setCutoff(dryCutoff);
 		dryFilter.process(dry);
 
@@ -91,7 +91,7 @@ struct SpringReverb : Module {
 			float output[BLOCK_SIZE];
 			// Convert input buffer
 			{
-				inputSrc.setRates(APP->engine->getSampleRate(), 48000);
+				inputSrc.setRates(args.sampleRate, 48000);
 				int inLen = inputBuffer.size();
 				int outLen = BLOCK_SIZE;
 				inputSrc.process(inputBuffer.startData(), &inLen, (dsp::Frame<1>*) input, &outLen);
@@ -103,7 +103,7 @@ struct SpringReverb : Module {
 
 			// Convert output buffer
 			{
-				outputSrc.setRates(48000, APP->engine->getSampleRate());
+				outputSrc.setRates(48000, args.sampleRate);
 				int inLen = BLOCK_SIZE;
 				int outLen = outputBuffer.capacity();
 				outputSrc.process((dsp::Frame<1>*) output, &inLen, outputBuffer.endData(), &outLen);
@@ -122,11 +122,11 @@ struct SpringReverb : Module {
 		outputs[MIX_OUTPUT].value = clamp(mix, -10.0f, 10.0f);
 
 		// Set lights
-		float lightRate = 5.0 * APP->engine->getSampleTime();
+		float lightRate = 5.0 * args.sampleTime;
 		vuFilter.setRate(lightRate);
-		vuFilter.process(std::abs(wet));
+		vuFilter.process(std::fabs(wet));
 		lightFilter.setRate(lightRate);
-		lightFilter.process(std::abs(dry*50.0));
+		lightFilter.process(std::fabs(dry*50.0));
 
 		float vuValue = vuFilter.peak();
 		for (int i = 0; i < 7; i++) {
