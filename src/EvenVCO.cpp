@@ -44,9 +44,9 @@ struct EvenVCO : Module {
 
 	EvenVCO() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
-		params[OCTAVE_PARAM].config(-5.0, 4.0, 0.0, "Octave", "'", 0.5);
-		params[TUNE_PARAM].config(-7.0, 7.0, 0.0, "Tune", " semitones");
-		params[PWM_PARAM].config(-1.0, 1.0, 0.0, "Pulse width");
+		configParam(OCTAVE_PARAM, -5.0, 4.0, 0.0, "Octave", "'", 0.5);
+		configParam(TUNE_PARAM, -7.0, 7.0, 0.0, "Tune", " semitones");
+		configParam(PWM_PARAM, -1.0, 1.0, 0.0, "Pulse width");
 	}
 
 	void process(const ProcessArgs &args) override {

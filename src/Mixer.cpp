@@ -29,10 +29,10 @@ struct Mixer : Module {
 
 	Mixer() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
-		params[CH1_PARAM].config(0.0, 1.0, 0.0, "Ch 1 level", "%", 0, 100);
-		params[CH2_PARAM].config(0.0, 1.0, 0.0, "Ch 2 level", "%", 0, 100);
-		params[CH3_PARAM].config(0.0, 1.0, 0.0, "Ch 3 level", "%", 0, 100);
-		params[CH4_PARAM].config(0.0, 1.0, 0.0, "Ch 4 level", "%", 0, 100);
+		configParam(CH1_PARAM, 0.0, 1.0, 0.0, "Ch 1 level", "%", 0, 100);
+		configParam(CH2_PARAM, 0.0, 1.0, 0.0, "Ch 2 level", "%", 0, 100);
+		configParam(CH3_PARAM, 0.0, 1.0, 0.0, "Ch 3 level", "%", 0, 100);
+		configParam(CH4_PARAM, 0.0, 1.0, 0.0, "Ch 4 level", "%", 0, 100);
 	}
 
 	void process(const ProcessArgs &args) override {

@@ -40,10 +40,10 @@ struct ABC : Module {
 
 	ABC() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
-		params[B1_LEVEL_PARAM].config(-1.0, 1.0, 0.0, "B1 Level");
-		params[C1_LEVEL_PARAM].config(-1.0, 1.0, 0.0, "C1 Level");
-		params[B2_LEVEL_PARAM].config(-1.0, 1.0, 0.0, "B2 Level");
-		params[C2_LEVEL_PARAM].config(-1.0, 1.0, 0.0, "C2 Level");
+		configParam(B1_LEVEL_PARAM, -1.0, 1.0, 0.0, "B1 Level");
+		configParam(C1_LEVEL_PARAM, -1.0, 1.0, 0.0, "C1 Level");
+		configParam(B2_LEVEL_PARAM, -1.0, 1.0, 0.0, "B2 Level");
+		configParam(C2_LEVEL_PARAM, -1.0, 1.0, 0.0, "C2 Level");
 	}
 
 	void process(const ProcessArgs &args) override {

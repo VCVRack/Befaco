@@ -48,10 +48,10 @@ struct SpringReverb : Module {
 
 	SpringReverb() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
-		params[WET_PARAM].config(0.0, 1.0, 0.5, "Dry/wet", "%", 0, 100);
-		params[LEVEL1_PARAM].config(0.0, 1.0, 0.0, "In 1 level", "%", 0, 100);
-		params[LEVEL2_PARAM].config(0.0, 1.0, 0.0, "In 1 level", "%", 0, 100);
-		params[HPF_PARAM].config(0.0, 1.0, 0.5, "High pass filter cutoff");
+		configParam(WET_PARAM, 0.0, 1.0, 0.5, "Dry/wet", "%", 0, 100);
+		configParam(LEVEL1_PARAM, 0.0, 1.0, 0.0, "In 1 level", "%", 0, 100);
+		configParam(LEVEL2_PARAM, 0.0, 1.0, 0.0, "In 1 level", "%", 0, 100);
+		configParam(HPF_PARAM, 0.0, 1.0, 0.5, "High pass filter cutoff");
 
 		convolver = new dsp::RealTimeConvolver(BLOCK_SIZE);
 

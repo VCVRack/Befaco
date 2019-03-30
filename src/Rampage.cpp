@@ -80,19 +80,19 @@ struct Rampage : Module {
 
 	Rampage() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
-		params[RANGE_A_PARAM].config(0.0, 2.0, 0.0, "Ch 1 range");
-		params[SHAPE_A_PARAM].config(-1.0, 1.0, 0.0, "Ch 1 shape");
-		params[TRIGG_A_PARAM].config(0.0, 1.0, 0.0, "Ch 1 trigger");
-		params[RISE_A_PARAM].config(0.0, 1.0, 0.0, "Ch 1 rise time");
-		params[FALL_A_PARAM].config(0.0, 1.0, 0.0, "Ch 1 fall time");
-		params[CYCLE_A_PARAM].config(0.0, 1.0, 0.0, "Ch 1 cycle");
-		params[RANGE_B_PARAM].config(0.0, 2.0, 0.0, "Ch 2 range");
-		params[SHAPE_B_PARAM].config(-1.0, 1.0, 0.0, "Ch 2 shape");
-		params[TRIGG_B_PARAM].config(0.0, 1.0, 0.0, "Ch 2 trigger");
-		params[RISE_B_PARAM].config(0.0, 1.0, 0.0, "Ch 2 rise time");
-		params[FALL_B_PARAM].config(0.0, 1.0, 0.0, "Ch 2 fall time");
-		params[CYCLE_B_PARAM].config(0.0, 1.0, 0.0, "Ch 2 cycle");
-		params[BALANCE_PARAM].config(0.0, 1.0, 0.5, "Balance");
+		configParam(RANGE_A_PARAM, 0.0, 2.0, 0.0, "Ch 1 range");
+		configParam(SHAPE_A_PARAM, -1.0, 1.0, 0.0, "Ch 1 shape");
+		configParam(TRIGG_A_PARAM, 0.0, 1.0, 0.0, "Ch 1 trigger");
+		configParam(RISE_A_PARAM, 0.0, 1.0, 0.0, "Ch 1 rise time");
+		configParam(FALL_A_PARAM, 0.0, 1.0, 0.0, "Ch 1 fall time");
+		configParam(CYCLE_A_PARAM, 0.0, 1.0, 0.0, "Ch 1 cycle");
+		configParam(RANGE_B_PARAM, 0.0, 2.0, 0.0, "Ch 2 range");
+		configParam(SHAPE_B_PARAM, -1.0, 1.0, 0.0, "Ch 2 shape");
+		configParam(TRIGG_B_PARAM, 0.0, 1.0, 0.0, "Ch 2 trigger");
+		configParam(RISE_B_PARAM, 0.0, 1.0, 0.0, "Ch 2 rise time");
+		configParam(FALL_B_PARAM, 0.0, 1.0, 0.0, "Ch 2 fall time");
+		configParam(CYCLE_B_PARAM, 0.0, 1.0, 0.0, "Ch 2 cycle");
+		configParam(BALANCE_PARAM, 0.0, 1.0, 0.5, "Balance");
 	}
 
 	void process(const ProcessArgs &args) override {
