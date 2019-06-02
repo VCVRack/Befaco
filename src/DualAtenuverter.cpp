@@ -36,13 +36,13 @@ struct DualAtenuverter : Module {
 	}
 
 	void process(const ProcessArgs &args) override {
-		float out1 = inputs[IN1_INPUT].value * params[ATEN1_PARAM].value + params[OFFSET1_PARAM].value;
-		float out2 = inputs[IN2_INPUT].value * params[ATEN2_PARAM].value + params[OFFSET2_PARAM].value;
+		float out1 = inputs[IN1_INPUT].getVoltage() * params[ATEN1_PARAM].getValue() + params[OFFSET1_PARAM].getValue();
+		float out2 = inputs[IN2_INPUT].getVoltage() * params[ATEN2_PARAM].getValue() + params[OFFSET2_PARAM].getValue();
 		out1 = clamp(out1, -10.f, 10.f);
 		out2 = clamp(out2, -10.f, 10.f);
 
-		outputs[OUT1_OUTPUT].value = out1;
-		outputs[OUT2_OUTPUT].value = out2;
+		outputs[OUT1_OUTPUT].setVoltage(out1);
+		outputs[OUT2_OUTPUT].setVoltage(out2);
 		lights[OUT1_POS_LIGHT].setSmoothBrightness(out1 / 5.f, args.sampleTime);
 		lights[OUT1_NEG_LIGHT].setSmoothBrightness(-out1 / 5.f, args.sampleTime);
 		lights[OUT2_POS_LIGHT].setSmoothBrightness(out2 / 5.f, args.sampleTime);

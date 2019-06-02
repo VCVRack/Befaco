@@ -65,16 +65,16 @@ struct SpringReverb : Module {
 	}
 
 	void process(const ProcessArgs &args) override {
-		float in1 = inputs[IN1_INPUT].value;
-		float in2 = inputs[IN2_INPUT].value;
+		float in1 = inputs[IN1_INPUT].getVoltage();
+		float in2 = inputs[IN2_INPUT].getVoltage();
 		const float levelScale = 0.030;
 		const float levelBase = 25.0;
-		float level1 = levelScale * dsp::exponentialBipolar(levelBase, params[LEVEL1_PARAM].value) * inputs[CV1_INPUT].getNormalVoltage(10.0) / 10.0;
-		float level2 = levelScale * dsp::exponentialBipolar(levelBase, params[LEVEL2_PARAM].value) * inputs[CV2_INPUT].getNormalVoltage(10.0) / 10.0;
+		float level1 = levelScale * dsp::exponentialBipolar(levelBase, params[LEVEL1_PARAM].getValue()) * inputs[CV1_INPUT].getNormalVoltage(10.0) / 10.0;
+		float level2 = levelScale * dsp::exponentialBipolar(levelBase, params[LEVEL2_PARAM].getValue()) * inputs[CV2_INPUT].getNormalVoltage(10.0) / 10.0;
 		float dry = in1 * level1 + in2 * level2;
 
 		// HPF on dry
-		float dryCutoff = 200.0 * std::pow(20.0, params[HPF_PARAM].value) * args.sampleTime;
+		float dryCutoff = 200.0 * std::pow(20.0, params[HPF_PARAM].getValue()) * args.sampleTime;
 		dryFilter.setCutoff(dryCutoff);
 		dryFilter.process(dry);
 
@@ -115,11 +115,11 @@ struct SpringReverb : Module {
 		if (outputBuffer.empty())
 			return;
 		float wet = outputBuffer.shift().samples[0];
-		float balance = clamp(params[WET_PARAM].value + inputs[MIX_CV_INPUT].value / 10.0f, 0.0f, 1.0f);
+		float balance = clamp(params[WET_PARAM].getValue() + inputs[MIX_CV_INPUT].getVoltage() / 10.0f, 0.0f, 1.0f);
 		float mix = crossfade(in1, wet, balance);
 
-		outputs[WET_OUTPUT].value = clamp(wet, -10.0f, 10.0f);
-		outputs[MIX_OUTPUT].value = clamp(mix, -10.0f, 10.0f);
+		outputs[WET_OUTPUT].setVoltage(clamp(wet, -10.0f, 10.0f));
+		outputs[MIX_OUTPUT].setVoltage(clamp(mix, -10.0f, 10.0f));
 
 		// Set lights
 		float lightRate = 5.0 * args.sampleTime;

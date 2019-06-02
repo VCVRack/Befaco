@@ -29,8 +29,8 @@ struct SlewLimiter : Module {
 	}
 
 	void process(const ProcessArgs &args) override {
-		float in = inputs[IN_INPUT].value;
-		float shape = params[SHAPE_PARAM].value;
+		float in = inputs[IN_INPUT].getVoltage();
+		float shape = params[SHAPE_PARAM].getValue();
 
 		// minimum and maximum slopes in volts per second
 		const float slewMin = 0.1;
@@ -40,7 +40,7 @@ struct SlewLimiter : Module {
 
 		// Rise
 		if (in > out) {
-			float rise = inputs[RISE_INPUT].value / 10.f + params[RISE_PARAM].value;
+			float rise = inputs[RISE_INPUT].getVoltage() / 10.f + params[RISE_PARAM].getValue();
 			float slew = slewMax * std::pow(slewMin / slewMax, rise);
 			out += slew * crossfade(1.f, shapeScale * (in - out), shape) * args.sampleTime;
 			if (out > in)
@@ -48,14 +48,14 @@ struct SlewLimiter : Module {
 		}
 		// Fall
 		else if (in < out) {
-			float fall = inputs[FALL_INPUT].value / 10.f + params[FALL_PARAM].value;
+			float fall = inputs[FALL_INPUT].getVoltage() / 10.f + params[FALL_PARAM].getValue();
 			float slew = slewMax * std::pow(slewMin / slewMax, fall);
 			out -= slew * crossfade(1.f, shapeScale * (out - in), shape) * args.sampleTime;
 			if (out < in)
 				out = in;
 		}
 
-		outputs[OUT_OUTPUT].value = out;
+		outputs[OUT_OUTPUT].setVoltage(out);
 	}
 };
 

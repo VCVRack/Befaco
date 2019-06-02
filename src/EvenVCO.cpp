@@ -51,14 +51,14 @@ struct EvenVCO : Module {
 
 	void process(const ProcessArgs &args) override {
 		// Compute frequency, pitch is 1V/oct
-		float pitch = 1.f + std::round(params[OCTAVE_PARAM].value) + params[TUNE_PARAM].value / 12.f;
-		pitch += inputs[PITCH1_INPUT].value + inputs[PITCH2_INPUT].value;
-		pitch += inputs[FM_INPUT].value / 4.f;
+		float pitch = 1.f + std::round(params[OCTAVE_PARAM].getValue()) + params[TUNE_PARAM].getValue() / 12.f;
+		pitch += inputs[PITCH1_INPUT].getVoltage() + inputs[PITCH2_INPUT].getVoltage();
+		pitch += inputs[FM_INPUT].getVoltage() / 4.f;
 		float freq = dsp::FREQ_C4 * std::pow(2.f, pitch);
 		freq = clamp(freq, 0.f, 20000.f);
 
 		// Pulse width
-		float pw = params[PWM_PARAM].value + inputs[PWM_INPUT].value / 5.f;
+		float pw = params[PWM_PARAM].getValue() + inputs[PWM_INPUT].getVoltage() / 5.f;
 		const float minPw = 0.05;
 		pw = rescale(clamp(pw, -1.f, 1.f), -1.f, 1.f, minPw, 1.f - minPw);
 
@@ -108,11 +108,11 @@ struct EvenVCO : Module {
 		square += squareMinBlep.process();
 
 		// Set outputs
-		outputs[TRI_OUTPUT].value = 5.f*tri;
-		outputs[SINE_OUTPUT].value = 5.f*sine;
-		outputs[EVEN_OUTPUT].value = 5.f*even;
-		outputs[SAW_OUTPUT].value = 5.f*saw;
-		outputs[SQUARE_OUTPUT].value = 5.f*square;
+		outputs[TRI_OUTPUT].setVoltage(5.f*tri);
+		outputs[SINE_OUTPUT].setVoltage(5.f*sine);
+		outputs[EVEN_OUTPUT].setVoltage(5.f*even);
+		outputs[SAW_OUTPUT].setVoltage(5.f*saw);
+		outputs[SQUARE_OUTPUT].setVoltage(5.f*square);
 	}
 };
 

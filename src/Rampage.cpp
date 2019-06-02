@@ -97,20 +97,20 @@ struct Rampage : Module {
 
 	void process(const ProcessArgs &args) override {
 		for (int c = 0; c < 2; c++) {
-			float in = inputs[IN_A_INPUT + c].value;
-			if (trigger[c].process(params[TRIGG_A_PARAM + c].value * 10.0 + inputs[TRIGG_A_INPUT + c].value / 2.0)) {
+			float in = inputs[IN_A_INPUT + c].getVoltage();
+			if (trigger[c].process(params[TRIGG_A_PARAM + c].getValue() * 10.0 + inputs[TRIGG_A_INPUT + c].getVoltage() / 2.0)) {
 				gate[c] = true;
 			}
 			if (gate[c]) {
 				in = 10.0;
 			}
 
-			float shape = params[SHAPE_A_PARAM + c].value;
+			float shape = params[SHAPE_A_PARAM + c].getValue();
 			float delta = in - out[c];
 
 			// Integrator
 			float minTime;
-			switch ((int) params[RANGE_A_PARAM + c].value) {
+			switch ((int) params[RANGE_A_PARAM + c].getValue()) {
 				case 0: minTime = 1e-2; break;
 				case 1: minTime = 1e-3; break;
 				default: minTime = 1e-1; break;
@@ -121,7 +121,7 @@ struct Rampage : Module {
 
 			if (delta > 0) {
 				// Rise
-				float riseCv = params[RISE_A_PARAM + c].value - inputs[EXP_CV_A_INPUT + c].value / 10.0 + inputs[RISE_CV_A_INPUT + c].value / 10.0;
+				float riseCv = params[RISE_A_PARAM + c].getValue() - inputs[EXP_CV_A_INPUT + c].getVoltage() / 10.0 + inputs[RISE_CV_A_INPUT + c].getVoltage() / 10.0;
 				riseCv = clamp(riseCv, 0.0f, 1.0f);
 				float rise = minTime * std::pow(2.0, riseCv * 10.0);
 				out[c] += shapeDelta(delta, rise, shape) * args.sampleTime;
@@ -132,7 +132,7 @@ struct Rampage : Module {
 			}
 			else if (delta < 0) {
 				// Fall
-				float fallCv = params[FALL_A_PARAM + c].value - inputs[EXP_CV_A_INPUT + c].value / 10.0 + inputs[FALL_CV_A_INPUT + c].value / 10.0;
+				float fallCv = params[FALL_A_PARAM + c].getValue() - inputs[EXP_CV_A_INPUT + c].getVoltage() / 10.0 + inputs[FALL_CV_A_INPUT + c].getVoltage() / 10.0;
 				fallCv = clamp(fallCv, 0.0f, 1.0f);
 				float fall = minTime * std::pow(2.0, fallCv * 10.0);
 				out[c] += shapeDelta(delta, fall, shape) * args.sampleTime;
@@ -140,7 +140,7 @@ struct Rampage : Module {
 				if (!falling) {
 					// End of cycle, check if we should turn the gate back on (cycle mode)
 					endOfCyclePulse[c].trigger(1e-3);
-					if (params[CYCLE_A_PARAM + c].value * 10.0 + inputs[CYCLE_A_INPUT + c].value >= 4.0) {
+					if (params[CYCLE_A_PARAM + c].getValue() * 10.0 + inputs[CYCLE_A_INPUT + c].getVoltage() >= 4.0) {
 						gate[c] = true;
 					}
 				}
@@ -153,26 +153,26 @@ struct Rampage : Module {
 				out[c] = in;
 			}
 
-			outputs[RISING_A_OUTPUT + c].value = (rising ? 10.0 : 0.0);
-			outputs[FALLING_A_OUTPUT + c].value = (falling ? 10.0 : 0.0);
+			outputs[RISING_A_OUTPUT + c].setVoltage((rising ? 10.0 : 0.0));
+			outputs[FALLING_A_OUTPUT + c].setVoltage((falling ? 10.0 : 0.0));
 			lights[RISING_A_LIGHT + c].setSmoothBrightness(rising ? 1.0 : 0.0, args.sampleTime);
 			lights[FALLING_A_LIGHT + c].setSmoothBrightness(falling ? 1.0 : 0.0, args.sampleTime);
-			outputs[EOC_A_OUTPUT + c].value = (endOfCyclePulse[c].process(args.sampleTime) ? 10.0 : 0.0);
-			outputs[OUT_A_OUTPUT + c].value = out[c];
+			outputs[EOC_A_OUTPUT + c].setVoltage((endOfCyclePulse[c].process(args.sampleTime) ? 10.0 : 0.0));
+			outputs[OUT_A_OUTPUT + c].setVoltage(out[c]);
 			lights[OUT_A_LIGHT + c].setSmoothBrightness(out[c] / 10.0, args.sampleTime);
 		}
 
 		// Logic
-		float balance = params[BALANCE_PARAM].value;
+		float balance = params[BALANCE_PARAM].getValue();
 		float a = out[0];
 		float b = out[1];
 		if (balance < 0.5)
 			b *= 2.0 * balance;
 		else if (balance > 0.5)
 			a *= 2.0 * (1.0 - balance);
-		outputs[COMPARATOR_OUTPUT].value = (b > a ? 10.0 : 0.0);
-		outputs[MIN_OUTPUT].value = std::min(a, b);
-		outputs[MAX_OUTPUT].value = std::max(a, b);
+		outputs[COMPARATOR_OUTPUT].setVoltage((b > a ? 10.0 : 0.0));
+		outputs[MIN_OUTPUT].setVoltage(std::min(a, b));
+		outputs[MAX_OUTPUT].setVoltage(std::max(a, b));
 		// Lights
 		lights[COMPARATOR_LIGHT].setSmoothBrightness(outputs[COMPARATOR_OUTPUT].value / 10.0, args.sampleTime);
 		lights[MIN_LIGHT].setSmoothBrightness(outputs[MIN_OUTPUT].value / 10.0, args.sampleTime);
