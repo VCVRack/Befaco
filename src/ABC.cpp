@@ -3,8 +3,16 @@
 
 
 static float clip(float x) {
-	x = clamp(x, -2.f, 2.f);
-	return x / std::pow(1.f + std::pow(x, 24.f), 1/24.f);
+	// Pade approximant of x/(1 + x^12)^(1/12)
+	const float limit = 1.16691853009184;
+	x = clamp(x, -limit, limit);
+	return (x + 1.45833*std::pow(x, 13) + 0.559028*std::pow(x, 25) + 0.0427035*std::pow(x, 37))
+		/ (1. + 1.54167*std::pow(x, 12) + 0.642361*std::pow(x, 24) + 0.0579909*std::pow(x, 36));
+}
+
+static float exponentialBipolar80Pade_5_4(float x) {
+	return (0.109568*x + 0.281588*std::pow(x, 3) + 0.133841*std::pow(x, 5))
+		/ (1. - 0.630374*std::pow(x, 2) + 0.166271*std::pow(x, 4));
 }
 
 
@@ -31,10 +39,8 @@ struct ABC : Module {
 		NUM_OUTPUTS
 	};
 	enum LightIds {
-		OUT1_POS_LIGHT,
-		OUT1_NEG_LIGHT,
-		OUT2_POS_LIGHT,
-		OUT2_NEG_LIGHT,
+		ENUMS(OUT1_LIGHT, 2),
+		ENUMS(OUT2_LIGHT, 2),
 		NUM_LIGHTS
 	};
 
@@ -48,13 +54,13 @@ struct ABC : Module {
 
 	void process(const ProcessArgs &args) override {
 		float a1 = inputs[A1_INPUT].getVoltage();
-		float b1 = inputs[B1_INPUT].getNormalVoltage(5.f) * 2.f*dsp::exponentialBipolar(80.f, params[B1_LEVEL_PARAM].getValue());
-		float c1 = inputs[C1_INPUT].getNormalVoltage(10.f) * dsp::exponentialBipolar(80.f, params[C1_LEVEL_PARAM].getValue());
+		float b1 = inputs[B1_INPUT].getNormalVoltage(5.f) * 2.f*exponentialBipolar80Pade_5_4(params[B1_LEVEL_PARAM].getValue());
+		float c1 = inputs[C1_INPUT].getNormalVoltage(10.f) * exponentialBipolar80Pade_5_4(params[C1_LEVEL_PARAM].getValue());
 		float out1 = a1 * b1 / 5.f + c1;
 
 		float a2 = inputs[A2_INPUT].getVoltage();
-		float b2 = inputs[B2_INPUT].getNormalVoltage(5.f) * 2.f*dsp::exponentialBipolar(80.f, params[B2_LEVEL_PARAM].getValue());
-		float c2 = inputs[C2_INPUT].getNormalVoltage(10.f) * dsp::exponentialBipolar(80.f, params[C2_LEVEL_PARAM].getValue());
+		float b2 = inputs[B2_INPUT].getNormalVoltage(5.f) * 2.f*exponentialBipolar80Pade_5_4(params[B2_LEVEL_PARAM].getValue());
+		float c2 = inputs[C2_INPUT].getNormalVoltage(10.f) * exponentialBipolar80Pade_5_4(params[C2_LEVEL_PARAM].getValue());
 		float out2 = a2 * b2 / 5.f + c2;
 
 		// Set outputs
@@ -69,10 +75,10 @@ struct ABC : Module {
 		}
 
 		// Lights
-		lights[OUT1_POS_LIGHT].setSmoothBrightness(out1 / 5.f, args.sampleTime);
-		lights[OUT1_NEG_LIGHT].setSmoothBrightness(-out1 / 5.f, args.sampleTime);
-		lights[OUT2_POS_LIGHT].setSmoothBrightness(out2 / 5.f, args.sampleTime);
-		lights[OUT2_NEG_LIGHT].setSmoothBrightness(-out2 / 5.f, args.sampleTime);
+		lights[OUT1_LIGHT + 0].setSmoothBrightness(out1 / 5.f, args.sampleTime);
+		lights[OUT1_LIGHT + 1].setSmoothBrightness(-out1 / 5.f, args.sampleTime);
+		lights[OUT2_LIGHT + 0].setSmoothBrightness(out2 / 5.f, args.sampleTime);
+		lights[OUT2_LIGHT + 1].setSmoothBrightness(-out2 / 5.f, args.sampleTime);
 	}
 };
 
@@ -99,8 +105,8 @@ struct ABCWidget : ModuleWidget {
 		addInput(createInput<PJ301MPort>(Vec(7, 279), module, ABC::C2_INPUT));
 		addOutput(createOutput<PJ301MPort>(Vec(7, 321), module, ABC::OUT2_OUTPUT));
 
-		addChild(createLight<MediumLight<GreenRedLight>>(Vec(37, 162), module, ABC::OUT1_POS_LIGHT));
-		addChild(createLight<MediumLight<GreenRedLight>>(Vec(37, 329), module, ABC::OUT2_POS_LIGHT));
+		addChild(createLight<MediumLight<GreenRedLight>>(Vec(37, 162), module, ABC::OUT1_LIGHT));
+		addChild(createLight<MediumLight<GreenRedLight>>(Vec(37, 329), module, ABC::OUT2_LIGHT));
 	}
 };
 
