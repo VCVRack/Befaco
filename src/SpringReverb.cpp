@@ -65,8 +65,8 @@ struct SpringReverb : Module {
 	}
 
 	void process(const ProcessArgs &args) override {
-		float in1 = inputs[IN1_INPUT].getVoltage();
-		float in2 = inputs[IN2_INPUT].getVoltage();
+		float in1 = inputs[IN1_INPUT].getVoltageSum();
+		float in2 = inputs[IN2_INPUT].getVoltageSum();
 		const float levelScale = 0.030;
 		const float levelBase = 25.0;
 		float level1 = levelScale * dsp::exponentialBipolar(levelBase, params[LEVEL1_PARAM].getValue()) * inputs[CV1_INPUT].getNormalVoltage(10.0) / 10.0;

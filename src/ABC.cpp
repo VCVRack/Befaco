@@ -1,5 +1,6 @@
 #include "plugin.hpp"
 
+#define MAX(a,b) (a>b)?a:b
 
 
 static float clip(float x) {
@@ -9,6 +10,26 @@ static float clip(float x) {
 	return (x + 1.45833*std::pow(x, 13) + 0.559028*std::pow(x, 25) + 0.0427035*std::pow(x, 37))
 		/ (1. + 1.54167*std::pow(x, 12) + 0.642361*std::pow(x, 24) + 0.0579909*std::pow(x, 36));
 }
+
+static simd::float_4 clip4(simd::float_4 x) {
+	// Pade approximant of x/(1 + x^12)^(1/12)
+	const simd::float_4 limit = simd::float_4(1.16691853009184);
+	const simd::float_4 cnst_10 = simd::float_4(10.0);
+	const simd::float_4 cnst_1  = simd::float_4(1.0);
+	const simd::float_4 cnst_01 = simd::float_4(0.1);
+
+	const simd::float_4 coeff_1 = simd::float_4(1.45833);
+	const simd::float_4 coeff_2 = simd::float_4(0.559028);
+	const simd::float_4 coeff_3 = simd::float_4(0.0427035);
+	const simd::float_4 coeff_4 = simd::float_4(1.54167);
+	const simd::float_4 coeff_5 = simd::float_4(0.642361);
+	const simd::float_4 coeff_6 = simd::float_4(0.0579909);
+
+	x = clamp(x*cnst_01, -limit, limit);
+	return cnst_10 * (x + coeff_1*simd::pow(x, 13) + coeff_2*simd::pow(x, 25) + coeff_3*simd::pow(x, 37))
+		/ (cnst_1 + coeff_4*simd::pow(x, 12) + coeff_5*simd::pow(x, 24) + coeff_6*simd::pow(x, 36));
+}
+
 
 static float exponentialBipolar80Pade_5_4(float x) {
 	return (0.109568*x + 0.281588*std::pow(x, 3) + 0.133841*std::pow(x, 5))
@@ -44,41 +65,156 @@ struct ABC : Module {
 		NUM_LIGHTS
 	};
 
+	simd::float_4 mask[4];
+
+
 	ABC() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 		configParam(B1_LEVEL_PARAM, -1.0, 1.0, 0.0, "B1 Level");
 		configParam(C1_LEVEL_PARAM, -1.0, 1.0, 0.0, "C1 Level");
 		configParam(B2_LEVEL_PARAM, -1.0, 1.0, 0.0, "B2 Level");
 		configParam(C2_LEVEL_PARAM, -1.0, 1.0, 0.0, "C2 Level");
+
+		__m128i tmp =  _mm_cmpeq_epi16(_mm_set_epi32(0,0,0,0),_mm_set_epi32(0,0,0,0));
+
+		for(int i=0; i<4; i++) {
+			mask[3-i] = simd::float_4(_mm_castsi128_ps(tmp));
+			tmp = _mm_srli_si128(tmp, 4);
+		}
+
+	}
+
+	inline void load_input(Input &in, simd::float_4 *v, int numChannels) {
+		if(numChannels==1) {
+			for(int i=0; i<4; i++) v[i] = simd::float_4(in.getVoltage());
+		} else {
+			for(int c=0; c<numChannels; c+=4) v[c/4] = simd::float_4::load(in.getVoltages(c));
+		}
+	}
+
+	inline void crop_channels(simd::float_4 *vec, int numChannels) {
+		int c=numChannels/4;
+		vec[c] = simd::float_4(_mm_and_ps(vec[c].v, mask[numChannels-4*c].v));
 	}
 
 	void process(const ProcessArgs &args) override {
-		float a1 = inputs[A1_INPUT].getVoltage();
-		float b1 = inputs[B1_INPUT].getNormalVoltage(5.f) * 2.f*exponentialBipolar80Pade_5_4(params[B1_LEVEL_PARAM].getValue());
-		float c1 = inputs[C1_INPUT].getNormalVoltage(10.f) * exponentialBipolar80Pade_5_4(params[C1_LEVEL_PARAM].getValue());
-		float out1 = a1 * b1 / 5.f + c1;
 
-		float a2 = inputs[A2_INPUT].getVoltage();
-		float b2 = inputs[B2_INPUT].getNormalVoltage(5.f) * 2.f*exponentialBipolar80Pade_5_4(params[B2_LEVEL_PARAM].getValue());
-		float c2 = inputs[C2_INPUT].getNormalVoltage(10.f) * exponentialBipolar80Pade_5_4(params[C2_LEVEL_PARAM].getValue());
-		float out2 = a2 * b2 / 5.f + c2;
+		simd::float_4 a1[4];
+		simd::float_4 b1[4];
+		simd::float_4 c1[4];
+		simd::float_4 out1[4];
+
+		simd::float_4 a2[4];
+		simd::float_4 b2[4];
+		simd::float_4 c2[4];
+		simd::float_4 out2[4];
+
+		int channels_A1 = inputs[A1_INPUT].getChannels();
+		int channels_A2 = inputs[A2_INPUT].getChannels();
+
+		int channels_B1 = inputs[B1_INPUT].getChannels();
+		int channels_B2 = inputs[B2_INPUT].getChannels();
+
+		int channels_C1 = inputs[C1_INPUT].getChannels();
+		int channels_C2 = inputs[C2_INPUT].getChannels();
+
+		int channels_1 = 1;
+		channels_1 = MAX(channels_1, channels_A1);
+		channels_1 = MAX(channels_1, channels_B1);
+		channels_1 = MAX(channels_1, channels_C1);
+
+		int channels_2 = channels_1;
+		channels_2 = MAX(channels_2, channels_A2);
+		channels_2 = MAX(channels_2, channels_B2);
+		channels_2 = MAX(channels_2, channels_C2);
+
+		float mult_B1 = (2.f/5.f)*exponentialBipolar80Pade_5_4(params[B1_LEVEL_PARAM].getValue());
+		float mult_C1 = exponentialBipolar80Pade_5_4(params[C1_LEVEL_PARAM].getValue());
+
+		float mult_B2 = (2.f/5.f)*exponentialBipolar80Pade_5_4(params[B2_LEVEL_PARAM].getValue());
+		float mult_C2 = exponentialBipolar80Pade_5_4(params[C2_LEVEL_PARAM].getValue());
+
+
+		load_input(inputs[A1_INPUT], a1, channels_A1);
+		crop_channels(a1, channels_1);
+
+		if(inputs[B1_INPUT].isConnected()) {
+			load_input(inputs[B1_INPUT], b1, channels_B1);
+			for(int c=0; c<channels_1; c+=4) b1[c/4] = b1[c/4] * simd::float_4(mult_B1);
+		} else {
+			for(int c=0; c<channels_1; c+=4) b1[c/4] = simd::float_4(5.f*mult_B1);
+		}
+		crop_channels(b1, channels_1);
+
+		if(inputs[C1_INPUT].isConnected()) {
+			load_input(inputs[C1_INPUT], c1, channels_C1);
+			for(int c=0; c<channels_1; c+=4) c1[c/4] = c1[c/4] * simd::float_4(mult_C1);
+		} else {
+			for(int c=0; c<channels_1; c+=4) c1[c/4] = simd::float_4(10.f*mult_C1);
+		}
+		crop_channels(c1, channels_1);
+
+		for(int c=0; c<channels_1; c+=4) out1[c/4] = clip4(a1[c/4] * b1[c/4] + c1[c/4]);
+
+
+
+		load_input(inputs[A1_INPUT], a1, channels_A1);
+		crop_channels(a1, channels_1);
+
+		if(inputs[B2_INPUT].isConnected()) {
+			load_input(inputs[B2_INPUT], b2, channels_B2);
+			for(int c=0; c<channels_2; c+=4) b2[c/4] = b2[c/4] * simd::float_4(mult_B2);
+		} else {
+			for(int c=0; c<channels_2; c+=4) b2[c/4] = simd::float_4(5.f*mult_B2);
+		}
+		crop_channels(b2, channels_2);
+
+		if(inputs[C2_INPUT].isConnected()) {
+			load_input(inputs[C2_INPUT], c2, channels_C2);
+			for(int c=0; c<channels_2; c+=4) c2[c/4] = c2[c/4] * simd::float_4(mult_C2);
+		} else {
+			for(int c=0; c<channels_2; c+=4) c2[c/4] = simd::float_4(10.f*mult_C2);
+		}
+		crop_channels(c2, channels_2);
+
+		for(int c=0; c<channels_2; c+=4) out2[c/4] = clip4(a2[c/4] * b2[c/4] + c2[c/4]);
+
+
 
 		// Set outputs
 		if (outputs[OUT1_OUTPUT].isConnected()) {
-			outputs[OUT1_OUTPUT].setVoltage(clip(out1 / 10.f) * 10.f);
+			outputs[OUT1_OUTPUT].setChannels(channels_1);
+			for(int c=0; c<channels_1; c+=4) out1[c/4].store(outputs[OUT1_OUTPUT].getVoltages(c));
 		}
 		else {
-			out2 += out1;
+			for(int c=0; c<channels_1; c+=4) out2[c/4] += out1[c/4];
 		}
 		if (outputs[OUT2_OUTPUT].isConnected()) {
-			outputs[OUT2_OUTPUT].setVoltage(clip(out2 / 10.f) * 10.f);
+			outputs[OUT2_OUTPUT].setChannels(channels_1);
+			for(int c=0; c<channels_1; c+=4) out2[c/4].store(outputs[OUT2_OUTPUT].getVoltages(c));
 		}
 
 		// Lights
-		lights[OUT1_LIGHT + 0].setSmoothBrightness(out1 / 5.f, args.sampleTime);
-		lights[OUT1_LIGHT + 1].setSmoothBrightness(-out1 / 5.f, args.sampleTime);
-		lights[OUT2_LIGHT + 0].setSmoothBrightness(out2 / 5.f, args.sampleTime);
-		lights[OUT2_LIGHT + 1].setSmoothBrightness(-out2 / 5.f, args.sampleTime);
+
+		float light_1;
+		float light_2;
+
+		if(channels_1==1) {
+			light_1 = out1[0].s[0];
+		} else {
+			light_1 = outputs[OUT1_OUTPUT].getVoltageSum();
+		}
+		lights[OUT1_LIGHT + 0].setSmoothBrightness(light_1 / 5.f, args.sampleTime);
+		lights[OUT1_LIGHT + 1].setSmoothBrightness(-light_1 / 5.f, args.sampleTime);
+
+		if(channels_2==1) {
+			light_2 = out2[0].s[0];
+		} else {
+			light_2 = outputs[OUT2_OUTPUT].getVoltageSum();
+		}	
+		lights[OUT2_LIGHT + 0].setSmoothBrightness(light_2 / 5.f, args.sampleTime);
+		lights[OUT2_LIGHT + 1].setSmoothBrightness(-light_2 / 5.f, args.sampleTime);
+				
 	}
 };
 

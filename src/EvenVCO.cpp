@@ -1,5 +1,6 @@
 #include "plugin.hpp"
 
+#define MAX(a,b) (a>b)?a:b
 
 struct EvenVCO : Module {
 	enum ParamIds {
@@ -47,11 +48,25 @@ struct EvenVCO : Module {
 		configParam(OCTAVE_PARAM, -5.0, 4.0, 0.0, "Octave", "'", 0.5);
 		configParam(TUNE_PARAM, -7.0, 7.0, 0.0, "Tune", " semitones");
 		configParam(PWM_PARAM, -1.0, 1.0, 0.0, "Pulse width");
+
+
 	}
 
 	void process(const ProcessArgs &args) override {
 		// Compute frequency, pitch is 1V/oct
-		float pitch = 1.f + std::round(params[OCTAVE_PARAM].getValue()) + params[TUNE_PARAM].getValue() / 12.f;
+
+		int channels_pitch1 = inputs[PITCH1_INPUT].getChannels();
+		int channels_pitch2 = inputs[PITCH2_INPUT].getChannels();
+		int channels_fm     = inputs[FM_INPUT].getChannels();
+
+		int channels = 1;
+		channels = MAX(channels, channels_pitch1);
+		channels = MAX(channels, channels_pitch2);
+		// channels = MAX(channels, channels_fm);
+
+		float pitch_0 = 1.f + std::round(params[OCTAVE_PARAM].getValue()) + params[TUNE_PARAM].getValue() / 12.f;
+
+
 		pitch += inputs[PITCH1_INPUT].getVoltage() + inputs[PITCH2_INPUT].getVoltage();
 		pitch += inputs[FM_INPUT].getVoltage() / 4.f;
 		float freq = dsp::FREQ_C4 * std::pow(2.f, pitch);
