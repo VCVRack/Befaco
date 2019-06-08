@@ -33,7 +33,8 @@
       "tags": [
         "Ring Modulator",
         "Attenuator",
-        "Dual"
+        "Dual",
+        "Polyphonic"
       ]
     },
     {
@@ -47,7 +48,8 @@
       "slug": "Mixer",
       "name": "Mixer",
       "tags": [
-        "Mixer"
+        "Mixer",
+        "Polyphonic"
       ]
     },
     {
@@ -55,7 +57,8 @@
       "name": "Slew Limiter",
       "tags": [
         "Slew Limiter",
-        "Envelope Follower"
+        "Envelope Follower",
+        "Polyphonic"
       ]
     },
     {
@@ -63,7 +66,8 @@
       "name": "Dual Atenuverter",
       "tags": [
         "Attenuator",
-        "Dual"
+        "Dual",
+        "Polyphonic"
       ]
     }
   ]
