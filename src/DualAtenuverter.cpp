@@ -1,4 +1,5 @@
 #include "plugin.hpp"
+#include "simd_mask.hpp"
 
 
 struct DualAtenuverter : Module {
@@ -48,7 +49,6 @@ struct DualAtenuverter : Module {
 
 		simd::float_4 offset1 = simd::float_4(params[OFFSET1_PARAM].getValue());
 		simd::float_4 offset2 = simd::float_4(params[OFFSET2_PARAM].getValue());
-
 
 		for (int c = 0; c < channels1; c += 4) out1[c / 4] = clamp(simd::float_4::load(inputs[IN1_INPUT].getVoltages(c)) * att1 + offset1, -10.f, 10.f);
 		for (int c = 0; c < channels2; c += 4) out2[c / 4] = clamp(simd::float_4::load(inputs[IN2_INPUT].getVoltages(c)) * att2 + offset2, -10.f, 10.f);

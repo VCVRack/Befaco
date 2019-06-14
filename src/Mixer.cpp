@@ -1,4 +1,6 @@
 #include "plugin.hpp"
+#include "simd_mask.hpp"
+
 
 #define MAX(a,b) (a>b)?a:b
 #define MIN(a,b) (a<b)?a:b
@@ -30,8 +32,9 @@ struct Mixer : Module {
 		NUM_LIGHTS
 	};
 
-	simd::float_4 mask[4];
 	simd::float_4 minus_one;
+
+	ChannelMask channelMask;
 
 	Mixer() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
@@ -42,12 +45,6 @@ struct Mixer : Module {
 
 		minus_one = simd::float_4(-1.0f);
 
-		__m128i tmp =  _mm_cmpeq_epi16(_mm_set_epi32(0,0,0,0),_mm_set_epi32(0,0,0,0));
-
-		for(int i=0; i<4; i++) {
-			mask[3-i] = simd::float_4(_mm_castsi128_ps(tmp));
-			tmp = _mm_srli_si128(tmp, 4);
-		}
 
 	}
 
@@ -90,28 +87,28 @@ struct Mixer : Module {
 			for(int c=0; c<channels1; c+=4) in1[c/4] = simd::float_4::load(inputs[IN1_INPUT].getVoltages(c)) * mult1;
 
 			for(i=0; i<channels1/4; i++) out[i] += in1[i];                          // add only "real" channels. 
-			out[i] += simd::float_4(_mm_and_ps(in1[i].v, mask[channels1-4*i].v));   // make sure we zero out spurious channels
+			out[i] += simd::float_4(_mm_and_ps(in1[i].v, channelMask[channels1-4*i].v));   // make sure we zero out spurious channels
 		}
 	
 		if(inputs[IN2_INPUT].isConnected()) {
 			for(int c=0; c<channels2; c+=4) in2[c/4] = simd::float_4::load(inputs[IN2_INPUT].getVoltages(c)) * mult2;
 
 			for(i=0; i<channels2/4; i++) out[i] += in2[i];
-			out[i] += simd::float_4(_mm_and_ps(in2[i].v, mask[channels2-4*i].v));
+			out[i] += simd::float_4(_mm_and_ps(in2[i].v, channelMask[channels2-4*i].v));
 		}
 
 		if(inputs[IN3_INPUT].isConnected()) {
 			for(int c=0; c<channels3; c+=4) in3[c/4] = simd::float_4::load(inputs[IN3_INPUT].getVoltages(c)) * mult3;
 
 			for(i=0; i<channels3/4; i++) out[i] += in3[i];
-			out[i] += simd::float_4(_mm_and_ps(in3[i].v, mask[channels3-4*i].v));
+			out[i] += simd::float_4(_mm_and_ps(in3[i].v, channelMask[channels3-4*i].v));
 		}
 
 		if(inputs[IN4_INPUT].isConnected()) {
 			for(int c=0; c<channels4; c+=4) in4[c/4] = simd::float_4::load(inputs[IN4_INPUT].getVoltages(c)) * mult4;
 
 			for(i=0; i<channels4/4; i++) out[i] += in4[i];
-			out[i] += simd::float_4(_mm_and_ps(in4[i].v, mask[channels4-4*i].v));
+			out[i] += simd::float_4(_mm_and_ps(in4[i].v, channelMask[channels4-4*i].v));
 		}
 
 
