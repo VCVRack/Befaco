@@ -1,4 +1,5 @@
 #include "plugin.hpp"
+#include "simd_mask.hpp"
 
 #define MAX(a,b) (a>b)?a:b
 
@@ -65,7 +66,9 @@ struct ABC : Module {
 		NUM_LIGHTS
 	};
 
-	simd::float_4 mask[4];
+	// simd::float_4 mask[4];
+	
+	ChannelMask channelMask;
 
 
 	ABC() {
@@ -75,27 +78,19 @@ struct ABC : Module {
 		configParam(B2_LEVEL_PARAM, -1.0, 1.0, 0.0, "B2 Level");
 		configParam(C2_LEVEL_PARAM, -1.0, 1.0, 0.0, "C2 Level");
 
+/* 
 		__m128i tmp =  _mm_cmpeq_epi16(_mm_set_epi32(0,0,0,0),_mm_set_epi32(0,0,0,0));
-
+		
 		for(int i=0; i<4; i++) {
 			mask[3-i] = simd::float_4(_mm_castsi128_ps(tmp));
 			tmp = _mm_srli_si128(tmp, 4);
 		}
+*/
 
 	}
 
-	inline void load_input(Input &in, simd::float_4 *v, int numChannels) {
-		if(numChannels==1) {
-			for(int i=0; i<4; i++) v[i] = simd::float_4(in.getVoltage());
-		} else {
-			for(int c=0; c<numChannels; c+=4) v[c/4] = simd::float_4::load(in.getVoltages(c));
-		}
-	}
 
-	inline void crop_channels(simd::float_4 *vec, int numChannels) {
-		int c=numChannels/4;
-		vec[c] = simd::float_4(_mm_and_ps(vec[c].v, mask[numChannels-4*c].v));
-	}
+
 
 	void process(const ProcessArgs &args) override {
 
@@ -123,7 +118,7 @@ struct ABC : Module {
 		channels_1 = MAX(channels_1, channels_B1);
 		channels_1 = MAX(channels_1, channels_C1);
 
-		int channels_2 = channels_1;
+		int channels_2 = 1;
 		channels_2 = MAX(channels_2, channels_A2);
 		channels_2 = MAX(channels_2, channels_B2);
 		channels_2 = MAX(channels_2, channels_C2);
@@ -136,7 +131,7 @@ struct ABC : Module {
 
 
 		load_input(inputs[A1_INPUT], a1, channels_A1);
-		crop_channels(a1, channels_1);
+		channelMask.apply(a1, channels_1);
 
 		if(inputs[B1_INPUT].isConnected()) {
 			load_input(inputs[B1_INPUT], b1, channels_B1);
@@ -144,7 +139,7 @@ struct ABC : Module {
 		} else {
 			for(int c=0; c<channels_1; c+=4) b1[c/4] = simd::float_4(5.f*mult_B1);
 		}
-		crop_channels(b1, channels_1);
+		channelMask.apply(b1, channels_1);
 
 		if(inputs[C1_INPUT].isConnected()) {
 			load_input(inputs[C1_INPUT], c1, channels_C1);
@@ -152,14 +147,14 @@ struct ABC : Module {
 		} else {
 			for(int c=0; c<channels_1; c+=4) c1[c/4] = simd::float_4(10.f*mult_C1);
 		}
-		crop_channels(c1, channels_1);
+		channelMask.apply(c1, channels_1);
 
 		for(int c=0; c<channels_1; c+=4) out1[c/4] = clip4(a1[c/4] * b1[c/4] + c1[c/4]);
 
 
 
-		load_input(inputs[A1_INPUT], a1, channels_A1);
-		crop_channels(a1, channels_1);
+		load_input(inputs[A2_INPUT], a2, channels_A2);
+		channelMask.apply(a2, channels_2);
 
 		if(inputs[B2_INPUT].isConnected()) {
 			load_input(inputs[B2_INPUT], b2, channels_B2);
@@ -167,7 +162,7 @@ struct ABC : Module {
 		} else {
 			for(int c=0; c<channels_2; c+=4) b2[c/4] = simd::float_4(5.f*mult_B2);
 		}
-		crop_channels(b2, channels_2);
+		channelMask.apply(b2, channels_2);
 
 		if(inputs[C2_INPUT].isConnected()) {
 			load_input(inputs[C2_INPUT], c2, channels_C2);
@@ -175,7 +170,7 @@ struct ABC : Module {
 		} else {
 			for(int c=0; c<channels_2; c+=4) c2[c/4] = simd::float_4(10.f*mult_C2);
 		}
-		crop_channels(c2, channels_2);
+		channelMask.apply(c2, channels_2);
 
 		for(int c=0; c<channels_2; c+=4) out2[c/4] = clip4(a2[c/4] * b2[c/4] + c2[c/4]);
 
@@ -188,10 +183,12 @@ struct ABC : Module {
 		}
 		else {
 			for(int c=0; c<channels_1; c+=4) out2[c/4] += out1[c/4];
+			channels_2 = MAX(channels_1, channels_2);
+
 		}
 		if (outputs[OUT2_OUTPUT].isConnected()) {
-			outputs[OUT2_OUTPUT].setChannels(channels_1);
-			for(int c=0; c<channels_1; c+=4) out2[c/4].store(outputs[OUT2_OUTPUT].getVoltages(c));
+			outputs[OUT2_OUTPUT].setChannels(channels_2);
+			for(int c=0; c<channels_2; c+=4) out2[c/4].store(outputs[OUT2_OUTPUT].getVoltages(c));
 		}
 
 		// Lights

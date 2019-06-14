@@ -1,4 +1,5 @@
 #include "plugin.hpp"
+#include "simd_mask.hpp"
 
 
 static float shapeDelta(float delta, float tau, float shape) {
@@ -73,10 +74,18 @@ struct Rampage : Module {
 		NUM_LIGHTS
 	};
 
+	/*
 	float out[2] = {};
 	bool gate[2] = {};
-	dsp::SchmittTrigger trigger[2];
-	dsp::PulseGenerator endOfCyclePulse[2];
+	*/
+
+	simd::float_4 out[2][4];
+	simd::int32_4 gate[2][4]; // represent bool as integer: false = 0; true > o0
+
+	dsp::SchmittTrigger trigger[2, PORT_MAX_CHANNELS];
+	dsp::PulseGenerator endOfCyclePulse[2, PORT_MAX_CHANNELS];
+
+	ChannelMask channelMask; 
 
 	Rampage() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
@@ -93,12 +102,27 @@ struct Rampage : Module {
 		configParam(FALL_B_PARAM, 0.0, 1.0, 0.0, "Ch 2 fall time");
 		configParam(CYCLE_B_PARAM, 0.0, 1.0, 0.0, "Ch 2 cycle");
 		configParam(BALANCE_PARAM, 0.0, 1.0, 0.5, "Balance");
+
+		memset(out, 0, sizeof(out));
+		memset(gate, 0, sizeof(gate));
 	}
 
 	void process(const ProcessArgs &args) override {
-		for (int c = 0; c < 2; c++) {
-			float in = inputs[IN_A_INPUT + c].getVoltage();
-			if (trigger[c].process(params[TRIGG_A_PARAM + c].getValue() * 10.0 + inputs[TRIGG_A_INPUT + c].getVoltage() / 2.0)) {
+
+		int channels_in_A[2];
+		int channels_in_B[2];
+
+		for (int part=0; part<2; part++) {
+			channels_in_A[part] = inputs[IN_A_INPUT].getChannels()
+			channels_in_B[part] = inputs[IN_B_INPUT].getChannels()
+		}
+
+		for (int part = 0; part < 2; part++) {
+			simd::float_4 in[4];
+
+			load_input(inputs[IN_A_INPUT + part], in, channels_in_A[part]);
+
+			if (trigger[part].process(params[TRIGG_A_PARAM + part].getValue() * 10.0 + inputs[TRIGG_A_INPUT + part].getVoltage() / 2.0)) {
 				gate[c] = true;
 			}
 			if (gate[c]) {
