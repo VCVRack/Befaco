@@ -24,7 +24,8 @@
         "Logic",
         "Slew Limiter",
         "Envelope Follower",
-        "Dual"
+        "Dual",
+        "Polyphonic"
       ]
     },
     {

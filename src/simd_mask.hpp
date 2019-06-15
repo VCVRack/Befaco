@@ -30,7 +30,7 @@ struct ChannelMask {
 	inline void apply_all(simd::float_4 *vec, int numChannels) {
 		int c=numChannels/4;
 		vec[c] = vec[c]&mask[numChannels-4*c];
-		for(int i=c+1; i<4; i++) vec[i] = simd::float_4(0.f);
+		for(int i=c+1; i<4; i++) vec[i] = simd::float_4::zero();
 	}
 
 
@@ -41,6 +41,14 @@ inline void load_input(Input &in, simd::float_4 *v, int numChannels) {
 		for(int i=0; i<4; i++) v[i] = simd::float_4(in.getVoltage());
 	} else {
 		for(int c=0; c<numChannels; c+=4) v[c/4] = simd::float_4::load(in.getVoltages(c));
+	}
+}
+
+inline void add_input(Input &in, simd::float_4 *v, int numChannels) {
+	if(numChannels==1) {
+		for(int i=0; i<4; i++) v[i] += simd::float_4(in.getVoltage());
+	} else {
+		for(int c=0; c<numChannels; c+=4) v[c/4] += simd::float_4::load(in.getVoltages(c));
 	}
 }
 
