@@ -1,7 +1,10 @@
 #include "plugin.hpp"
 #include "simd_mask.hpp"
+#include "PulseGenerator_4.hpp"
 
+#define MAX(a,b) a>b?a:b
 
+/*
 static float shapeDelta(float delta, float tau, float shape) {
 	float lin = sgn(delta) * 10.f / tau;
 	if (shape < 0.f) {
@@ -13,6 +16,25 @@ static float shapeDelta(float delta, float tau, float shape) {
 		return crossfade(lin, exp, shape * 0.90f);
 	}
 }
+*/
+
+
+inline simd::float_4 crossfade_4(simd::float_4 a, simd::float_4 b, simd::float_4 p) {
+        return a + (b - a) * p;
+}
+
+static simd::float_4 shapeDelta(simd::float_4 delta, simd::float_4 tau, float shape) {
+	simd::float_4 lin = simd::sgn(delta) * 10.f / tau;
+	if (shape < 0.f) {
+		simd::float_4 log = simd::sgn(delta) * simd::float_4(40.f) / tau / (simd::fabs(delta) + simd::float_4(1.f));
+		return crossfade_4(lin, log, -shape * 0.95f);
+	}
+	else {
+		simd::float_4 exp = M_E * delta / tau;
+		return crossfade_4(lin, exp, shape * 0.90f);
+	}
+}
+
 
 
 struct Rampage : Module {
@@ -80,10 +102,10 @@ struct Rampage : Module {
 	*/
 
 	simd::float_4 out[2][4];
-	simd::int32_4 gate[2][4]; // represent bool as integer: false = 0; true > o0
+	simd::float_4 gate[2][4]; // use simd __m128 logic instead of bool
 
-	dsp::SchmittTrigger trigger[2, PORT_MAX_CHANNELS];
-	dsp::PulseGenerator endOfCyclePulse[2, PORT_MAX_CHANNELS];
+	dsp::TSchmittTrigger<simd::float_4> trigger_4[2][4];
+	PulseGenerator_4 endOfCyclePulse[2][4];
 
 	ChannelMask channelMask; 
 
@@ -109,40 +131,160 @@ struct Rampage : Module {
 
 	void process(const ProcessArgs &args) override {
 
-		int channels_in_A[2];
-		int channels_in_B[2];
+		int channels_in[2];
+		int channels_trig[2];
+		int channels[2];
+
+		// determine number of channels: 
 
 		for (int part=0; part<2; part++) {
-			channels_in_A[part] = inputs[IN_A_INPUT].getChannels()
-			channels_in_B[part] = inputs[IN_B_INPUT].getChannels()
+			int tmp = inputs[IN_A_INPUT+part].getChannels();
+			channels_in[part] = MAX(1,tmp);
+			tmp = inputs[TRIGG_A_INPUT+part].getChannels();
+			channels_trig[part] = MAX(1,tmp);
+			channels[part] = MAX(channels_in[part], channels_trig[part]);
+
+			outputs[OUT_A_OUTPUT+part].setChannels(channels[part]);
+			outputs[RISING_A_OUTPUT+part].setChannels(channels[part]);
+			outputs[FALLING_A_OUTPUT+part].setChannels(channels[part]);
+			outputs[EOC_A_OUTPUT+part].setChannels(channels[part]);
 		}
+		int channels_max = MAX(channels[0], channels[1]);
+
+		// loop over two parts of Rampage:
 
 		for (int part = 0; part < 2; part++) {
+
 			simd::float_4 in[4];
+			simd::float_4 in_trig[4];
+			simd::float_4 expCV[4] = {};
+			simd::float_4 riseCV[4] = {};
+			simd::float_4 fallCV[4] = {};
+			simd::float_4 cycle[4] = {};
 
-			load_input(inputs[IN_A_INPUT + part], in, channels_in_A[part]);
-
-			if (trigger[part].process(params[TRIGG_A_PARAM + part].getValue() * 10.0 + inputs[TRIGG_A_INPUT + part].getVoltage() / 2.0)) {
-				gate[c] = true;
-			}
-			if (gate[c]) {
-				in = 10.0;
-			}
-
-			float shape = params[SHAPE_A_PARAM + c].getValue();
-			float delta = in - out[c];
-
-			// Integrator
+			float shape = params[SHAPE_A_PARAM + part].getValue();
 			float minTime;
-			switch ((int) params[RANGE_A_PARAM + c].getValue()) {
+			switch ((int) params[RANGE_A_PARAM + part].getValue()) {
 				case 0: minTime = 1e-2; break;
 				case 1: minTime = 1e-3; break;
 				default: minTime = 1e-1; break;
 			}
 
-			bool rising = false;
-			bool falling = false;
+			simd::float_4 param_rise  = simd::float_4(params[RISE_A_PARAM  + part].getValue());
+			simd::float_4 param_fall  = simd::float_4(params[FALL_A_PARAM  + part].getValue());
+			simd::float_4 param_trig  = simd::float_4(params[TRIGG_A_PARAM + part].getValue() * 10.0f);
+			simd::float_4 param_cycle = simd::float_4(params[CYCLE_A_PARAM + part].getValue() * 10.0f);
 
+			if(inputs[IN_A_INPUT + part].isConnected()) {
+				load_input(inputs[IN_A_INPUT + part], in, channels_in[part]);
+				channelMask.apply_all(in, channels_in[part]);
+			} else {
+				memset(in, 0, sizeof(in));
+			}
+
+			if(inputs[TRIGG_A_INPUT + part].isConnected()) {
+				load_input(inputs[TRIGG_A_INPUT + part], in_trig, channels_trig[part]);
+				channelMask.apply_all(in_trig, channels_trig[part]);
+			} else {
+				memset(in_trig, 0, sizeof(in_trig));
+			}	
+
+			for(int c=0; c<channels_trig[part]; c+=4) in_trig[c/4] = param_trig + in_trig[c/4]/2.0f;
+			channelMask.apply_all(in_trig, channels_trig[part] );
+			
+			for(int c=0; c<channels[part]; c+=4) {
+				simd::float_4 trig_mask = trigger_4[part][c/4].process(in_trig[c/4]);
+				gate[part][c/4] = ifelse(trig_mask, simd::float_4::mask(), gate[part][c/4]);
+				in[c/4] = ifelse(gate[part][c/4], simd::float_4(10.0f), in[c/4]);
+			}
+
+			if(inputs[EXP_CV_A_INPUT + part].isConnected()) {
+				load_input(inputs[EXP_CV_A_INPUT + part], expCV, channels[part]);
+				for(int c=0; c<channels[part]; c+=4) riseCV[c/4] *= -1.0f;
+			}
+
+			load_input(inputs[RISE_CV_A_INPUT + part], riseCV, channels[part]);
+			for(int c=0; c<channels[part]; c+=4) {
+				riseCV[c/4] += expCV[c/4];
+				riseCV[c/4] *= 0.10f;
+				riseCV[c/4] += param_rise;
+			}
+
+			load_input(inputs[FALL_CV_A_INPUT + part], fallCV, channels[part]);
+			for(int c=0; c<channels[part]; c+=4) {
+				fallCV[c/4] += expCV[c/4];
+				fallCV[c/4] *= 0.10f;
+				fallCV[c/4] += param_fall;
+			}
+
+			load_input(inputs[CYCLE_A_INPUT], cycle, channels[part]);
+			// channelMask.apply_all(cycle, channels[part]);
+			for(int c=0; c<channels[part]; c+=4) {
+				cycle[c/4] += param_cycle;
+			}
+			channelMask.apply_all(cycle, channels[part]);
+
+
+			for(int c=0; c<channels[part]; c+=4) {
+
+				simd::float_4 delta = in[c/4] - out[part][c/4];
+
+				simd::float_4 delta_gt_0 = delta > simd::float_4::zero();
+				simd::float_4 delta_lt_0 = delta < simd::float_4::zero();
+				simd::float_4 delta_eq_0 = ~(delta_lt_0|delta_gt_0);
+
+				simd::float_4 rateCV = ifelse(delta_gt_0, riseCV[c/4], simd::float_4::zero());
+				rateCV = ifelse(delta_lt_0, fallCV[c/4], rateCV);
+				rateCV = clamp(rateCV, simd::float_4::zero(), simd::float_4(1.0f));
+
+				simd::float_4 rate = minTime * simd::pow(2.0f, rateCV * 10.0f);
+
+				out[part][c/4] += shapeDelta(delta, rate, shape) * args.sampleTime;
+
+				simd::float_4 rising  = (in[c/4] - out[part][c/4]) > simd::float_4( 1e-3);
+				simd::float_4 falling = (in[c/4] - out[part][c/4]) < simd::float_4(-1e-3);
+				simd::float_4 end_of_cycle = simd::andnot(falling,delta_lt_0);
+
+				endOfCyclePulse[part][c/4].trigger(end_of_cycle, 1e-3);
+
+				gate[part][c/4] = ifelse( simd::andnot(rising, delta_gt_0),                 simd::float_4::zero(), gate[part][c/4]);
+				gate[part][c/4] = ifelse( end_of_cycle & (cycle[c/4]>=simd::float_4(4.0f)), simd::float_4::mask(), gate[part][c/4] );
+				gate[part][c/4] = ifelse( delta_eq_0,                                       simd::float_4::zero(), gate[part][c/4] );
+
+				out[part][c/4]  = ifelse( rising|falling, out[part][c/4], in[c/4] );
+
+				simd::float_4 out_rising  = ifelse(rising,  simd::float_4(10.0f), simd::float_4::zero() );
+				simd::float_4 out_falling = ifelse(falling, simd::float_4(10.0f), simd::float_4::zero() );
+
+				simd::float_4 pulse = endOfCyclePulse[part][c/4].process(args.sampleTime);
+				simd::float_4 out_EOC = ifelse(pulse, simd::float_4(10.f), simd::float_4::zero() );
+
+				out[part][c/4].store(outputs[OUT_A_OUTPUT+part].getVoltages(c));
+
+				out_rising.store( outputs[RISING_A_OUTPUT+part].getVoltages(c));
+				out_falling.store(outputs[FALLING_A_OUTPUT+part].getVoltages(c));
+				out_EOC.store(outputs[EOC_A_OUTPUT+part].getVoltages(c));
+
+
+			} // for(int c, ...)
+
+			if(channels[part] == 1) {
+				lights[RISING_A_LIGHT + part].setSmoothBrightness(outputs[RISING_A_OUTPUT+part].getVoltage()/10.f, args.sampleTime);
+				lights[FALLING_A_LIGHT + part].setSmoothBrightness(outputs[FALLING_A_OUTPUT+part].getVoltage()/10.f, args.sampleTime);
+				lights[OUT_A_LIGHT + part].setSmoothBrightness(out[part][0].s[0] / 10.0, args.sampleTime);
+			} else {
+				lights[RISING_A_LIGHT + part].setSmoothBrightness(outputs[RISING_A_OUTPUT+part].getVoltageSum()/10.f, args.sampleTime);
+				lights[FALLING_A_LIGHT + part].setSmoothBrightness(outputs[FALLING_A_OUTPUT+part].getVoltageSum()/10.f, args.sampleTime);
+				lights[OUT_A_LIGHT + part].setSmoothBrightness(outputs[OUT_A_OUTPUT].getVoltageSum() / 10.0, args.sampleTime);
+
+			}
+
+			// Integrator
+
+			// bool rising = false;
+			// bool falling = false;
+
+			/* 
 			if (delta > 0) {
 				// Rise
 				float riseCv = params[RISE_A_PARAM + c].getValue() - inputs[EXP_CV_A_INPUT + c].getVoltage() / 10.0 + inputs[RISE_CV_A_INPUT + c].getVoltage() / 10.0;
@@ -172,36 +314,54 @@ struct Rampage : Module {
 			else {
 				gate[c] = false;
 			}
+			
 
 			if (!rising && !falling) {
 				out[c] = in;
 			}
+			*/
 
-			outputs[RISING_A_OUTPUT + c].setVoltage((rising ? 10.0 : 0.0));
-			outputs[FALLING_A_OUTPUT + c].setVoltage((falling ? 10.0 : 0.0));
-			lights[RISING_A_LIGHT + c].setSmoothBrightness(rising ? 1.0 : 0.0, args.sampleTime);
-			lights[FALLING_A_LIGHT + c].setSmoothBrightness(falling ? 1.0 : 0.0, args.sampleTime);
-			outputs[EOC_A_OUTPUT + c].setVoltage((endOfCyclePulse[c].process(args.sampleTime) ? 10.0 : 0.0));
-			outputs[OUT_A_OUTPUT + c].setVoltage(out[c]);
-			lights[OUT_A_LIGHT + c].setSmoothBrightness(out[c] / 10.0, args.sampleTime);
-		}
+			// outputs[RISING_A_OUTPUT + part].setVoltage((rising ? 10.0 : 0.0));
+			// outputs[FALLING_A_OUTPUT + part].setVoltage((falling ? 10.0 : 0.0));
+			// lights[RISING_A_LIGHT + part].setSmoothBrightness(rising ? 1.0 : 0.0, args.sampleTime);
+			// lights[FALLING_A_LIGHT + part].setSmoothBrightness(falling ? 1.0 : 0.0, args.sampleTime);
+			// outputs[EOC_A_OUTPUT + part].setVoltage((endOfCyclePulse[c].process(args.sampleTime) ? 10.0 : 0.0));
+			// outputs[OUT_A_OUTPUT + part].setVoltage(out[c]);
+			// lights[OUT_A_LIGHT + part].setSmoothBrightness(out[c] / 10.0, args.sampleTime);
+
+
+		} // for (int part, ... )
+
+
 
 		// Logic
 		float balance = params[BALANCE_PARAM].getValue();
-		float a = out[0];
-		float b = out[1];
-		if (balance < 0.5)
-			b *= 2.0 * balance;
-		else if (balance > 0.5)
-			a *= 2.0 * (1.0 - balance);
-		outputs[COMPARATOR_OUTPUT].setVoltage((b > a ? 10.0 : 0.0));
-		outputs[MIN_OUTPUT].setVoltage(std::min(a, b));
-		outputs[MAX_OUTPUT].setVoltage(std::max(a, b));
+
+		for(int c=0; c<channels_max; c+=4) {
+
+			simd::float_4 a = out[0][c/4];
+			simd::float_4 b = out[1][c/4];
+
+			if (balance < 0.5)
+				b *= 2.0 * balance;
+			else if (balance > 0.5)
+				a *= 2.0 * (1.0 - balance);
+
+			simd::float_4 comp    = ifelse( b>a, simd::float_4(10.0f), simd::float_4::zero() );
+			simd::float_4 out_min = simd::fmin(a,b);
+			simd::float_4 out_max = simd::fmax(a,b);
+
+			comp.store(outputs[COMPARATOR_OUTPUT].getVoltages(c));
+			out_min.store(outputs[MIN_OUTPUT].getVoltages(c));
+			out_max.store(outputs[MAX_OUTPUT].getVoltages(c));
+
+		}
 		// Lights
-		lights[COMPARATOR_LIGHT].setSmoothBrightness(outputs[COMPARATOR_OUTPUT].value / 10.0, args.sampleTime);
-		lights[MIN_LIGHT].setSmoothBrightness(outputs[MIN_OUTPUT].value / 10.0, args.sampleTime);
-		lights[MAX_LIGHT].setSmoothBrightness(outputs[MAX_OUTPUT].value / 10.0, args.sampleTime);
-	}
+		lights[COMPARATOR_LIGHT].setSmoothBrightness(outputs[COMPARATOR_OUTPUT].getVoltageSum() / 10.0, args.sampleTime);
+		lights[MIN_LIGHT].setSmoothBrightness(outputs[MIN_OUTPUT].getVoltageSum() / 10.0, args.sampleTime);
+		lights[MAX_LIGHT].setSmoothBrightness(outputs[MAX_OUTPUT].getVoltageSum() / 10.0, args.sampleTime);
+
+	} // end process()
 };
 
 

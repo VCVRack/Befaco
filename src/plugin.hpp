@@ -15,7 +15,7 @@ extern Model *modelSlewLimiter;
 extern Model *modelDualAtenuverter;
 
 
-struct Knurlie : SVGScrew {
+struct Knurlie : SvgScrew {
 	Knurlie() {
 		sw->svg = APP->window->loadSvg(asset::plugin(pluginInstance, "res/Knurlie.svg"));
 		sw->wrap();
