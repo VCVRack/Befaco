@@ -4,24 +4,6 @@
 
 #define MAX(a,b) a>b?a:b
 
-/*
-static float shapeDelta(float delta, float tau, float shape) {
-	float lin = sgn(delta) * 10.f / tau;
-	if (shape < 0.f) {
-		float log = sgn(delta) * 40.f / tau / (std::fabs(delta) + 1.f);
-		return crossfade(lin, log, -shape * 0.95f);
-	}
-	else {
-		float exp = M_E * delta / tau;
-		return crossfade(lin, exp, shape * 0.90f);
-	}
-}
-*/
-
-
-inline simd::float_4 crossfade_4(simd::float_4 a, simd::float_4 b, simd::float_4 p) {
-        return a + (b - a) * p;
-}
 
 static simd::float_4 shapeDelta(simd::float_4 delta, simd::float_4 tau, float shape) {
 	simd::float_4 lin = simd::sgn(delta) * 10.f / tau;
@@ -34,8 +16,6 @@ static simd::float_4 shapeDelta(simd::float_4 delta, simd::float_4 tau, float sh
 		return crossfade_4(lin, exp, shape * 0.90f);
 	}
 }
-
-
 
 struct Rampage : Module {
 	enum ParamIds {

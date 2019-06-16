@@ -52,3 +52,6 @@ inline void add_input(Input &in, simd::float_4 *v, int numChannels) {
 	}
 }
 
+inline simd::float_4 crossfade_4(simd::float_4 a, simd::float_4 b, simd::float_4 p) {
+        return a + (b - a) * p;
+}
