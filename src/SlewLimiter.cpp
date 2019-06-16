@@ -1,4 +1,5 @@
 #include "plugin.hpp"
+#include "simd_mask.hpp"
 
 
 struct SlewLimiter : Module {
@@ -19,7 +20,9 @@ struct SlewLimiter : Module {
 		NUM_OUTPUTS
 	};
 
-	float out[PORT_MAX_CHANNELS];
+	simd::float_4 out[4];
+	ChannelMask channelMask;
+
 
 	SlewLimiter() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
@@ -32,9 +35,12 @@ struct SlewLimiter : Module {
 
 	void process(const ProcessArgs &args) override {
 
+		simd::float_4 in[4];
+		simd::float_4 riseCV[4];
+		simd::float_4 fallCV[4];
+
 		int channels = inputs[IN_INPUT].getChannels();
 
-		float shape = params[SHAPE_PARAM].getValue();
 
 		// minimum and maximum slopes in volts per second
 		const float slewMin = 0.1;
@@ -42,12 +48,39 @@ struct SlewLimiter : Module {
 		// Amount of extra slew per voltage difference
 		const float shapeScale = 1/10.f;
 
-		const float param_rise = params[RISE_PARAM].getValue();
-		const float param_fall = params[FALL_PARAM].getValue();
+		float shape = params[SHAPE_PARAM].getValue();
+		const simd::float_4 param_rise = simd::float_4(params[RISE_PARAM].getValue() * 10.f);
+		const simd::float_4 param_fall = simd::float_4(params[FALL_PARAM].getValue() * 10.f);
 
 
 		outputs[OUT_OUTPUT].setChannels(channels);
 
+		load_input(inputs[IN_INPUT], in, channels);       channelMask.apply(in, channels);
+		load_input(inputs[RISE_INPUT], riseCV, channels); channelMask.apply(riseCV, channels);
+		load_input(inputs[FALL_INPUT], fallCV, channels); channelMask.apply(fallCV, channels);
+
+		for(int c=0; c<channels; c+=4) {
+			riseCV[c/4] += param_rise;
+			fallCV[c/4] += param_fall;
+
+			simd::float_4 delta = in[c/4] - out[c/4];
+
+			simd::float_4 delta_gt_0 = delta > simd::float_4::zero();
+			simd::float_4 delta_lt_0 = delta < simd::float_4::zero();
+
+			simd::float_4 rateCV = ifelse(delta_gt_0, riseCV[c/4], simd::float_4::zero());
+			rateCV = ifelse(delta_lt_0, fallCV[c/4], rateCV) * 0.1f;
+
+			simd::float_4 slew = slewMax * simd::pow(slewMin / slewMax, rateCV);
+
+			out[c/4] += slew * crossfade_4(simd::float_4(1.0f), shapeScale*delta, shape) * args.sampleTime;
+			out[c/4] = ifelse( delta_gt_0 & (out[c/4]>in[c/4]), in[c/4], out[c/4]);
+			out[c/4] = ifelse( delta_lt_0 & (out[c/4]<in[c/4]), in[c/4], out[c/4]);
+
+			out[c/4].store(outputs[OUT_OUTPUT].getVoltages(c));
+		}
+
+		/*
 		for(int c=0; c<channels; c++) {
 
 			float in = inputs[IN_INPUT].getVoltage(c);
@@ -71,7 +104,7 @@ struct SlewLimiter : Module {
 
 		}
 		outputs[OUT_OUTPUT].writeVoltages(out);
-
+		*/
 	}
 };
 
