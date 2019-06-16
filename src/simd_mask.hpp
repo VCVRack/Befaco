@@ -24,13 +24,15 @@ struct ChannelMask {
 
 	inline void apply(simd::float_4 *vec, int numChannels) {
 		int c=numChannels/4;
-		vec[c] = vec[c]&mask[numChannels-4*c];
+		if(c<4) vec[c] = vec[c]&mask[numChannels-4*c];
 	}
 
 	inline void apply_all(simd::float_4 *vec, int numChannels) {
 		int c=numChannels/4;
-		vec[c] = vec[c]&mask[numChannels-4*c];
-		for(int i=c+1; i<4; i++) vec[i] = simd::float_4::zero();
+		if(c<4) {
+               		vec[c] = vec[c]&mask[numChannels-4*c];
+			for(int i=c+1; i<4; i++) vec[i] = simd::float_4::zero();
+		}
 	}
 
 
