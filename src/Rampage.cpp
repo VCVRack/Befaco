@@ -64,15 +64,15 @@ struct Rampage : Module {
 		NUM_OUTPUTS
 	};
 	enum LightIds {
-		COMPARATOR_LIGHT,
-		MIN_LIGHT,
-		MAX_LIGHT,
-		OUT_A_LIGHT,
-		OUT_B_LIGHT,
-		RISING_A_LIGHT,
-		RISING_B_LIGHT,
-		FALLING_A_LIGHT,
-		FALLING_B_LIGHT,
+		ENUMS(COMPARATOR_LIGHT, 3),
+		ENUMS(MIN_LIGHT, 3),
+		ENUMS(MAX_LIGHT, 3),
+		ENUMS(OUT_A_LIGHT, 3),
+		ENUMS(OUT_B_LIGHT, 3),
+		ENUMS(RISING_A_LIGHT, 3),
+		ENUMS(RISING_B_LIGHT, 3),
+		ENUMS(FALLING_A_LIGHT, 3),
+		ENUMS(FALLING_B_LIGHT, 3),
 		NUM_LIGHTS
 	};
 
@@ -118,11 +118,11 @@ struct Rampage : Module {
 		// determine number of channels: 
 
 		for (int part=0; part<2; part++) {
-			int tmp = inputs[IN_A_INPUT+part].getChannels();
-			channels_in[part] = MAX(1,tmp);
-			tmp = inputs[TRIGG_A_INPUT+part].getChannels();
-			channels_trig[part] = MAX(1,tmp);
+			
+			channels_in[part]   = inputs[IN_A_INPUT+part].getChannels();
+			channels_trig[part] = inputs[TRIGG_A_INPUT+part].getChannels();
 			channels[part] = MAX(channels_in[part], channels_trig[part]);
+			channels[part] = MAX(1, channels[part]);
 
 			outputs[OUT_A_OUTPUT+part].setChannels(channels[part]);
 			outputs[RISING_A_OUTPUT+part].setChannels(channels[part]);
@@ -131,16 +131,22 @@ struct Rampage : Module {
 		}
 		int channels_max = MAX(channels[0], channels[1]);
 
+		outputs[COMPARATOR_OUTPUT].setChannels(channels_max);
+		outputs[MIN_OUTPUT].setChannels(channels_max);
+		outputs[MAX_OUTPUT].setChannels(channels_max);
+
 		// loop over two parts of Rampage:
 
 		for (int part = 0; part < 2; part++) {
 
 			simd::float_4 in[4];
 			simd::float_4 in_trig[4];
-			simd::float_4 expCV[4] = {};
-			simd::float_4 riseCV[4] = {};
-			simd::float_4 fallCV[4] = {};
-			simd::float_4 cycle[4] = {};
+			simd::float_4 expCV[4];
+			simd::float_4 riseCV[4];
+			simd::float_4 fallCV[4];
+			simd::float_4 cycle[4];
+
+			// get parameters:
 
 			float shape = params[SHAPE_A_PARAM + part].getValue();
 			float minTime;
@@ -150,10 +156,21 @@ struct Rampage : Module {
 				default: minTime = 1e-1; break;
 			}
 
-			simd::float_4 param_rise  = simd::float_4(params[RISE_A_PARAM  + part].getValue());
-			simd::float_4 param_fall  = simd::float_4(params[FALL_A_PARAM  + part].getValue());
-			simd::float_4 param_trig  = simd::float_4(params[TRIGG_A_PARAM + part].getValue() * 10.0f);
+			simd::float_4 param_rise  = simd::float_4(params[RISE_A_PARAM  + part].getValue() * 10.0f);
+			simd::float_4 param_fall  = simd::float_4(params[FALL_A_PARAM  + part].getValue() * 10.0f);
+			simd::float_4 param_trig  = simd::float_4(params[TRIGG_A_PARAM + part].getValue() * 20.0f);
 			simd::float_4 param_cycle = simd::float_4(params[CYCLE_A_PARAM + part].getValue() * 10.0f);
+
+			for(int c=0; c<channels[part]; c+=4) {
+				riseCV[c/4] = param_rise;
+				fallCV[c/4] = param_fall;
+				cycle[c/4] = param_cycle;
+				in_trig[c/4] = param_trig;
+
+			}
+
+
+			// read inputs:
 
 			if(inputs[IN_A_INPUT + part].isConnected()) {
 				load_input(inputs[IN_A_INPUT + part], in, channels_in[part]);
@@ -163,51 +180,36 @@ struct Rampage : Module {
 			}
 
 			if(inputs[TRIGG_A_INPUT + part].isConnected()) {
-				load_input(inputs[TRIGG_A_INPUT + part], in_trig, channels_trig[part]);
+				add_input(inputs[TRIGG_A_INPUT + part], in_trig, channels_trig[part]);
 				channelMask.apply_all(in_trig, channels_trig[part]);
-			} else {
-				memset(in_trig, 0, sizeof(in_trig));
-			}	
-
-			for(int c=0; c<channels_trig[part]; c+=4) in_trig[c/4] = param_trig + in_trig[c/4]/2.0f;
-			channelMask.apply_all(in_trig, channels_trig[part] );
-			
-			for(int c=0; c<channels[part]; c+=4) {
-				simd::float_4 trig_mask = trigger_4[part][c/4].process(in_trig[c/4]);
-				gate[part][c/4] = ifelse(trig_mask, simd::float_4::mask(), gate[part][c/4]);
-				in[c/4] = ifelse(gate[part][c/4], simd::float_4(10.0f), in[c/4]);
-			}
+			} 	
 
 			if(inputs[EXP_CV_A_INPUT + part].isConnected()) {
 				load_input(inputs[EXP_CV_A_INPUT + part], expCV, channels[part]);
-				for(int c=0; c<channels[part]; c+=4) riseCV[c/4] *= -1.0f;
+				for(int c=0; c<channels[part]; c+=4) {
+					riseCV[c/4] -= expCV[c/4];
+					fallCV[c/4] -= expCV[c/4];
+				}
 			}
 
-			load_input(inputs[RISE_CV_A_INPUT + part], riseCV, channels[part]);
-			for(int c=0; c<channels[part]; c+=4) {
-				riseCV[c/4] += expCV[c/4];
-				riseCV[c/4] *= 0.10f;
-				riseCV[c/4] += param_rise;
-			}
+			add_input(inputs[RISE_CV_A_INPUT + part], riseCV, channels[part]);
+			add_input(inputs[FALL_CV_A_INPUT + part], fallCV, channels[part]);	
+			add_input(inputs[CYCLE_A_INPUT+part], cycle, channels[part]);
+			channelMask.apply(cycle, channels[part]); // check whether this is necessary
 
-			load_input(inputs[FALL_CV_A_INPUT + part], fallCV, channels[part]);
+			// start processing:
+			
 			for(int c=0; c<channels[part]; c+=4) {
-				fallCV[c/4] += expCV[c/4];
-				fallCV[c/4] *= 0.10f;
-				fallCV[c/4] += param_fall;
-			}
 
-			load_input(inputs[CYCLE_A_INPUT], cycle, channels[part]);
-			// channelMask.apply_all(cycle, channels[part]);
-			for(int c=0; c<channels[part]; c+=4) {
-				cycle[c/4] += param_cycle;
-			}
-			channelMask.apply_all(cycle, channels[part]);
+				// process SchmittTriggers
 
-
-			for(int c=0; c<channels[part]; c+=4) {
+				simd::float_4 trig_mask = trigger_4[part][c/4].process(in_trig[c/4]/2.0);
+				gate[part][c/4] = ifelse(trig_mask, simd::float_4::mask(), gate[part][c/4]);
+				in[c/4] = ifelse(gate[part][c/4], simd::float_4(10.0f), in[c/4]);
 
 				simd::float_4 delta = in[c/4] - out[part][c/4];
+
+				// rise / fall branching
 
 				simd::float_4 delta_gt_0 = delta > simd::float_4::zero();
 				simd::float_4 delta_lt_0 = delta < simd::float_4::zero();
@@ -215,9 +217,9 @@ struct Rampage : Module {
 
 				simd::float_4 rateCV = ifelse(delta_gt_0, riseCV[c/4], simd::float_4::zero());
 				rateCV = ifelse(delta_lt_0, fallCV[c/4], rateCV);
-				rateCV = clamp(rateCV, simd::float_4::zero(), simd::float_4(1.0f));
+				rateCV = clamp(rateCV, simd::float_4::zero(), simd::float_4(10.0f));
 
-				simd::float_4 rate = minTime * simd::pow(2.0f, rateCV * 10.0f);
+				simd::float_4 rate = minTime * simd::pow(2.0f, rateCV);
 
 				out[part][c/4] += shapeDelta(delta, rate, shape) * args.sampleTime;
 
@@ -249,14 +251,25 @@ struct Rampage : Module {
 			} // for(int c, ...)
 
 			if(channels[part] == 1) {
-				lights[RISING_A_LIGHT + part].setSmoothBrightness(outputs[RISING_A_OUTPUT+part].getVoltage()/10.f, args.sampleTime);
-				lights[FALLING_A_LIGHT + part].setSmoothBrightness(outputs[FALLING_A_OUTPUT+part].getVoltage()/10.f, args.sampleTime);
-				lights[OUT_A_LIGHT + part].setSmoothBrightness(out[part][0].s[0] / 10.0, args.sampleTime);
+				lights[RISING_A_LIGHT + 3*part  ].setSmoothBrightness(outputs[RISING_A_OUTPUT+part].getVoltage()/10.f, args.sampleTime);
+				lights[RISING_A_LIGHT + 3*part+1].setBrightness(0.0f);
+				lights[RISING_A_LIGHT + 3*part+2].setBrightness(0.0f);
+				lights[FALLING_A_LIGHT + 3*part  ].setSmoothBrightness(outputs[FALLING_A_OUTPUT+part].getVoltage()/10.f, args.sampleTime);
+				lights[FALLING_A_LIGHT + 3*part+1].setBrightness(0.0f);
+				lights[FALLING_A_LIGHT + 3*part+2].setBrightness(0.0f);
+				lights[OUT_A_LIGHT + 3*part  ].setSmoothBrightness(out[part][0].s[0] / 10.0, args.sampleTime);
+				lights[OUT_A_LIGHT + 3*part+1].setBrightness(0.0f);
+				lights[OUT_A_LIGHT + 3*part+2].setBrightness(0.0f);
 			} else {
-				lights[RISING_A_LIGHT + part].setSmoothBrightness(outputs[RISING_A_OUTPUT+part].getVoltageSum()/10.f, args.sampleTime);
-				lights[FALLING_A_LIGHT + part].setSmoothBrightness(outputs[FALLING_A_OUTPUT+part].getVoltageSum()/10.f, args.sampleTime);
-				lights[OUT_A_LIGHT + part].setSmoothBrightness(outputs[OUT_A_OUTPUT].getVoltageSum() / 10.0, args.sampleTime);
-
+				lights[RISING_A_LIGHT + 3*part  ].setBrightness(0.0f);
+				lights[RISING_A_LIGHT + 3*part+1].setBrightness(0.0f);
+				lights[RISING_A_LIGHT + 3*part+2].setBrightness(10.0f);
+				lights[FALLING_A_LIGHT + 3*part  ].setBrightness(0.0f);
+				lights[FALLING_A_LIGHT + 3*part+1].setBrightness(0.0f);
+				lights[FALLING_A_LIGHT + 3*part+2].setBrightness(10.0f);
+				lights[OUT_A_LIGHT + 3*part  ].setBrightness(0.0f);
+				lights[OUT_A_LIGHT + 3*part+1].setBrightness(0.0f);
+				lights[OUT_A_LIGHT + 3*part+2].setBrightness(10.0f);
 			}
 
 			// Integrator
@@ -323,9 +336,9 @@ struct Rampage : Module {
 			simd::float_4 b = out[1][c/4];
 
 			if (balance < 0.5)
-				b *= 2.0 * balance;
+				b *= 2.0f * balance;
 			else if (balance > 0.5)
-				a *= 2.0 * (1.0 - balance);
+				a *= 2.0f * (1.0 - balance);
 
 			simd::float_4 comp    = ifelse( b>a, simd::float_4(10.0f), simd::float_4::zero() );
 			simd::float_4 out_min = simd::fmin(a,b);
@@ -337,9 +350,27 @@ struct Rampage : Module {
 
 		}
 		// Lights
-		lights[COMPARATOR_LIGHT].setSmoothBrightness(outputs[COMPARATOR_OUTPUT].getVoltageSum() / 10.0, args.sampleTime);
-		lights[MIN_LIGHT].setSmoothBrightness(outputs[MIN_OUTPUT].getVoltageSum() / 10.0, args.sampleTime);
-		lights[MAX_LIGHT].setSmoothBrightness(outputs[MAX_OUTPUT].getVoltageSum() / 10.0, args.sampleTime);
+		if(channels_max==1) {
+			lights[COMPARATOR_LIGHT  ].setSmoothBrightness(outputs[COMPARATOR_OUTPUT].getVoltage(), args.sampleTime);
+			lights[COMPARATOR_LIGHT+1].setBrightness(0.0f);
+			lights[COMPARATOR_LIGHT+2].setBrightness(0.0f);
+			lights[MIN_LIGHT  ].setSmoothBrightness(outputs[MIN_OUTPUT].getVoltage(), args.sampleTime);
+			lights[MIN_LIGHT+1].setBrightness(0.0f);
+			lights[MIN_LIGHT+2].setBrightness(0.0f);
+			lights[MAX_LIGHT  ].setSmoothBrightness(outputs[MAX_OUTPUT].getVoltage(), args.sampleTime);
+			lights[MAX_LIGHT+1].setBrightness(0.0f);
+			lights[MAX_LIGHT+2].setBrightness(0.0f);
+		} else {
+			lights[COMPARATOR_LIGHT  ].setBrightness(0.0f);
+			lights[COMPARATOR_LIGHT+1].setBrightness(0.0f);
+			lights[COMPARATOR_LIGHT+2].setBrightness(10.0f);
+			lights[MIN_LIGHT  ].setBrightness(0.0f);
+			lights[MIN_LIGHT+1].setBrightness(0.0f);
+			lights[MIN_LIGHT+2].setBrightness(10.0f);
+			lights[MAX_LIGHT  ].setBrightness(0.0f);
+			lights[MAX_LIGHT+1].setBrightness(0.0f);
+			lights[MAX_LIGHT+2].setBrightness(10.0f);
+		}
 
 	} // end process()
 };
@@ -377,7 +408,7 @@ struct RampageWidget : ModuleWidget {
 		addInput(createInput<PJ301MPort>(Vec(67, 268), module, Rampage::FALL_CV_A_INPUT));
 		addInput(createInput<PJ301MPort>(Vec(38, 297), module, Rampage::EXP_CV_A_INPUT));
 		addInput(createInput<PJ301MPort>(Vec(102, 290), module, Rampage::CYCLE_A_INPUT));
-		addInput(createInput<PJ301MPort>(Vec(229, 30), module, Rampage::IN_B_INPUT));
+		addInput(createInput<PJ301MPort>(Vec(229, 30), module, Rampage::IN_B_INPUT)); 
 		addInput(createInput<PJ301MPort>(Vec(192, 37), module, Rampage::TRIGG_B_INPUT));
 		addInput(createInput<PJ301MPort>(Vec(176, 268), module, Rampage::RISE_CV_B_INPUT));
 		addInput(createInput<PJ301MPort>(Vec(237, 268), module, Rampage::FALL_CV_B_INPUT));
@@ -396,15 +427,15 @@ struct RampageWidget : ModuleWidget {
 		addOutput(createOutput<PJ301MPort>(Vec(89, 157), module, Rampage::MIN_OUTPUT));
 		addOutput(createOutput<PJ301MPort>(Vec(155, 157), module, Rampage::MAX_OUTPUT));
 
-		addChild(createLight<SmallLight<RedLight>>(Vec(132, 167), module, Rampage::COMPARATOR_LIGHT));
-		addChild(createLight<SmallLight<RedLight>>(Vec(123, 174), module, Rampage::MIN_LIGHT));
-		addChild(createLight<SmallLight<RedLight>>(Vec(141, 174), module, Rampage::MAX_LIGHT));
-		addChild(createLight<SmallLight<RedLight>>(Vec(126, 185), module, Rampage::OUT_A_LIGHT));
-		addChild(createLight<SmallLight<RedLight>>(Vec(138, 185), module, Rampage::OUT_B_LIGHT));
-		addChild(createLight<SmallLight<RedLight>>(Vec(18, 312), module, Rampage::RISING_A_LIGHT));
-		addChild(createLight<SmallLight<RedLight>>(Vec(78, 312), module, Rampage::FALLING_A_LIGHT));
-		addChild(createLight<SmallLight<RedLight>>(Vec(187, 312), module, Rampage::RISING_B_LIGHT));
-		addChild(createLight<SmallLight<RedLight>>(Vec(247, 312), module, Rampage::FALLING_B_LIGHT));
+		addChild(createLight<SmallLight<RedGreenBlueLight>>(Vec(132, 167), module, Rampage::COMPARATOR_LIGHT));
+		addChild(createLight<SmallLight<RedGreenBlueLight>>(Vec(123, 174), module, Rampage::MIN_LIGHT));
+		addChild(createLight<SmallLight<RedGreenBlueLight>>(Vec(141, 174), module, Rampage::MAX_LIGHT));
+		addChild(createLight<SmallLight<RedGreenBlueLight>>(Vec(126, 185), module, Rampage::OUT_A_LIGHT));
+		addChild(createLight<SmallLight<RedGreenBlueLight>>(Vec(138, 185), module, Rampage::OUT_B_LIGHT));
+		addChild(createLight<SmallLight<RedGreenBlueLight>>(Vec(18, 312), module, Rampage::RISING_A_LIGHT));
+		addChild(createLight<SmallLight<RedGreenBlueLight>>(Vec(78, 312), module, Rampage::FALLING_A_LIGHT));
+		addChild(createLight<SmallLight<RedGreenBlueLight>>(Vec(187, 312), module, Rampage::RISING_B_LIGHT));
+		addChild(createLight<SmallLight<RedGreenBlueLight>>(Vec(247, 312), module, Rampage::FALLING_B_LIGHT));
 	}
 };
 

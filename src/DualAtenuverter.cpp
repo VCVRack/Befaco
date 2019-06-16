@@ -21,10 +21,8 @@ struct DualAtenuverter : Module {
 		NUM_OUTPUTS
 	};
 	enum LightIds {
-		OUT1_POS_LIGHT,
-		OUT1_NEG_LIGHT,
-		OUT2_POS_LIGHT,
-		OUT2_NEG_LIGHT,
+		ENUMS(OUT1_LIGHT, 3),
+		ENUMS(OUT2_LIGHT, 3),
 		NUM_LIGHTS
 	};
 
@@ -62,10 +60,28 @@ struct DualAtenuverter : Module {
 		float light1 = outputs[OUT1_OUTPUT].getVoltageSum()/channels1;
 		float light2 = outputs[OUT2_OUTPUT].getVoltageSum()/channels2;
 
-		lights[OUT1_POS_LIGHT].setSmoothBrightness(light1 / 5.f, args.sampleTime);
-		lights[OUT1_NEG_LIGHT].setSmoothBrightness(-light1 / 5.f, args.sampleTime);
-		lights[OUT2_POS_LIGHT].setSmoothBrightness(light2 / 5.f, args.sampleTime);
-		lights[OUT2_NEG_LIGHT].setSmoothBrightness(-light2 / 5.f, args.sampleTime);
+		if(channels1==1) {
+			lights[OUT1_LIGHT  ].setSmoothBrightness(light1 / 5.f, args.sampleTime);
+			lights[OUT1_LIGHT+1].setSmoothBrightness(-light1 / 5.f, args.sampleTime);
+			lights[OUT1_LIGHT+2].setBrightness(0.0f);
+		} else {
+			lights[OUT1_LIGHT  ].setBrightness(0.0f);
+			lights[OUT1_LIGHT+1].setBrightness(0.0f);
+			lights[OUT1_LIGHT+2].setBrightness(10.0f);
+		}
+
+		if(channels2==1) {
+			lights[OUT2_LIGHT  ].setSmoothBrightness(light2 / 5.f, args.sampleTime);
+			lights[OUT2_LIGHT+1].setSmoothBrightness(-light2 / 5.f, args.sampleTime);
+			lights[OUT2_LIGHT+2].setBrightness(0.0f);
+		} else {
+			lights[OUT2_LIGHT  ].setBrightness(0.0f);
+			lights[OUT2_LIGHT+1].setBrightness(0.0f);
+			lights[OUT2_LIGHT+2].setBrightness(10.0f);
+		}
+
+
+
 	}
 };
 
@@ -89,8 +105,8 @@ struct DualAtenuverterWidget : ModuleWidget {
 		addInput(createInput<PJ301MPort>(Vec(7, 319), module, DualAtenuverter::IN2_INPUT));
 		addOutput(createOutput<PJ301MPort>(Vec(43, 319), module, DualAtenuverter::OUT2_OUTPUT));
 
-		addChild(createLight<MediumLight<GreenRedLight>>(Vec(33, 143), module, DualAtenuverter::OUT1_POS_LIGHT));
-		addChild(createLight<MediumLight<GreenRedLight>>(Vec(33, 311), module, DualAtenuverter::OUT2_POS_LIGHT));
+		addChild(createLight<MediumLight<RedGreenBlueLight>>(Vec(33, 143), module, DualAtenuverter::OUT1_LIGHT));
+		addChild(createLight<MediumLight<RedGreenBlueLight>>(Vec(33, 311), module, DualAtenuverter::OUT2_LIGHT));
 	}
 };
 
