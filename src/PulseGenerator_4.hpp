@@ -14,7 +14,7 @@ struct PulseGenerator_4 {
     }
 
     /** Advances the state by `deltaTime`. Returns whether the pulse is in the HIGH state. */
-    simd::float_4 process(float deltaTime) {
+    inline simd::float_4 process(float deltaTime) {
 
         simd::float_4 mask = (remaining > simd::float_4::zero());
 
@@ -23,7 +23,7 @@ struct PulseGenerator_4 {
     }
 
     /** Begins a trigger with the given `duration`. */
-    void trigger(simd::float_4 mask, float duration = 1e-3f) {
+    inline void trigger(simd::float_4 mask, float duration = 1e-3f) {
         // Keep the previous pulse if the existing pulse will be held longer than the currently requested one.
         simd::float_4 duration_4 = simd::float_4(duration);
         remaining = ifelse( mask&(duration_4>remaining), duration_4, remaining); 

@@ -13,7 +13,8 @@
       "slug": "EvenVCO",
       "name": "EvenVCO",
       "tags": [
-        "VCO"
+        "VCO",
+        "Polyphonic"
       ]
     },
     {

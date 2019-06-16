@@ -60,24 +60,6 @@ struct EvenVCO : Module {
 		for(int c=0; c<PORT_MAX_CHANNELS; c++) halfPhase[c] = false;
 	}
 
-/* 
-	inline void load_input(Input &in, simd::float_4 *v, int numChannels) {
-		if(numChannels==1) {
-			for(int i=0; i<4; i++) v[i] = simd::float_4(in.getVoltage());
-		} else {
-			for(int c=0; c<numChannels; c+=4) v[c/4] = simd::float_4::load(in.getVoltages(c));
-		}
-	}
-*/
-
-	inline void add_input(Input &in, simd::float_4 *v, int numChannels) {
-		if(numChannels==1) {
-			for(int i=0; i<4; i++) v[i] = simd::float_4(in.getVoltage());
-		} else {
-			for(int c=0; c<numChannels; c+=4) v[c/4] = simd::float_4::load(in.getVoltages(c));
-		}
-	}
-
 	void process(const ProcessArgs &args) override {
 
         simd::float_4 pitch[4];
