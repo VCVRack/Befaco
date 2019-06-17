@@ -6,7 +6,7 @@
 /** When triggered, holds a high value for a specified time before going low again */
 struct PulseGenerator_4 {
     
-    simd::float_4 remaining = {};
+    simd::float_4 remaining = simd::float_4::zero();
 
     /** Immediately disables the pulse */
     void reset() {
