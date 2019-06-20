@@ -1,7 +1,6 @@
 #include "plugin.hpp"
-#include "simd_mask.hpp"
+#include "simd_input.hpp"
 
-#define MAX(a,b) (a>b)?a:b
 
 struct EvenVCO : Module {
 	enum ParamIds {
@@ -45,8 +44,6 @@ struct EvenVCO : Module {
 
 	dsp::RCFilter triFilter;
 
-	ChannelMask channelMask;
-
 	EvenVCO() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
 		configParam(OCTAVE_PARAM, -5.0, 4.0, 0.0, "Octave", "'", 0.5);
@@ -78,9 +75,8 @@ struct EvenVCO : Module {
 		int channels_pwm	= inputs[PWM_INPUT].getChannels();
 
 		int channels = 1;
-		channels = MAX(channels, channels_pitch1);
-		channels = MAX(channels, channels_pitch2);
-		// channels = MAX(channels, channels_fm);
+		channels = std::max(channels, channels_pitch1);
+		channels = std::max(channels, channels_pitch2);
 
 		float pitch_0 = 1.f + std::round(params[OCTAVE_PARAM].getValue()) + params[TUNE_PARAM].getValue() / 12.f;
 
@@ -90,19 +86,16 @@ struct EvenVCO : Module {
 
 		if(inputs[PITCH1_INPUT].isConnected()) {
 			load_input(inputs[PITCH1_INPUT], pitch_1, channels_pitch1);
-			channelMask.apply(pitch_1, channels_pitch1);
 			for(int c=0; c<channels_pitch1; c+=4) pitch[c/4] += pitch_1[c/4];
 		}
 
 		if(inputs[PITCH2_INPUT].isConnected()) {
 			load_input(inputs[PITCH2_INPUT], pitch_2, channels_pitch2);
-			channelMask.apply(pitch_2, channels_pitch2);
 			for(int c=0; c<channels_pitch2; c+=4) pitch[c/4] += pitch_2[c/4];
 		}
 
 		if(inputs[FM_INPUT].isConnected()) {
 			load_input(inputs[FM_INPUT], pitch_fm, channels_fm);
-			channelMask.apply(pitch_fm, channels_fm);
 			for(int c=0; c<channels_fm; c+=4) pitch[c/4] += pitch_fm[c/4] / 4.f;
 		}
 
@@ -120,7 +113,6 @@ struct EvenVCO : Module {
 		
 		if(inputs[PWM_INPUT].isConnected()) {
 			load_input(inputs[PWM_INPUT], pwm, channels_pwm);
-			channelMask.apply(pwm, channels_pwm);
 			for(int c=0; c<channels_pwm; c+=4) pw[c/4] += pwm[c/4] / 5.f;
 		}
 

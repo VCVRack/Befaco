@@ -1,17 +1,7 @@
 #include "plugin.hpp"
-#include "simd_mask.hpp"
+#include "simd_input.hpp"
 
-#define MAX(a,b) (a>b)?a:b
 
-/* 
-static float clip(float x) {
-	// Pade approximant of x/(1 + x^12)^(1/12)
-	const float limit = 1.16691853009184;
-	x = clamp(x, -limit, limit);
-	return (x + 1.45833*std::pow(x, 13) + 0.559028*std::pow(x, 25) + 0.0427035*std::pow(x, 37))
-		/ (1. + 1.54167*std::pow(x, 12) + 0.642361*std::pow(x, 24) + 0.0579909*std::pow(x, 36));
-}
-*/
 
 static simd::float_4 clip4(simd::float_4 x) {
 	// Pade approximant of x/(1 + x^12)^(1/12)
@@ -67,8 +57,6 @@ struct ABC : Module {
 		NUM_LIGHTS
 	};
 
-	ChannelMask channelMask;
-
 
 	ABC() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
@@ -79,24 +67,23 @@ struct ABC : Module {
 	}
 
 
-
-
 	void process(const ProcessArgs &args) override {
 
-		simd::float_4 a1[4];
-		simd::float_4 b1[4];
-		simd::float_4 c1[4];
+		simd::float_4 a1[4] = {};
+		simd::float_4 b1[4] = {};
+		simd::float_4 c1[4] = {};
 		simd::float_4 out1[4];
 
-		simd::float_4 a2[4];
-		simd::float_4 b2[4];
-		simd::float_4 c2[4];
+		simd::float_4 a2[4] = {};
+		simd::float_4 b2[4] = {};
+		simd::float_4 c2[4] = {};
 		simd::float_4 out2[4];
 
 		int channels_1 = 1;
 		int channels_2 = 1;
 
-
+		memset(out1, 0, sizeof(out1));
+		memset(out2, 0, sizeof(out2));
 
 		// process upper section
 
@@ -106,15 +93,15 @@ struct ABC : Module {
 			int channels_B1 = inputs[B1_INPUT].getChannels();
 			int channels_C1 = inputs[C1_INPUT].getChannels();
 
-			channels_1 = MAX(channels_1, channels_A1);
-			channels_1 = MAX(channels_1, channels_B1);
-			channels_1 = MAX(channels_1, channels_C1);
+			channels_1 = std::max(channels_1, channels_A1);
+			channels_1 = std::max(channels_1, channels_B1);
+			channels_1 = std::max(channels_1, channels_C1);
 
 			float mult_B1 = (2.f/5.f)*exponentialBipolar80Pade_5_4(params[B1_LEVEL_PARAM].getValue());
 			float mult_C1 = exponentialBipolar80Pade_5_4(params[C1_LEVEL_PARAM].getValue());
 
-			load_input(inputs[A1_INPUT], a1, channels_A1);
-			channelMask.apply(a1, channels_1);
+			if(inputs[A1_INPUT].isConnected()) load_input(inputs[A1_INPUT], a1, channels_A1);
+			else memset(a1, 0, sizeof(a1));
 
 			if(inputs[B1_INPUT].isConnected()) {
 				load_input(inputs[B1_INPUT], b1, channels_B1);
@@ -122,7 +109,6 @@ struct ABC : Module {
 			} else {
 				for(int c=0; c<channels_1; c+=4) b1[c/4] = simd::float_4(5.f*mult_B1);
 			}
-			channelMask.apply(b1, channels_1);
 
 			if(inputs[C1_INPUT].isConnected()) {
 				load_input(inputs[C1_INPUT], c1, channels_C1);
@@ -130,7 +116,6 @@ struct ABC : Module {
 			} else {
 				for(int c=0; c<channels_1; c+=4) c1[c/4] = simd::float_4(10.f*mult_C1);
 			}
-			channelMask.apply(c1, channels_1);
 
 			for(int c=0; c<channels_1; c+=4) out1[c/4] = clip4(a1[c/4] * b1[c/4] + c1[c/4]);
 		}
@@ -143,15 +128,15 @@ struct ABC : Module {
 			int channels_B2 = inputs[B2_INPUT].getChannels();
 			int channels_C2 = inputs[C2_INPUT].getChannels();
 
-			channels_2 = MAX(channels_2, channels_A2);
-			channels_2 = MAX(channels_2, channels_B2);
-			channels_2 = MAX(channels_2, channels_C2);
+			channels_2 = std::max(channels_2, channels_A2);
+			channels_2 = std::max(channels_2, channels_B2);
+			channels_2 = std::max(channels_2, channels_C2);
 
 			float mult_B2 = (2.f/5.f)*exponentialBipolar80Pade_5_4(params[B2_LEVEL_PARAM].getValue());
 			float mult_C2 = exponentialBipolar80Pade_5_4(params[C2_LEVEL_PARAM].getValue());
 
-			load_input(inputs[A2_INPUT], a2, channels_A2);
-			channelMask.apply(a2, channels_2);
+			if(inputs[A2_INPUT].isConnected()) load_input(inputs[A2_INPUT], a2, channels_A2);
+			else memset(a2, 0, sizeof(a2));
 
 			if(inputs[B2_INPUT].isConnected()) {
 				load_input(inputs[B2_INPUT], b2, channels_B2);
@@ -159,7 +144,6 @@ struct ABC : Module {
 			} else {
 				for(int c=0; c<channels_2; c+=4) b2[c/4] = simd::float_4(5.f*mult_B2);
 			}
-			channelMask.apply(b2, channels_2);
 
 			if(inputs[C2_INPUT].isConnected()) {
 				load_input(inputs[C2_INPUT], c2, channels_C2);
@@ -167,7 +151,6 @@ struct ABC : Module {
 			} else {
 				for(int c=0; c<channels_2; c+=4) c2[c/4] = simd::float_4(10.f*mult_C2);
 			}
-			channelMask.apply(c2, channels_2);
 
 			for(int c=0; c<channels_2; c+=4) out2[c/4] = clip4(a2[c/4] * b2[c/4] + c2[c/4]);
 		};
@@ -180,7 +163,7 @@ struct ABC : Module {
 		}
 		else {
 			for(int c=0; c<channels_1; c+=4) out2[c/4] += out1[c/4];
-			channels_2 = MAX(channels_1, channels_2);
+			channels_2 = std::max(channels_1, channels_2);
 		}
 
 		if (outputs[OUT2_OUTPUT].isConnected()) {

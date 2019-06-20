@@ -1,19 +1,17 @@
 #include "plugin.hpp"
-#include "simd_mask.hpp"
+#include "simd_input.hpp"
 #include "PulseGenerator_4.hpp"
-
-#define MAX(a,b) a>b?a:b
 
 
 static simd::float_4 shapeDelta(simd::float_4 delta, simd::float_4 tau, float shape) {
 	simd::float_4 lin = simd::sgn(delta) * 10.f / tau;
 	if (shape < 0.f) {
 		simd::float_4 log = simd::sgn(delta) * simd::float_4(40.f) / tau / (simd::fabs(delta) + simd::float_4(1.f));
-		return crossfade_4(lin, log, -shape * 0.95f);
+		return simd::crossfade(lin, log, -shape * 0.95f);
 	}
 	else {
 		simd::float_4 exp = M_E * delta / tau;
-		return crossfade_4(lin, exp, shape * 0.90f);
+		return simd::crossfade(lin, exp, shape * 0.90f);
 	}
 }
 
@@ -76,10 +74,6 @@ struct Rampage : Module {
 		NUM_LIGHTS
 	};
 
-	/*
-	float out[2] = {};
-	bool gate[2] = {};
-	*/
 
 	simd::float_4 out[2][4];
 	simd::float_4 gate[2][4]; // use simd __m128 logic instead of bool
@@ -87,7 +81,7 @@ struct Rampage : Module {
 	dsp::TSchmittTrigger<simd::float_4> trigger_4[2][4];
 	PulseGenerator_4 endOfCyclePulse[2][4];
 
-	ChannelMask channelMask; 
+	// ChannelMask channelMask; 
 
 	Rampage() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
@@ -121,15 +115,15 @@ struct Rampage : Module {
 			
 			channels_in[part]   = inputs[IN_A_INPUT+part].getChannels();
 			channels_trig[part] = inputs[TRIGG_A_INPUT+part].getChannels();
-			channels[part] = MAX(channels_in[part], channels_trig[part]);
-			channels[part] = MAX(1, channels[part]);
+			channels[part] = std::max(channels_in[part], channels_trig[part]);
+			channels[part] = std::max(1, channels[part]);
 
 			outputs[OUT_A_OUTPUT+part].setChannels(channels[part]);
 			outputs[RISING_A_OUTPUT+part].setChannels(channels[part]);
 			outputs[FALLING_A_OUTPUT+part].setChannels(channels[part]);
 			outputs[EOC_A_OUTPUT+part].setChannels(channels[part]);
 		}
-		int channels_max = MAX(channels[0], channels[1]);
+		int channels_max = std::max(channels[0], channels[1]);
 
 		outputs[COMPARATOR_OUTPUT].setChannels(channels_max);
 		outputs[MIN_OUTPUT].setChannels(channels_max);
@@ -174,14 +168,14 @@ struct Rampage : Module {
 
 			if(inputs[IN_A_INPUT + part].isConnected()) {
 				load_input(inputs[IN_A_INPUT + part], in, channels_in[part]);
-				channelMask.apply_all(in, channels_in[part]);
+				// channelMask.apply_all(in, channels_in[part]);
 			} else {
 				memset(in, 0, sizeof(in));
 			}
 
 			if(inputs[TRIGG_A_INPUT + part].isConnected()) {
 				add_input(inputs[TRIGG_A_INPUT + part], in_trig, channels_trig[part]);
-				channelMask.apply_all(in_trig, channels_trig[part]);
+				// channelMask.apply_all(in_trig, channels_trig[part]);
 			} 	
 
 			if(inputs[EXP_CV_A_INPUT + part].isConnected()) {
@@ -195,7 +189,7 @@ struct Rampage : Module {
 			add_input(inputs[RISE_CV_A_INPUT + part], riseCV, channels[part]);
 			add_input(inputs[FALL_CV_A_INPUT + part], fallCV, channels[part]);	
 			add_input(inputs[CYCLE_A_INPUT+part], cycle, channels[part]);
-			channelMask.apply(cycle, channels[part]); // check whether this is necessary
+			// channelMask.apply(cycle, channels[part]); // check whether this is necessary
 
 			// start processing:
 			
@@ -272,59 +266,7 @@ struct Rampage : Module {
 				lights[OUT_A_LIGHT + 3*part+2].setBrightness(10.0f);
 			}
 
-			// Integrator
-
-			// bool rising = false;
-			// bool falling = false;
-
-			/* 
-			if (delta > 0) {
-				// Rise
-				float riseCv = params[RISE_A_PARAM + c].getValue() - inputs[EXP_CV_A_INPUT + c].getVoltage() / 10.0 + inputs[RISE_CV_A_INPUT + c].getVoltage() / 10.0;
-				riseCv = clamp(riseCv, 0.0f, 1.0f);
-				float rise = minTime * std::pow(2.0, riseCv * 10.0);
-				out[c] += shapeDelta(delta, rise, shape) * args.sampleTime;
-				rising = (in - out[c] > 1e-3);
-				if (!rising) {
-					gate[c] = false;
-				}
-			}
-			else if (delta < 0) {
-				// Fall
-				float fallCv = params[FALL_A_PARAM + c].getValue() - inputs[EXP_CV_A_INPUT + c].getVoltage() / 10.0 + inputs[FALL_CV_A_INPUT + c].getVoltage() / 10.0;
-				fallCv = clamp(fallCv, 0.0f, 1.0f);
-				float fall = minTime * std::pow(2.0, fallCv * 10.0);
-				out[c] += shapeDelta(delta, fall, shape) * args.sampleTime;
-				falling = (in - out[c] < -1e-3);
-				if (!falling) {
-					// End of cycle, check if we should turn the gate back on (cycle mode)
-					endOfCyclePulse[c].trigger(1e-3);
-					if (params[CYCLE_A_PARAM + c].getValue() * 10.0 + inputs[CYCLE_A_INPUT + c].getVoltage() >= 4.0) {
-						gate[c] = true;
-					}
-				}
-			}
-			else {
-				gate[c] = false;
-			}
-			
-
-			if (!rising && !falling) {
-				out[c] = in;
-			}
-			*/
-
-			// outputs[RISING_A_OUTPUT + part].setVoltage((rising ? 10.0 : 0.0));
-			// outputs[FALLING_A_OUTPUT + part].setVoltage((falling ? 10.0 : 0.0));
-			// lights[RISING_A_LIGHT + part].setSmoothBrightness(rising ? 1.0 : 0.0, args.sampleTime);
-			// lights[FALLING_A_LIGHT + part].setSmoothBrightness(falling ? 1.0 : 0.0, args.sampleTime);
-			// outputs[EOC_A_OUTPUT + part].setVoltage((endOfCyclePulse[c].process(args.sampleTime) ? 10.0 : 0.0));
-			// outputs[OUT_A_OUTPUT + part].setVoltage(out[c]);
-			// lights[OUT_A_LIGHT + part].setSmoothBrightness(out[c] / 10.0, args.sampleTime);
-
-
 		} // for (int part, ... )
-
 
 
 		// Logic
