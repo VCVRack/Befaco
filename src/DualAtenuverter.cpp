@@ -1,5 +1,5 @@
 #include "plugin.hpp"
-#include "simd_mask.hpp"
+#include "simd_input.hpp"
 
 
 struct DualAtenuverter : Module {

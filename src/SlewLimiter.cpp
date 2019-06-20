@@ -1,5 +1,5 @@
 #include "plugin.hpp"
-#include "simd_mask.hpp"
+#include "simd_input.hpp"
 
 
 struct SlewLimiter : Module {
@@ -21,8 +21,6 @@ struct SlewLimiter : Module {
 	};
 
 	simd::float_4 out[4];
-	ChannelMask channelMask;
-
 
 	SlewLimiter() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
@@ -42,7 +40,7 @@ struct SlewLimiter : Module {
 		int channels = inputs[IN_INPUT].getChannels();
 
 
-		// minimum and maximum slopes in volts per second
+		// minimum and std::maximum slopes in volts per second
 		const float slewMin = 0.1;
 		const float slewMax = 10000.f;
 		// Amount of extra slew per voltage difference
@@ -55,9 +53,9 @@ struct SlewLimiter : Module {
 
 		outputs[OUT_OUTPUT].setChannels(channels);
 
-		load_input(inputs[IN_INPUT], in, channels);       channelMask.apply(in, channels);
-		load_input(inputs[RISE_INPUT], riseCV, channels); channelMask.apply(riseCV, channels);
-		load_input(inputs[FALL_INPUT], fallCV, channels); channelMask.apply(fallCV, channels);
+		load_input(inputs[IN_INPUT], in, channels);       
+		load_input(inputs[RISE_INPUT], riseCV, channels); 
+		load_input(inputs[FALL_INPUT], fallCV, channels); 
 
 		for(int c=0; c<channels; c+=4) {
 			riseCV[c/4] += param_rise;
@@ -73,38 +71,12 @@ struct SlewLimiter : Module {
 
 			simd::float_4 slew = slewMax * simd::pow(slewMin / slewMax, rateCV);
 
-			out[c/4] += slew * crossfade_4(simd::float_4(1.0f), shapeScale*delta, shape) * args.sampleTime;
+			out[c/4] += slew * simd::crossfade(simd::float_4(1.0f), shapeScale*delta, shape) * args.sampleTime;
 			out[c/4] = ifelse( delta_gt_0 & (out[c/4]>in[c/4]), in[c/4], out[c/4]);
 			out[c/4] = ifelse( delta_lt_0 & (out[c/4]<in[c/4]), in[c/4], out[c/4]);
 
 			out[c/4].store(outputs[OUT_OUTPUT].getVoltages(c));
 		}
-
-		/*
-		for(int c=0; c<channels; c++) {
-
-			float in = inputs[IN_INPUT].getVoltage(c);
-
-			// Rise
-			if (in > out[c]) {
-				float rise = inputs[RISE_INPUT].getPolyVoltage(c) / 10.f + param_rise;
-				float slew = slewMax * std::pow(slewMin / slewMax, rise);
-				out[c] += slew * crossfade(1.f, shapeScale * (in - out[c]), shape) * args.sampleTime;
-				if (out[c] > in)
-					out[c] = in;
-			}
-			// Fall
-			else if (in < out[c]) {
-				float fall = inputs[FALL_INPUT].getPolyVoltage(c) / 10.f + param_fall;
-				float slew = slewMax * std::pow(slewMin / slewMax, fall);
-				out[c] -= slew * crossfade(1.f, shapeScale * (out[c] - in), shape) * args.sampleTime;
-				if (out[c] < in)
-					out[c] = in;
-			}
-
-		}
-		outputs[OUT_OUTPUT].writeVoltages(out);
-		*/
 	}
 };
 

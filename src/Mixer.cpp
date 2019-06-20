@@ -1,9 +1,6 @@
 #include "plugin.hpp"
-#include "simd_mask.hpp"
+#include "simd_input.hpp"
 
-
-#define MAX(a,b) (a>b)?a:b
-#define MIN(a,b) (a<b)?a:b
 
 
 struct Mixer : Module {
@@ -29,12 +26,11 @@ struct Mixer : Module {
 	enum LightIds {
 		OUT_POS_LIGHT,
 		OUT_NEG_LIGHT,
+		OUT_BLUE_LIGHT,
 		NUM_LIGHTS
 	};
 
 	simd::float_4 minus_one;
-
-	ChannelMask channelMask;
 
 	Mixer() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
@@ -44,14 +40,10 @@ struct Mixer : Module {
 		configParam(CH4_PARAM, 0.0, 1.0, 0.0, "Ch 4 level", "%", 0, 100);
 
 		minus_one = simd::float_4(-1.0f);
-
-
 	}
 
 
 	void process(const ProcessArgs &args) override {
-
-		int i;
 
 		int channels1 = inputs[IN1_INPUT].getChannels();
 		int channels2 = inputs[IN2_INPUT].getChannels();
@@ -59,56 +51,35 @@ struct Mixer : Module {
 		int channels4 = inputs[IN4_INPUT].getChannels();
 
 		int out_channels = 1;
-		out_channels = MAX(out_channels, channels1);
-		out_channels = MAX(out_channels, channels2);
-		out_channels = MAX(out_channels, channels3);
-		out_channels = MAX(out_channels, channels4);
+		out_channels = std::max(out_channels, channels1);
+		out_channels = std::max(out_channels, channels2);
+		out_channels = std::max(out_channels, channels3);
+		out_channels = std::max(out_channels, channels4);
 		
 		simd::float_4 mult1 = simd::float_4(params[CH1_PARAM].getValue());
 		simd::float_4 mult2 = simd::float_4(params[CH2_PARAM].getValue());
 		simd::float_4 mult3 = simd::float_4(params[CH3_PARAM].getValue());
 		simd::float_4 mult4 = simd::float_4(params[CH4_PARAM].getValue());
 
-		simd::float_4 in1[4]; 
-		simd::float_4 in2[4]; 
-		simd::float_4 in3[4]; 
-		simd::float_4 in4[4]; 
-
 		simd::float_4 out[4]; 
 
-		out[0] = simd::float_4(0.f);
-		out[1] = simd::float_4(0.f);
-		out[2] = simd::float_4(0.f);
-		out[3] = simd::float_4(0.f);
+		memset(out, 0, sizeof(out));
 
 
 		if(inputs[IN1_INPUT].isConnected()) {
-			// this also loads some spurious channels into in1[]
-			for(int c=0; c<channels1; c+=4) in1[c/4] = simd::float_4::load(inputs[IN1_INPUT].getVoltages(c)) * mult1;
-
-			for(i=0; i<channels1/4; i++) out[i] += in1[i];                          // add only "real" channels. 
-			out[i] += simd::float_4(_mm_and_ps(in1[i].v, channelMask[channels1-4*i].v));   // make sure we zero out spurious channels
+			for(int c=0; c<channels1; c+=4) out[c/4] += simd::float_4::load(inputs[IN1_INPUT].getVoltages(c)) * mult1;
 		}
 	
 		if(inputs[IN2_INPUT].isConnected()) {
-			for(int c=0; c<channels2; c+=4) in2[c/4] = simd::float_4::load(inputs[IN2_INPUT].getVoltages(c)) * mult2;
-
-			for(i=0; i<channels2/4; i++) out[i] += in2[i];
-			out[i] += simd::float_4(_mm_and_ps(in2[i].v, channelMask[channels2-4*i].v));
+			for(int c=0; c<channels2; c+=4) out[c/4] += simd::float_4::load(inputs[IN2_INPUT].getVoltages(c)) * mult2;
 		}
 
 		if(inputs[IN3_INPUT].isConnected()) {
-			for(int c=0; c<channels3; c+=4) in3[c/4] = simd::float_4::load(inputs[IN3_INPUT].getVoltages(c)) * mult3;
-
-			for(i=0; i<channels3/4; i++) out[i] += in3[i];
-			out[i] += simd::float_4(_mm_and_ps(in3[i].v, channelMask[channels3-4*i].v));
+			for(int c=0; c<channels3; c+=4) out[c/4] += simd::float_4::load(inputs[IN3_INPUT].getVoltages(c)) * mult3;
 		}
 
 		if(inputs[IN4_INPUT].isConnected()) {
-			for(int c=0; c<channels4; c+=4) in4[c/4] = simd::float_4::load(inputs[IN4_INPUT].getVoltages(c)) * mult4;
-
-			for(i=0; i<channels4/4; i++) out[i] += in4[i];
-			out[i] += simd::float_4(_mm_and_ps(in4[i].v, channelMask[channels4-4*i].v));
+			for(int c=0; c<channels4; c+=4) out[c/4] += simd::float_4::load(inputs[IN4_INPUT].getVoltages(c)) * mult4;
 		}
 
 
@@ -120,10 +91,24 @@ struct Mixer : Module {
 			out[c / 4] *= minus_one;
 			out[c / 4].store(outputs[OUT2_OUTPUT].getVoltages(c));
 		}
-		/*
-		lights[OUT_POS_LIGHT].setSmoothBrightness(out / 5.f, args.sampleTime);
-		lights[OUT_NEG_LIGHT].setSmoothBrightness(-out / 5.f, args.sampleTime);
-		*/
+
+		if(out_channels==1) {
+			float light = outputs[OUT1_OUTPUT].getVoltage();
+			lights[OUT_POS_LIGHT].setSmoothBrightness(light / 5.f, args.sampleTime);
+			lights[OUT_NEG_LIGHT].setSmoothBrightness(-light / 5.f, args.sampleTime);
+		} else
+		{
+			float light = 0.0f;
+			for(int c=0; c<out_channels; c++) {
+				float tmp = outputs[OUT1_OUTPUT].getVoltage(c);
+				light += tmp*tmp;
+			}
+			light = sqrt(light);
+			lights[OUT_POS_LIGHT].setBrightness(0.0f);
+			lights[OUT_NEG_LIGHT].setBrightness(0.0f);
+			lights[OUT_BLUE_LIGHT].setSmoothBrightness(light / 5.f, args.sampleTime);
+		}
+		
 	}
 };
 
@@ -152,7 +137,7 @@ struct MixerWidget : ModuleWidget {
 		addOutput(createOutput<PJ301MPort>(Vec(7, 324), module, Mixer::OUT1_OUTPUT));
 		addOutput(createOutput<PJ301MPort>(Vec(43, 324), module, Mixer::OUT2_OUTPUT));
 
-		addChild(createLight<MediumLight<GreenRedLight>>(Vec(32.7, 310), module, Mixer::OUT_POS_LIGHT));
+		addChild(createLight<MediumLight<RedGreenBlueLight>>(Vec(32.7, 310), module, Mixer::OUT_POS_LIGHT));
 	}
 };
 
