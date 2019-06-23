@@ -46,7 +46,7 @@ struct SlewLimiter : Module {
 		// Amount of extra slew per voltage difference
 		const float shapeScale = 1/10.f;
 
-		float shape = params[SHAPE_PARAM].getValue();
+		const simd::float_4 shape = simd::float_4(params[SHAPE_PARAM].getValue());
 		const simd::float_4 param_rise = simd::float_4(params[RISE_PARAM].getValue() * 10.f);
 		const simd::float_4 param_fall = simd::float_4(params[FALL_PARAM].getValue() * 10.f);
 
@@ -66,12 +66,15 @@ struct SlewLimiter : Module {
 			simd::float_4 delta_gt_0 = delta > simd::float_4::zero();
 			simd::float_4 delta_lt_0 = delta < simd::float_4::zero();
 
-			simd::float_4 rateCV = ifelse(delta_gt_0, riseCV[c/4], simd::float_4::zero());
+			simd::float_4 rateCV;
+			rateCV = ifelse(delta_gt_0, riseCV[c/4], simd::float_4::zero());
 			rateCV = ifelse(delta_lt_0, fallCV[c/4], rateCV) * 0.1f;
 
-			simd::float_4 slew = slewMax * simd::pow(slewMin / slewMax, rateCV);
+			simd::float_4 pm_one = simd::sgn(delta);
 
-			out[c/4] += slew * simd::crossfade(simd::float_4(1.0f), shapeScale*delta, shape) * args.sampleTime;
+			simd::float_4 slew = slewMax * simd::pow(simd::float_4(slewMin / slewMax), rateCV);
+
+			out[c/4] += slew * simd::crossfade(pm_one, shapeScale*delta, shape) * args.sampleTime;
 			out[c/4] = ifelse( delta_gt_0 & (out[c/4]>in[c/4]), in[c/4], out[c/4]);
 			out[c/4] = ifelse( delta_lt_0 & (out[c/4]<in[c/4]), in[c/4], out[c/4]);
 
