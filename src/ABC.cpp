@@ -1,18 +1,17 @@
 #include "plugin.hpp"
 
 
-
-static float clip(float x) {
+inline float clip(float x) {
 	// Pade approximant of x/(1 + x^12)^(1/12)
-	const float limit = 1.16691853009184;
+	const float limit = 1.16691853009184f;
 	x = clamp(x, -limit, limit);
-	return (x + 1.45833*std::pow(x, 13) + 0.559028*std::pow(x, 25) + 0.0427035*std::pow(x, 37))
-		/ (1. + 1.54167*std::pow(x, 12) + 0.642361*std::pow(x, 24) + 0.0579909*std::pow(x, 36));
+	return (x + 1.45833f * std::pow(x, 13) + 0.559028f * std::pow(x, 25) + 0.0427035f * std::pow(x, 37))
+		/ (1 + 1.54167f * std::pow(x, 12) + 0.642361f * std::pow(x, 24) + 0.0579909f * std::pow(x, 36));
 }
 
-static float exponentialBipolar80Pade_5_4(float x) {
-	return (0.109568*x + 0.281588*std::pow(x, 3) + 0.133841*std::pow(x, 5))
-		/ (1. - 0.630374*std::pow(x, 2) + 0.166271*std::pow(x, 4));
+inline float exponentialBipolar80Pade_5_4(float x) {
+	return (0.109568f * x + 0.281588f * std::pow(x, 3) + 0.133841f * std::pow(x, 5))
+		/ (1 - 0.630374f * std::pow(x, 2) + 0.166271f * std::pow(x, 4));
 }
 
 
