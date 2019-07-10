@@ -65,6 +65,23 @@
         "Attenuator",
         "Dual"
       ]
+    },
+    {
+      "slug": "Muxlicer",
+      "name": "Muxlicer",
+      "tags": [
+        "Sequencer",
+        "Switch"
+      ]
+    },
+    {
+      "slug": "Burst",
+      "name": "Burst",
+      "tags": [
+        "Clock generator",
+        "Clock modulator",
+        "Random"
+      ]
     }
   ]
 }

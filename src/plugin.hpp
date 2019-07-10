@@ -1,4 +1,4 @@
-#include "rack.hpp"
+#include <rack.hpp>
 
 
 using namespace rack;
@@ -13,6 +13,8 @@ extern Model *modelSpringReverb;
 extern Model *modelMixer;
 extern Model *modelSlewLimiter;
 extern Model *modelDualAtenuverter;
+extern Model *modelMuxlicer;
+extern Model *modelBurst;
 
 
 struct Knurlie : SVGScrew {
