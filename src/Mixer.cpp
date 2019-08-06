@@ -2,7 +2,6 @@
 #include "simd_input.hpp"
 
 
-
 struct Mixer : Module {
 	enum ParamIds {
 		CH1_PARAM,
@@ -30,21 +29,15 @@ struct Mixer : Module {
 		NUM_LIGHTS
 	};
 
-	simd::float_4 minus_one;
-
 	Mixer() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 		configParam(CH1_PARAM, 0.0, 1.0, 0.0, "Ch 1 level", "%", 0, 100);
 		configParam(CH2_PARAM, 0.0, 1.0, 0.0, "Ch 2 level", "%", 0, 100);
 		configParam(CH3_PARAM, 0.0, 1.0, 0.0, "Ch 3 level", "%", 0, 100);
 		configParam(CH4_PARAM, 0.0, 1.0, 0.0, "Ch 4 level", "%", 0, 100);
-
-		minus_one = simd::float_4(-1.0f);
 	}
 
-
 	void process(const ProcessArgs &args) override {
-
 		int channels1 = inputs[IN1_INPUT].getChannels();
 		int channels2 = inputs[IN2_INPUT].getChannels();
 		int channels3 = inputs[IN3_INPUT].getChannels();
@@ -55,64 +48,66 @@ struct Mixer : Module {
 		out_channels = std::max(out_channels, channels2);
 		out_channels = std::max(out_channels, channels3);
 		out_channels = std::max(out_channels, channels4);
-		
+
 		simd::float_4 mult1 = simd::float_4(params[CH1_PARAM].getValue());
 		simd::float_4 mult2 = simd::float_4(params[CH2_PARAM].getValue());
 		simd::float_4 mult3 = simd::float_4(params[CH3_PARAM].getValue());
 		simd::float_4 mult4 = simd::float_4(params[CH4_PARAM].getValue());
 
-		simd::float_4 out[4]; 
+		simd::float_4 out[4];
 
-		memset(out, 0, sizeof(out));
+		std::memset(out, 0, sizeof(out));
 
 
-		if(inputs[IN1_INPUT].isConnected()) {
-			for(int c=0; c<channels1; c+=4) out[c/4] += simd::float_4::load(inputs[IN1_INPUT].getVoltages(c)) * mult1;
-		}
-	
-		if(inputs[IN2_INPUT].isConnected()) {
-			for(int c=0; c<channels2; c+=4) out[c/4] += simd::float_4::load(inputs[IN2_INPUT].getVoltages(c)) * mult2;
+		if (inputs[IN1_INPUT].isConnected()) {
+			for (int c = 0; c < channels1; c += 4)
+				out[c / 4] += simd::float_4::load(inputs[IN1_INPUT].getVoltages(c)) * mult1;
 		}
 
-		if(inputs[IN3_INPUT].isConnected()) {
-			for(int c=0; c<channels3; c+=4) out[c/4] += simd::float_4::load(inputs[IN3_INPUT].getVoltages(c)) * mult3;
+		if (inputs[IN2_INPUT].isConnected()) {
+			for (int c = 0; c < channels2; c += 4)
+				out[c / 4] += simd::float_4::load(inputs[IN2_INPUT].getVoltages(c)) * mult2;
 		}
 
-		if(inputs[IN4_INPUT].isConnected()) {
-			for(int c=0; c<channels4; c+=4) out[c/4] += simd::float_4::load(inputs[IN4_INPUT].getVoltages(c)) * mult4;
+		if (inputs[IN3_INPUT].isConnected()) {
+			for (int c = 0; c < channels3; c += 4)
+				out[c / 4] += simd::float_4::load(inputs[IN3_INPUT].getVoltages(c)) * mult3;
+		}
+
+		if (inputs[IN4_INPUT].isConnected()) {
+			for (int c = 0; c < channels4; c += 4)
+				out[c / 4] += simd::float_4::load(inputs[IN4_INPUT].getVoltages(c)) * mult4;
 		}
 
 
 		outputs[OUT1_OUTPUT].setChannels(out_channels);
 		outputs[OUT2_OUTPUT].setChannels(out_channels);
 
-		for(int c=0; c<out_channels; c+=4) {
+		for (int c = 0; c < out_channels; c += 4) {
 			out[c / 4].store(outputs[OUT1_OUTPUT].getVoltages(c));
-			out[c / 4] *= minus_one;
+			out[c / 4] *= -1.f;
 			out[c / 4].store(outputs[OUT2_OUTPUT].getVoltages(c));
 		}
 
-		if(out_channels==1) {
+		if (out_channels == 1) {
 			float light = outputs[OUT1_OUTPUT].getVoltage();
 			lights[OUT_POS_LIGHT].setSmoothBrightness(light / 5.f, args.sampleTime);
 			lights[OUT_NEG_LIGHT].setSmoothBrightness(-light / 5.f, args.sampleTime);
-		} else
-		{
+		}
+		else {
 			float light = 0.0f;
-			for(int c=0; c<out_channels; c++) {
+			for (int c = 0; c < out_channels; c++) {
 				float tmp = outputs[OUT1_OUTPUT].getVoltage(c);
-				light += tmp*tmp;
+				light += tmp * tmp;
 			}
-			light = sqrt(light);
+			light = std::sqrt(light);
 			lights[OUT_POS_LIGHT].setBrightness(0.0f);
 			lights[OUT_NEG_LIGHT].setBrightness(0.0f);
 			lights[OUT_BLUE_LIGHT].setSmoothBrightness(light / 5.f, args.sampleTime);
 		}
-		
+
 	}
 };
-
-
 
 
 struct MixerWidget : ModuleWidget {

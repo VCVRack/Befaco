@@ -2,30 +2,19 @@
 #include "simd_input.hpp"
 
 
-
-static simd::float_4 clip4(simd::float_4 x) {
+template <typename T>
+static T clip4(T x) {
 	// Pade approximant of x/(1 + x^12)^(1/12)
-	const simd::float_4 limit = simd::float_4(1.16691853009184);
-	const simd::float_4 cnst_10 = simd::float_4(10.0);
-	const simd::float_4 cnst_1  = simd::float_4(1.0);
-	const simd::float_4 cnst_01 = simd::float_4(0.1);
-
-	const simd::float_4 coeff_1 = simd::float_4(1.45833);
-	const simd::float_4 coeff_2 = simd::float_4(0.559028);
-	const simd::float_4 coeff_3 = simd::float_4(0.0427035);
-	const simd::float_4 coeff_4 = simd::float_4(1.54167);
-	const simd::float_4 coeff_5 = simd::float_4(0.642361);
-	const simd::float_4 coeff_6 = simd::float_4(0.0579909);
-
-	x = clamp(x*cnst_01, -limit, limit);
-	return cnst_10 * (x + coeff_1*simd::pow(x, 13) + coeff_2*simd::pow(x, 25) + coeff_3*simd::pow(x, 37))
-		/ (cnst_1 + coeff_4*simd::pow(x, 12) + coeff_5*simd::pow(x, 24) + coeff_6*simd::pow(x, 36));
+	const T limit = 1.16691853009184f;
+	x = clamp(x * 0.1f, -limit, limit);
+	return 10.0f * (x + 1.45833f * simd::pow(x, 13) + 0.559028f * simd::pow(x, 25) + 0.0427035f * simd::pow(x, 37))
+	       / (1.0f + 1.54167f * simd::pow(x, 12) + 0.642361f * simd::pow(x, 24) + 0.0579909f * simd::pow(x, 36));
 }
 
 
 static float exponentialBipolar80Pade_5_4(float x) {
-	return (0.109568*x + 0.281588*std::pow(x, 3) + 0.133841*std::pow(x, 5))
-		/ (1. - 0.630374*std::pow(x, 2) + 0.166271*std::pow(x, 4));
+	return (0.109568 * x + 0.281588 * std::pow(x, 3) + 0.133841 * std::pow(x, 5))
+	       / (1. - 0.630374 * std::pow(x, 2) + 0.166271 * std::pow(x, 4));
 }
 
 
@@ -57,7 +46,6 @@ struct ABC : Module {
 		NUM_LIGHTS
 	};
 
-
 	ABC() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 		configParam(B1_LEVEL_PARAM, -1.0, 1.0, 0.0, "B1 Level");
@@ -65,7 +53,6 @@ struct ABC : Module {
 		configParam(B2_LEVEL_PARAM, -1.0, 1.0, 0.0, "B2 Level");
 		configParam(C2_LEVEL_PARAM, -1.0, 1.0, 0.0, "C2 Level");
 	}
-
 
 	void process(const ProcessArgs &args) override {
 
@@ -87,7 +74,7 @@ struct ABC : Module {
 
 		// process upper section
 
-		if(outputs[OUT1_OUTPUT].isConnected() || outputs[OUT2_OUTPUT].isConnected() ) {
+		if (outputs[OUT1_OUTPUT].isConnected() || outputs[OUT2_OUTPUT].isConnected()) {
 
 			int channels_A1 = inputs[A1_INPUT].getChannels();
 			int channels_B1 = inputs[B1_INPUT].getChannels();
@@ -97,33 +84,41 @@ struct ABC : Module {
 			channels_1 = std::max(channels_1, channels_B1);
 			channels_1 = std::max(channels_1, channels_C1);
 
-			float mult_B1 = (2.f/5.f)*exponentialBipolar80Pade_5_4(params[B1_LEVEL_PARAM].getValue());
+			float mult_B1 = (2.f / 5.f) * exponentialBipolar80Pade_5_4(params[B1_LEVEL_PARAM].getValue());
 			float mult_C1 = exponentialBipolar80Pade_5_4(params[C1_LEVEL_PARAM].getValue());
 
-			if(inputs[A1_INPUT].isConnected()) load_input(inputs[A1_INPUT], a1, channels_A1);
-			else memset(a1, 0, sizeof(a1));
+			if (inputs[A1_INPUT].isConnected())
+				load_input(inputs[A1_INPUT], a1, channels_A1);
+			else
+				memset(a1, 0, sizeof(a1));
 
-			if(inputs[B1_INPUT].isConnected()) {
+			if (inputs[B1_INPUT].isConnected()) {
 				load_input(inputs[B1_INPUT], b1, channels_B1);
-				for(int c=0; c<channels_1; c+=4) b1[c/4] *= simd::float_4(mult_B1);
-			} else {
-				for(int c=0; c<channels_1; c+=4) b1[c/4] = simd::float_4(5.f*mult_B1);
+				for (int c = 0; c < channels_1; c += 4)
+					b1[c / 4] *= simd::float_4(mult_B1);
+			}
+			else {
+				for (int c = 0; c < channels_1; c += 4)
+					b1[c / 4] = simd::float_4(5.f * mult_B1);
 			}
 
-			if(inputs[C1_INPUT].isConnected()) {
+			if (inputs[C1_INPUT].isConnected()) {
 				load_input(inputs[C1_INPUT], c1, channels_C1);
-					for(int c=0; c<channels_1; c+=4) c1[c/4] *= simd::float_4(mult_C1);
-			} else {
-				for(int c=0; c<channels_1; c+=4) c1[c/4] = simd::float_4(10.f*mult_C1);
+				for (int c = 0; c < channels_1; c += 4)
+					c1[c / 4] *= simd::float_4(mult_C1);
+			}
+			else {
+				for (int c = 0; c < channels_1; c += 4)
+					c1[c / 4] = simd::float_4(10.f * mult_C1);
 			}
 
-			for(int c=0; c<channels_1; c+=4) out1[c/4] = clip4(a1[c/4] * b1[c/4] + c1[c/4]);
+			for (int c = 0; c < channels_1; c += 4)
+				out1[c / 4] = clip4(a1[c / 4] * b1[c / 4] + c1[c / 4]);
 		}
 
 		// process lower section
 
-		if(outputs[OUT2_OUTPUT].isConnected()) {
-
+		if (outputs[OUT2_OUTPUT].isConnected()) {
 			int channels_A2 = inputs[A2_INPUT].getChannels();
 			int channels_B2 = inputs[B2_INPUT].getChannels();
 			int channels_C2 = inputs[C2_INPUT].getChannels();
@@ -132,43 +127,54 @@ struct ABC : Module {
 			channels_2 = std::max(channels_2, channels_B2);
 			channels_2 = std::max(channels_2, channels_C2);
 
-			float mult_B2 = (2.f/5.f)*exponentialBipolar80Pade_5_4(params[B2_LEVEL_PARAM].getValue());
+			float mult_B2 = (2.f / 5.f) * exponentialBipolar80Pade_5_4(params[B2_LEVEL_PARAM].getValue());
 			float mult_C2 = exponentialBipolar80Pade_5_4(params[C2_LEVEL_PARAM].getValue());
 
-			if(inputs[A2_INPUT].isConnected()) load_input(inputs[A2_INPUT], a2, channels_A2);
-			else memset(a2, 0, sizeof(a2));
+			if (inputs[A2_INPUT].isConnected())
+				load_input(inputs[A2_INPUT], a2, channels_A2);
+			else
+				memset(a2, 0, sizeof(a2));
 
-			if(inputs[B2_INPUT].isConnected()) {
+			if (inputs[B2_INPUT].isConnected()) {
 				load_input(inputs[B2_INPUT], b2, channels_B2);
-				for(int c=0; c<channels_2; c+=4) b2[c/4] *= simd::float_4(mult_B2);
-			} else {
-				for(int c=0; c<channels_2; c+=4) b2[c/4] = simd::float_4(5.f*mult_B2);
+				for (int c = 0; c < channels_2; c += 4)
+					b2[c / 4] *= simd::float_4(mult_B2);
+			}
+			else {
+				for (int c = 0; c < channels_2; c += 4)
+					b2[c / 4] = simd::float_4(5.f * mult_B2);
 			}
 
-			if(inputs[C2_INPUT].isConnected()) {
+			if (inputs[C2_INPUT].isConnected()) {
 				load_input(inputs[C2_INPUT], c2, channels_C2);
-				for(int c=0; c<channels_2; c+=4) c2[c/4] *= simd::float_4(mult_C2);
-			} else {
-				for(int c=0; c<channels_2; c+=4) c2[c/4] = simd::float_4(10.f*mult_C2);
+				for (int c = 0; c < channels_2; c += 4)
+					c2[c / 4] *= simd::float_4(mult_C2);
+			}
+			else {
+				for (int c = 0; c < channels_2; c += 4)
+					c2[c / 4] = simd::float_4(10.f * mult_C2);
 			}
 
-			for(int c=0; c<channels_2; c+=4) out2[c/4] = clip4(a2[c/4] * b2[c/4] + c2[c/4]);
+			for (int c = 0; c < channels_2; c += 4)
+				out2[c / 4] = clip4(a2[c / 4] * b2[c / 4] + c2[c / 4]);
 		};
-
 
 		// Set outputs
 		if (outputs[OUT1_OUTPUT].isConnected()) {
 			outputs[OUT1_OUTPUT].setChannels(channels_1);
-			for(int c=0; c<channels_1; c+=4) out1[c/4].store(outputs[OUT1_OUTPUT].getVoltages(c));
+			for (int c = 0; c < channels_1; c += 4)
+				out1[c / 4].store(outputs[OUT1_OUTPUT].getVoltages(c));
 		}
 		else {
-			for(int c=0; c<channels_1; c+=4) out2[c/4] += out1[c/4];
+			for (int c = 0; c < channels_1; c += 4)
+				out2[c / 4] += out1[c / 4];
 			channels_2 = std::max(channels_1, channels_2);
 		}
 
 		if (outputs[OUT2_OUTPUT].isConnected()) {
 			outputs[OUT2_OUTPUT].setChannels(channels_2);
-			for(int c=0; c<channels_2; c+=4) out2[c/4].store(outputs[OUT2_OUTPUT].getVoltages(c));
+			for (int c = 0; c < channels_2; c += 4)
+				out2[c / 4].store(outputs[OUT2_OUTPUT].getVoltages(c));
 		}
 
 		// Lights
@@ -176,31 +182,31 @@ struct ABC : Module {
 		float light_1;
 		float light_2;
 
-		if(channels_1==1) {
+		if (channels_1 == 1) {
 			light_1 = out1[0].s[0];
 			lights[OUT1_LIGHT + 0].setSmoothBrightness(light_1 / 5.f, args.sampleTime);
 			lights[OUT1_LIGHT + 1].setSmoothBrightness(-light_1 / 5.f, args.sampleTime);
 			lights[OUT1_LIGHT + 2].setBrightness(0.f);
-		} else {
+		}
+		else {
 			light_1 = 10.f;
 			lights[OUT1_LIGHT + 0].setBrightness(0.0f);
 			lights[OUT1_LIGHT + 1].setBrightness(0.0f);
 			lights[OUT1_LIGHT + 2].setBrightness(light_1);
 		}
 
-		if(channels_2==1) {
+		if (channels_2 == 1) {
 			light_2 = out2[0].s[0];
 			lights[OUT2_LIGHT + 0].setSmoothBrightness(light_2 / 5.f, args.sampleTime);
 			lights[OUT2_LIGHT + 1].setSmoothBrightness(-light_2 / 5.f, args.sampleTime);
 			lights[OUT2_LIGHT + 2].setBrightness(0.f);
-		} else {
+		}
+		else {
 			light_2 = 10.f;
 			lights[OUT2_LIGHT + 0].setBrightness(0.0f);
 			lights[OUT2_LIGHT + 1].setBrightness(0.0f);
 			lights[OUT2_LIGHT + 2].setBrightness(light_2);
-		}	
-
-				
+		}
 	}
 };
 
