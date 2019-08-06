@@ -35,53 +35,63 @@ struct DualAtenuverter : Module {
 	}
 
 	void process(const ProcessArgs &args) override {
+		using simd::float_4;
 
-		simd::float_4 out1[4];
-		simd::float_4 out2[4];
+		float_4 out1[4];
+		float_4 out2[4];
 
-		int channels1 = inputs[IN1_INPUT].getChannels(); channels1 = channels1>0?channels1:1;
-		int channels2 = inputs[IN2_INPUT].getChannels(); channels2 = channels2>0?channels2:1;
+		int channels1 = inputs[IN1_INPUT].getChannels();
+		channels1 = channels1 > 0 ? channels1 : 1;
+		int channels2 = inputs[IN2_INPUT].getChannels();
+		channels2 = channels2 > 0 ? channels2 : 1;
 
-		simd::float_4 att1 = simd::float_4(params[ATEN1_PARAM].getValue());
-		simd::float_4 att2 = simd::float_4(params[ATEN2_PARAM].getValue());
+		float att1 = params[ATEN1_PARAM].getValue();
+		float att2 = params[ATEN2_PARAM].getValue();
 
-		simd::float_4 offset1 = simd::float_4(params[OFFSET1_PARAM].getValue());
-		simd::float_4 offset2 = simd::float_4(params[OFFSET2_PARAM].getValue());
+		float offset1 = params[OFFSET1_PARAM].getValue();
+		float offset2 = params[OFFSET2_PARAM].getValue();
 
-		for (int c = 0; c < channels1; c += 4) out1[c / 4] = clamp(simd::float_4::load(inputs[IN1_INPUT].getVoltages(c)) * att1 + offset1, -10.f, 10.f);
-		for (int c = 0; c < channels2; c += 4) out2[c / 4] = clamp(simd::float_4::load(inputs[IN2_INPUT].getVoltages(c)) * att2 + offset2, -10.f, 10.f);
-		
+		for (int c = 0; c < channels1; c += 4) {
+			out1[c / 4] = clamp(float_4::load(inputs[IN1_INPUT].getVoltages(c)) * att1 + offset1, -10.f, 10.f);
+		}
+		for (int c = 0; c < channels2; c += 4) {
+			out2[c / 4] = clamp(float_4::load(inputs[IN2_INPUT].getVoltages(c)) * att2 + offset2, -10.f, 10.f);
+		}
+
 		outputs[OUT1_OUTPUT].setChannels(channels1);
 		outputs[OUT2_OUTPUT].setChannels(channels2);
-	
-		for (int c = 0; c < channels1; c += 4)  out1[c / 4].store(outputs[OUT1_OUTPUT].getVoltages(c));
-		for (int c = 0; c < channels2; c += 4)  out2[c / 4].store(outputs[OUT2_OUTPUT].getVoltages(c));
-		
-		float light1 = outputs[OUT1_OUTPUT].getVoltageSum()/channels1;
-		float light2 = outputs[OUT2_OUTPUT].getVoltageSum()/channels2;
 
-		if(channels1==1) {
-			lights[OUT1_LIGHT  ].setSmoothBrightness(light1 / 5.f, args.sampleTime);
-			lights[OUT1_LIGHT+1].setSmoothBrightness(-light1 / 5.f, args.sampleTime);
-			lights[OUT1_LIGHT+2].setBrightness(0.0f);
-		} else {
-			lights[OUT1_LIGHT  ].setBrightness(0.0f);
-			lights[OUT1_LIGHT+1].setBrightness(0.0f);
-			lights[OUT1_LIGHT+2].setBrightness(10.0f);
+		for (int c = 0; c < channels1; c += 4) {
+			out1[c / 4].store(outputs[OUT1_OUTPUT].getVoltages(c));
+		}
+		for (int c = 0; c < channels2; c += 4) {
+			out2[c / 4].store(outputs[OUT2_OUTPUT].getVoltages(c));
 		}
 
-		if(channels2==1) {
-			lights[OUT2_LIGHT  ].setSmoothBrightness(light2 / 5.f, args.sampleTime);
-			lights[OUT2_LIGHT+1].setSmoothBrightness(-light2 / 5.f, args.sampleTime);
-			lights[OUT2_LIGHT+2].setBrightness(0.0f);
-		} else {
-			lights[OUT2_LIGHT  ].setBrightness(0.0f);
-			lights[OUT2_LIGHT+1].setBrightness(0.0f);
-			lights[OUT2_LIGHT+2].setBrightness(10.0f);
+		float light1 = outputs[OUT1_OUTPUT].getVoltageSum() / channels1;
+		float light2 = outputs[OUT2_OUTPUT].getVoltageSum() / channels2;
+
+		if (channels1 == 1) {
+			lights[OUT1_LIGHT + 0].setSmoothBrightness(light1 / 5.f, args.sampleTime);
+			lights[OUT1_LIGHT + 1].setSmoothBrightness(-light1 / 5.f, args.sampleTime);
+			lights[OUT1_LIGHT + 2].setBrightness(0.0f);
+		}
+		else {
+			lights[OUT1_LIGHT + 0].setBrightness(0.0f);
+			lights[OUT1_LIGHT + 1].setBrightness(0.0f);
+			lights[OUT1_LIGHT + 2].setBrightness(10.0f);
 		}
 
-
-
+		if (channels2 == 1) {
+			lights[OUT2_LIGHT + 0].setSmoothBrightness(light2 / 5.f, args.sampleTime);
+			lights[OUT2_LIGHT + 1].setSmoothBrightness(-light2 / 5.f, args.sampleTime);
+			lights[OUT2_LIGHT + 2].setBrightness(0.0f);
+		}
+		else {
+			lights[OUT2_LIGHT + 0].setBrightness(0.0f);
+			lights[OUT2_LIGHT + 1].setBrightness(0.0f);
+			lights[OUT2_LIGHT + 2].setBrightness(10.0f);
+		}
 	}
 };
 
