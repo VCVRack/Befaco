@@ -14,7 +14,7 @@
       "name": "EvenVCO",
       "description": "Oscillator including even-harmonic waveform. Based on Befaco EvenVCO.",
       "tags": [
-        "VCO"
+        "VCO",
         "Hardware"
       ]
     },
