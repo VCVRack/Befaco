@@ -1,6 +1,6 @@
 {
   "slug": "Befaco",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "GPL-3.0-only",
   "name": "Befaco",
   "author": "VCV",
@@ -12,72 +12,79 @@
     {
       "slug": "EvenVCO",
       "name": "EvenVCO",
-      "description": "Oscillator including even-harmonic waveform. Based on Befaco EvenVCO.",
+      "description": "Oscillator including even-harmonic waveform",
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-even-vco-",
       "tags": [
         "VCO",
-        "Hardware"
+        "Hardware clone"
       ]
     },
     {
       "slug": "Rampage",
       "name": "Rampage",
-      "description": "Dual ramp generator. Based on Befaco Rampage.",
+      "description": "Dual ramp generator",
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-rampage",
       "tags": [
         "Function Generator",
         "Logic",
         "Slew Limiter",
         "Envelope Follower",
         "Dual",
-        "Hardware"
+        "Hardware clone"
       ]
     },
     {
       "slug": "ABC",
       "name": "A*B+C",
-      "description": "Dual four-quadrant multiplier with VC offset. Based on Befaco A*B+C.",
+      "description": "Dual four-quadrant multiplier with VC offset",
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-a-b-c",
       "tags": [
         "Ring Modulator",
         "Attenuator",
         "Dual",
-        "Hardware"
+        "Hardware clone"
       ]
     },
     {
       "slug": "SpringReverb",
       "name": "Spring Reverb",
-      "description": "Spring reverb tank driver. Based on Befaco Spring Reverb.",
+      "description": "Spring reverb tank driver",
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-spring-reverb-",
       "tags": [
         "Reverb",
-        "Hardware"
+        "Hardware clone"
       ]
     },
     {
       "slug": "Mixer",
       "name": "Mixer",
-      "description": "Four-channel mixer for audio or CV. Based on Befaco Mixer.",
+      "description": "Four-channel mixer for audio or CV",
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-mixer-",
       "tags": [
         "Mixer",
-        "Hardware"
+        "Hardware clone"
       ]
     },
     {
       "slug": "SlewLimiter",
       "name": "Slew Limiter",
-      "description": "Voltage controlled slew limiter, AKA lag processor. Based on Befaco Slew Limiter.",
+      "description": "Voltage controlled slew limiter, AKA lag processor",
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-vc-slew-limiter-",
       "tags": [
         "Slew Limiter",
         "Envelope Follower",
-        "Hardware"
+        "Hardware clone"
       ]
     },
     {
       "slug": "DualAtenuverter",
       "name": "Dual Atenuverter",
-      "description": "Attenuates, inverts, and applies offset to a signal. Based on Befaco Dual Atenuverter.",
+      "description": "Attenuates, inverts, and applies offset to a signal",
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-dual-atenuverter-",
       "tags": [
         "Attenuator",
         "Dual",
-        "Hardware"
+        "Hardware clone"
       ]
     }
   ]
