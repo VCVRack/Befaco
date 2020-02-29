@@ -26,6 +26,7 @@ struct SlewLimiter : Module {
 		configParam(SHAPE_PARAM, 0.0, 1.0, 0.0, "Shape");
 		configParam(RISE_PARAM, 0.0, 1.0, 0.0, "Rise time");
 		configParam(FALL_PARAM, 0.0, 1.0, 0.0, "Fall time");
+		configBypass(IN_INPUT, OUT_OUTPUT);
 	}
 
 	void process(const ProcessArgs &args) override {

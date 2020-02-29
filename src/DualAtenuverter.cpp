@@ -33,6 +33,8 @@ struct DualAtenuverter : Module {
 		configParam(OFFSET1_PARAM, -10.0, 10.0, 0.0, "Ch 1 offset", " V");
 		configParam(ATEN2_PARAM, -1.0, 1.0, 0.0, "Ch 2 gain");
 		configParam(OFFSET2_PARAM, -10.0, 10.0, 0.0, "Ch 2 offset", " V");
+		configBypass(IN1_INPUT, OUT1_OUTPUT);
+		configBypass(IN2_INPUT, OUT2_OUTPUT);
 	}
 
 	void process(const ProcessArgs &args) override {
