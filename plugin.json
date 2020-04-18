@@ -23,6 +23,7 @@
       "slug": "Rampage",
       "name": "Rampage",
       "description": "Dual ramp generator",
+      "manualUrl": "https://befaco.org/docs/Rampage/Rampage_User_Manual.pdf",
       "modularGridUrl": "https://www.modulargrid.net/e/befaco-rampage",
       "tags": [
         "Function Generator",
@@ -37,6 +38,7 @@
       "slug": "ABC",
       "name": "A*B+C",
       "description": "Dual four-quadrant multiplier with VC offset",
+      "manualUrl": "https://befaco.org/docs/AB%2BC/AB%2BC_User_Manual.pdf",
       "modularGridUrl": "https://www.modulargrid.net/e/befaco-a-b-c",
       "tags": [
         "Ring Modulator",
