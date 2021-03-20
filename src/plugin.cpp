@@ -13,4 +13,5 @@ void init(rack::Plugin *p) {
 	p->addModel(modelMixer);
 	p->addModel(modelSlewLimiter);
 	p->addModel(modelDualAtenuverter);
+	p->addModel(modelPercall);
 }
