@@ -92,11 +92,11 @@ struct Percall : Module {
 
 				env[i] += expDelta(delta, fall) * args.sampleTime;
 			}
-			if (env[i] > 10.0f) {
+			if (env[i] >= 10.0f) {
 				stage[i] = STAGE_DECAY;
 				env[i] = 10.0f;
 			}
-			else if (env[i] < 0.0f) {
+			else if (env[i] <= 0.0f) {
 				stage[i] = STAGE_OFF;
 				env[i] = 0.0f;
 			}
