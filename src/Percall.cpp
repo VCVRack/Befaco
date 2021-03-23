@@ -46,11 +46,11 @@ struct Percall : Module {
 	Percall() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 		for (int i = 0; i < 4; i++) {
-			configParam(VOL_PARAMS + i, 0.f, 1.f, 1.f, "Ch " + std::to_string(i) + " level", "%", 0, 100);
-			configParam(DECAY_PARAMS + i, 0.f, 1.f, 0.f, "Ch " + std::to_string(i) + " decay time");
+			configParam(VOL_PARAMS + i, 0.f, 1.f, 1.f, "Ch " + std::to_string(i + 1) + " level", "%", 0, 100);
+			configParam(DECAY_PARAMS + i, 0.f, 1.f, 0.f, "Ch " + std::to_string(i + 1) + " decay time");
 		}
 		for (int i = 0; i < 2; i++) {
-			std::string description = "Choke " + std::to_string(2 * i) + " to " + std::to_string(2 * i + 1);
+			std::string description = "Choke " + std::to_string(2 * i + 1) + " to " + std::to_string(2 * i + 2);
 			configParam(CHOKE_PARAMS + i, 0.f, 1.f, 0.f, description);
 		}
 	}
