@@ -16,7 +16,7 @@ extern Model *modelDualAtenuverter;
 extern Model *modelPercall;
 
 
-struct Knurlie : SVGScrew {
+struct Knurlie : SvgScrew {
 	Knurlie() {
 		sw->svg = APP->window->loadSvg(asset::plugin(pluginInstance, "res/Knurlie.svg"));
 		sw->wrap();
