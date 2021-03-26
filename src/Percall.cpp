@@ -63,7 +63,7 @@ struct Percall : Module {
 			strength = clamp(inputs[STRENGTH_INPUT].getVoltage() / 10.0f, 0.0f, 1.0f);
 		}
 
-		// Channels
+		// Mixer channels
 		for (int i = 0; i < 4; i++) {
 
 			if (trigger[i].process(rescale(inputs[TRIG_INPUTS + i].getVoltage(), 0.1f, 2.f, 0.f, 1.f))) {
@@ -141,7 +141,7 @@ struct Percall : Module {
 					mix[c] += in[c];
 				}
 				if (outputs[CH_OUTPUTS + i].isConnected()) {
-					outputs[CH_OUTPUTS + i].setChannels(channels);
+					outputs[CH_OUTPUTS + i].setChannels(maxChannels);
 					outputs[CH_OUTPUTS + i].writeVoltages(mix);
 				}
 			}
