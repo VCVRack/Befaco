@@ -15,6 +15,7 @@ extern Model *modelSlewLimiter;
 extern Model *modelDualAtenuverter;
 extern Model *modelPercall;
 extern Model *modelHexmixVCA;
+extern Model *modelChoppingKinky;
 
 struct Knurlie : SvgScrew {
 	Knurlie() {

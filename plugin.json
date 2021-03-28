@@ -110,6 +110,12 @@
         "Hardware clone",
         "VCA"
       ]
+    },
+    {
+      "slug": "ChoppingKinky",
+      "name": "ChoppingKinky",
+      "description": "",
+      "tags": []
     }
   ]
 }
