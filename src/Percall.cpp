@@ -40,7 +40,12 @@ struct Percall : Module {
 
 	int stage[4] = {};
 	float env[4] = {};
+	float gains[4] = {};
+	float fallTimes[4] = {};
+	float strength = 1.0f;
 	dsp::SchmittTrigger trigger[4];
+	dsp::ClockDivider cvDivider;
+	dsp::ClockDivider lightDivider;
 	const int LAST_CHANNEL_ID = 3;
 
 	Percall() {
@@ -53,15 +58,29 @@ struct Percall : Module {
 			std::string description = "Choke " + std::to_string(2 * i + 1) + " to " + std::to_string(2 * i + 2);
 			configParam(CHOKE_PARAMS + i, 0.f, 1.f, 0.f, description);
 		}
+
+		cvDivider.setDivision(16);
+		lightDivider.setDivision(128);
 	}
 
 	void process(const ProcessArgs& args) override {
-		float mix[16] = {};
-		int maxChannels = 1;
-		float strength = 1.0f;
-		if (inputs[STRENGTH_INPUT].isConnected()) {
-			strength = clamp(inputs[STRENGTH_INPUT].getVoltage() / 10.0f, 0.0f, 1.0f);
+
+		// only calculate gains/decays every 16 samples
+		if (cvDivider.process()) {
+			strength = 1.0f;
+			if (inputs[STRENGTH_INPUT].isConnected()) {
+				strength = clamp(inputs[STRENGTH_INPUT].getVoltage() / 10.0f, 0.0f, 1.0f);
+			}
+			for (int i = 0; i < 4; i++) {
+				gains[i] = std::pow(params[VOL_PARAMS + i].getValue(), 2.f) * strength;
+
+				float fallCv = inputs[CV_INPUTS + i].getVoltage() + params[DECAY_PARAMS + i].getValue() * 10.f;
+				fallTimes[i] = 0.01 * std::pow(2.0, clamp(fallCv, 0.0f, 10.0f));
+			}
 		}
+
+		simd::float_4 mix[4] = {};
+		int maxChannels = 1;
 
 		// Mixer channels
 		for (int i = 0; i < 4; i++) {
@@ -86,12 +105,9 @@ struct Percall : Module {
 				env[i] += expDelta(delta, 2e-3) * args.sampleTime;
 			}
 			else if (stage[i] == STAGE_DECAY) {
-				float fallCv = inputs[CV_INPUTS + i].getVoltage() / 10.0 + params[DECAY_PARAMS + i].getValue();
-				fallCv = clamp(fallCv, 0.0f, 1.0f);
-				float fall = 0.01 * std::pow(2.0, fallCv * 10.0);
-
-				env[i] += expDelta(delta, fall) * args.sampleTime;
+				env[i] += expDelta(delta, fallTimes[i]) * args.sampleTime;
 			}
+
 			if (env[i] >= 10.0f) {
 				stage[i] = STAGE_DECAY;
 				env[i] = 10.0f;
@@ -101,24 +117,21 @@ struct Percall : Module {
 				env[i] = 0.0f;
 			}
 
-			lights[LEDS + i].setBrightness(stage[i] != STAGE_OFF);
-
 			int channels = 1;
-			float in[16] = {};
+			simd::float_4 in[4] = {};
 			bool input_is_connected = inputs[CH_INPUTS + i].isConnected();
 			bool input_is_normed = !input_is_connected && (i % 2) && inputs[CH_INPUTS + i - 1].isConnected();
-			if (input_is_connected || input_is_normed) {
+			if ((input_is_connected || input_is_normed)) {
 				int channel_to_read_from = input_is_normed ? CH_INPUTS + i - 1 : CH_INPUTS + i;
 				channels = inputs[channel_to_read_from].getChannels();
 				maxChannels = std::max(maxChannels, channels);
 
-				// Get input
-				inputs[channel_to_read_from].readVoltages(in);
-
-				// Apply fader gain
-				float gain = std::pow(params[VOL_PARAMS + i].getValue(), 2.f);
-				for (int c = 0; c < channels; c++) {
-					in[c] *= gain * env[i] / 10.0f * strength;
+				// only process input audio if envelope is active
+				if (stage[i] != STAGE_OFF) {
+					float gain = gains[i] * env[i] / 10.0f;
+					for (int c = 0; c < channels; c += 4) {
+						in[c / 4] = simd::float_4::load(inputs[channel_to_read_from].getVoltages(c)) * gain;
+					}
 				}
 			}
 
@@ -126,23 +139,29 @@ struct Percall : Module {
 				// if connected, output via the jack (and don't add to mix)
 				if (outputs[CH_OUTPUTS + i].isConnected()) {
 					outputs[CH_OUTPUTS + i].setChannels(channels);
-					outputs[CH_OUTPUTS + i].writeVoltages(in);
+					for (int c = 0; c < channels; c += 4) {
+						in[c / 4].store(outputs[CH_OUTPUTS + i].getVoltages(c));
+					}
 				}
 				else {
 					// else add to mix
-					for (int c = 0; c < channels; c++) {
-						mix[c] += in[c];
+					for (int c = 0; c < channels; c += 4) {
+						mix[c / 4] += in[c / 4];
 					}
 				}
 			}
-			else {
+			// otherwise if it is the final channel and it's wired in
+			else if (outputs[CH_OUTPUTS + i].isConnected()) {
+
+				outputs[CH_OUTPUTS + i].setChannels(maxChannels);
+
 				// last channel must always go into mix
-				for (int c = 0; c < channels; c++) {
-					mix[c] += in[c];
+				for (int c = 0; c < channels; c += 4) {
+					mix[c / 4] += in[c / 4];
 				}
-				if (outputs[CH_OUTPUTS + i].isConnected()) {
-					outputs[CH_OUTPUTS + i].setChannels(maxChannels);
-					outputs[CH_OUTPUTS + i].writeVoltages(mix);
+
+				for (int c = 0; c < maxChannels; c += 4) {
+					mix[c / 4].store(outputs[CH_OUTPUTS + i].getVoltages(c));
 				}
 			}
 
@@ -151,6 +170,13 @@ struct Percall : Module {
 				outputs[ENV_OUTPUTS + i].setVoltage(strength * env[i]);
 			}
 		}
+
+		if (lightDivider.process()) {
+			for (int i = 0; i < 4; i++) {
+				lights[LEDS + i].setBrightness(stage[i] != STAGE_OFF);
+			}
+		}
+
 	}
 };
 
