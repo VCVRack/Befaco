@@ -14,4 +14,5 @@ void init(rack::Plugin *p) {
 	p->addModel(modelSlewLimiter);
 	p->addModel(modelDualAtenuverter);
 	p->addModel(modelPercall);
+	p->addModel(modelHexmixVCA);
 }

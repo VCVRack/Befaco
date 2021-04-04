@@ -99,6 +99,17 @@
         "Mixer",
         "Hardware clone"
       ]
+    },
+    {
+      "slug": "HexmixVCA",
+      "name": "HexmixVCA",
+      "description": "Six channel VCA with response curve range from logarithmic to linear and to exponential",
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-hexmix-vca",
+      "tags": [
+        "Mixer",
+        "Hardware clone",
+        "VCA"
+      ]
     }
   ]
 }
