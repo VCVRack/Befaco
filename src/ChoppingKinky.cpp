@@ -67,18 +67,13 @@ struct ChoppingKinky : Module {
 
 	dsp::SchmittTrigger trigger;
 	bool output_a_to_chopp;
-
 	float previous_a = 0.0;
-
 
 	VariableOversampling<> oversampler[NUM_CHANNELS];
 	int oversamplingIndex = 2;
-
-	dsp::RCFilter choppDC;
+	
+	dsp::BiquadFilter blockDCFilter; 
 	bool blockDC = false;
-
-	unsigned int currentFrame = 0;
-
 
 	ChoppingKinky() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
@@ -89,14 +84,13 @@ struct ChoppingKinky : Module {
 
 		// calculate up/downsampling rates
 		onSampleRateChange();
-
 	}
 
 	void onSampleRateChange() override {
 		// SampleRateConverter needs integer value
 		int sampleRate = APP->engine->getSampleRate();
-
-		choppDC.setCutoff(10.3f / sampleRate);
+		
+		blockDCFilter.setParameters(dsp::BiquadFilter::HIGHPASS, 10.3f / sampleRate, M_SQRT1_2, 1.0f);
 
 		for (int channel_idx = 0; channel_idx < NUM_CHANNELS; channel_idx++) {			
 			oversampler[channel_idx].setOversamplingIndex(oversamplingIndex); 
@@ -150,33 +144,46 @@ struct ChoppingKinky : Module {
 			}
 		}
 
+		bool chopp_is_required = outputs[OUT_CHOPP_OUTPUT].isConnected();
+		bool a_is_required = outputs[OUT_A_OUTPUT].isConnected() || chopp_is_required;
+		bool b_is_required = outputs[OUT_B_OUTPUT].isConnected() || chopp_is_required;
+		
 		in_a = in_a * gain_a;
 		in_b = in_b * gain_b;
 		float in_chopp = output_a_to_chopp ? 1.f : 0.f;
 
-		oversampler[CHANNEL_A].upsample(in_a);
-		oversampler[CHANNEL_B].upsample(in_b);
-		oversampler[CHANNEL_CHOPP].upsample(in_chopp);
+		if (a_is_required) {
+			oversampler[CHANNEL_A].upsample(in_a);
+		}
+		if (b_is_required) {
+			oversampler[CHANNEL_B].upsample(in_b);
+		}
+		if (chopp_is_required) {
+			oversampler[CHANNEL_CHOPP].upsample(in_chopp);
+		}
 
 		float* osBufferA = oversampler[CHANNEL_A].getOSBuffer();
 		float* osBufferB = oversampler[CHANNEL_B].getOSBuffer();
 		float* osBufferChopp = oversampler[CHANNEL_CHOPP].getOSBuffer();
 
 		for (int i = 0; i < oversampler[0].getOversamplingRatio(); i++) {
-			// TOO SLOW
-			//break;
-			osBufferA[i] = foldResponse(4.0f * osBufferA[i], -0.2);
-			osBufferB[i] = foldResponseSin(4.0f * osBufferB[i]);
-			osBufferChopp[i] = osBufferChopp[i] * osBufferA[i] + (1.f - osBufferChopp[i]) * osBufferB[i];
+			if (a_is_required) {
+				osBufferA[i] = foldResponse(4.0f * osBufferA[i], -0.2);
+			}
+			if (b_is_required) {
+				osBufferB[i] = foldResponseSin(4.0f * osBufferB[i]);
+			}
+			if (chopp_is_required) {
+				osBufferChopp[i] = osBufferChopp[i] * osBufferA[i] + (1.f - osBufferChopp[i]) * osBufferB[i];
+			}
 		}
 
-		float out_a = oversampler[CHANNEL_A].downsample();
-		float out_b = oversampler[CHANNEL_B].downsample();
-		float out_chopp = oversampler[CHANNEL_CHOPP].downsample();
+		float out_a = a_is_required ? oversampler[CHANNEL_A].downsample() : 0.f;
+		float out_b = b_is_required ? oversampler[CHANNEL_B].downsample() : 0.f;
+		float out_chopp = chopp_is_required ? oversampler[CHANNEL_CHOPP].downsample() : 0.f;
 
 		if (blockDC) {
-			choppDC.process(out_chopp);
-			out_chopp -= choppDC.lowpass();
+			out_chopp = blockDCFilter.process(out_chopp);			
 		}
 		previous_a = in_a;
 
