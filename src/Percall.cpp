@@ -1,4 +1,5 @@
 #include "plugin.hpp"
+#include "Common.hpp"
 
 
 static float expDelta(float delta, float tau) {
@@ -38,7 +39,7 @@ struct Percall : Module {
 		STAGE_DECAY
 	};
 
-	int stage[4] = {};
+	Stage stage[4] = {};
 	float env[4] = {};
 	float gains[4] = {};
 	float fallTimes[4] = {};
@@ -65,12 +66,13 @@ struct Percall : Module {
 
 	void process(const ProcessArgs& args) override {
 
+		strength = 1.0f;
+		if (inputs[STRENGTH_INPUT].isConnected()) {
+			strength = clamp(inputs[STRENGTH_INPUT].getVoltage() / 10.0f, 0.0f, 1.0f);
+		}
+
 		// only calculate gains/decays every 16 samples
 		if (cvDivider.process()) {
-			strength = 1.0f;
-			if (inputs[STRENGTH_INPUT].isConnected()) {
-				strength = clamp(inputs[STRENGTH_INPUT].getVoltage() / 10.0f, 0.0f, 1.0f);
-			}
 			for (int i = 0; i < 4; i++) {
 				gains[i] = std::pow(params[VOL_PARAMS + i].getValue(), 2.f) * strength;
 
@@ -95,8 +97,8 @@ struct Percall : Module {
 				stage[i] = STAGE_OFF;
 			}
 
-			float target_voltage = (stage[i] == STAGE_ATTACK) ? 10.0f : 0.0f;
-			float delta = target_voltage - env[i];
+			float targetVoltage = (stage[i] == STAGE_ATTACK) ? 10.0f : 0.0f;
+			float delta = targetVoltage - env[i];
 
 			if (stage[i] == STAGE_OFF) {
 				env[i] = 0.0f;
@@ -119,10 +121,10 @@ struct Percall : Module {
 
 			int channels = 1;
 			simd::float_4 in[4] = {};
-			bool input_is_connected = inputs[CH_INPUTS + i].isConnected();
-			bool input_is_normed = !input_is_connected && (i % 2) && inputs[CH_INPUTS + i - 1].isConnected();
-			if ((input_is_connected || input_is_normed)) {
-				int channel_to_read_from = input_is_normed ? CH_INPUTS + i - 1 : CH_INPUTS + i;
+			bool inputIsConnected = inputs[CH_INPUTS + i].isConnected();
+			bool inputIsNormed = !inputIsConnected && (i % 2) && inputs[CH_INPUTS + i - 1].isConnected();
+			if ((inputIsConnected || inputIsNormed)) {
+				int channel_to_read_from = inputIsNormed ? CH_INPUTS + i - 1 : CH_INPUTS + i;
 				channels = inputs[channel_to_read_from].getChannels();
 				maxChannels = std::max(maxChannels, channels);
 
@@ -202,31 +204,30 @@ struct PercallWidget : ModuleWidget {
 		addParam(createParam<CKSS>(mm2px(Vec(13.365, 58.672)), module, Percall::CHOKE_PARAMS + 0));
 		addParam(createParam<CKSS>(mm2px(Vec(42.993, 58.672)), module, Percall::CHOKE_PARAMS + 1));
 
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(7.173, 12.894)), module, Percall::CH_INPUTS + 0));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(20.335, 12.894)), module, Percall::CH_INPUTS + 1));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(40.347, 12.894)), module, Percall::CH_INPUTS + 2));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(53.492, 12.894)), module, Percall::CH_INPUTS + 3));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(7.173, 12.894)), module, Percall::CH_INPUTS + 0));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(20.335, 12.894)), module, Percall::CH_INPUTS + 1));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(40.347, 12.894)), module, Percall::CH_INPUTS + 2));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(53.492, 12.894)), module, Percall::CH_INPUTS + 3));
 
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(30.341, 18.236)), module, Percall::STRENGTH_INPUT));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(7.173, 24.834)), module, Percall::TRIG_INPUTS + 0));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(18.547, 23.904)), module, Percall::TRIG_INPUTS + 1));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(42.218, 23.904)), module, Percall::TRIG_INPUTS + 2));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(53.453, 24.834)), module, Percall::TRIG_INPUTS + 3));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(5.093, 101.799)), module, Percall::CV_INPUTS + 0));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(15.22, 101.799)), module, Percall::CV_INPUTS + 1));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(25.347, 101.799)), module, Percall::CV_INPUTS + 2));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(35.474, 101.799)), module, Percall::CV_INPUTS + 3));
 
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(30.341, 18.236)), module, Percall::STRENGTH_INPUT));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(7.173, 24.834)), module, Percall::TRIG_INPUTS + 0));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(18.547, 23.904)), module, Percall::TRIG_INPUTS + 1));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(42.218, 23.904)), module, Percall::TRIG_INPUTS + 2));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(53.453, 24.834)), module, Percall::TRIG_INPUTS + 3));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(5.093, 101.799)), module, Percall::CV_INPUTS + 0));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(15.22, 101.799)), module, Percall::CV_INPUTS + 1));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(25.347, 101.799)), module, Percall::CV_INPUTS + 2));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(35.474, 101.799)), module, Percall::CV_INPUTS + 3));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(45.541, 101.699)), module, Percall::CH_OUTPUTS + 0));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(55.624, 101.699)), module, Percall::CH_OUTPUTS + 1));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(45.541, 113.696)), module, Percall::CH_OUTPUTS + 2));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(55.624, 113.696)), module, Percall::CH_OUTPUTS + 3));
 
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(45.541, 101.699)), module, Percall::CH_OUTPUTS + 0));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(55.624, 101.699)), module, Percall::CH_OUTPUTS + 1));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(45.541, 113.696)), module, Percall::CH_OUTPUTS + 2));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(55.624, 113.696)), module, Percall::CH_OUTPUTS + 3));
-
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(5.093, 113.74)), module, Percall::ENV_OUTPUTS + 0));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(15.22, 113.74)), module, Percall::ENV_OUTPUTS + 1));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(25.347, 113.74)), module, Percall::ENV_OUTPUTS + 2));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(35.474, 113.74)), module, Percall::ENV_OUTPUTS + 3));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(5.093, 113.74)), module, Percall::ENV_OUTPUTS + 0));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(15.22, 113.74)), module, Percall::ENV_OUTPUTS + 1));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(25.347, 113.74)), module, Percall::ENV_OUTPUTS + 2));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(35.474, 113.74)), module, Percall::ENV_OUTPUTS + 3));
 
 		addChild(createLightCentered<SmallLight<RedLight>>(mm2px(Vec(8.107, 49.221)), module, Percall::LEDS + 0));
 		addChild(createLightCentered<SmallLight<RedLight>>(mm2px(Vec(22.934, 49.221)), module, Percall::LEDS + 1));

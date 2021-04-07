@@ -1,5 +1,5 @@
 #include "plugin.hpp"
-#include "VariableOversampling.hpp"
+#include "Common.hpp"
 
 static const size_t BUF_LEN = 32;
 
@@ -66,8 +66,8 @@ struct ChoppingKinky : Module {
 	};
 
 	dsp::SchmittTrigger trigger;
-	bool output_a_to_chopp;
-	float previous_a = 0.0;
+	bool outputAToChopp;
+	float previousA = 0.0;
 
 	VariableOversampling<> oversampler[NUM_CHANNELS];
 	int oversamplingIndex = 2;
@@ -101,65 +101,65 @@ struct ChoppingKinky : Module {
 
 	void process(const ProcessArgs& args) override {
 
-		float gain_a = params[FOLD_A_PARAM].getValue();
+		float gainA = params[FOLD_A_PARAM].getValue();
 		if (inputs[CV_A_INPUT].isConnected()) {
-			gain_a += params[CV_A_PARAM].getValue() * inputs[CV_A_INPUT].getVoltage() / 10.f;
+			gainA += params[CV_A_PARAM].getValue() * inputs[CV_A_INPUT].getVoltage() / 10.f;
 		}
 		if (inputs[VCA_CV_A_INPUT].isConnected()) {
-			gain_a += inputs[VCA_CV_A_INPUT].getVoltage() / 10.f;
+			gainA += inputs[VCA_CV_A_INPUT].getVoltage() / 10.f;
 		}
 
-		float gain_b = params[FOLD_B_PARAM].getValue();
+		float gainB = params[FOLD_B_PARAM].getValue();
 		if (inputs[CV_B_INPUT].isConnected()) {
-			gain_b += params[CV_B_PARAM].getValue() * inputs[CV_B_INPUT].getVoltage() / 10.f;
+			gainB += params[CV_B_PARAM].getValue() * inputs[CV_B_INPUT].getVoltage() / 10.f;
 		}
 		if (inputs[VCA_CV_B_INPUT].isConnected()) {
-			gain_b += inputs[VCA_CV_B_INPUT].getVoltage() / 10.f;
+			gainB += inputs[VCA_CV_B_INPUT].getVoltage() / 10.f;
 		}
 
-		float in_a = 0;
-		float in_b = 0;
+		float inA = 0;
+		float inB = 0;
 		if (inputs[IN_A_INPUT].isConnected()) {
-			in_a = inputs[IN_A_INPUT].getVoltage() / 5.0f;
+			inA = inputs[IN_A_INPUT].getVoltage() / 5.0f;
 		}
 		if (inputs[IN_B_INPUT].isConnected()) {
-			in_b = inputs[IN_B_INPUT].getVoltage() / 5.0f;
+			inB = inputs[IN_B_INPUT].getVoltage() / 5.0f;
 		}
 		else if (inputs[IN_A_INPUT].isConnected()) {
-			in_b = in_a;
+			inB = inA;
 		}
 
 		// if the CHOPP gate is wired in, do chop logic
 		if (inputs[IN_GATE_INPUT].isConnected()) {
 			// TODO: check rescale?
 			trigger.process(rescale(inputs[IN_GATE_INPUT].getVoltage(), 0.1f, 2.f, 0.f, 1.f));
-			output_a_to_chopp = trigger.isHigh();
+			outputAToChopp = trigger.isHigh();
 		}
 		else {
-			if (previous_a > 0 && in_a < 0) {
-				output_a_to_chopp = false;
+			if (previousA > 0 && inA < 0) {
+				outputAToChopp = false;
 			}
-			else if (previous_a < 0 && in_a > 0) {
-				output_a_to_chopp = true;
+			else if (previousA < 0 && inA > 0) {
+				outputAToChopp = true;
 			}
 		}
 
-		bool chopp_is_required = outputs[OUT_CHOPP_OUTPUT].isConnected();
-		bool a_is_required = outputs[OUT_A_OUTPUT].isConnected() || chopp_is_required;
-		bool b_is_required = outputs[OUT_B_OUTPUT].isConnected() || chopp_is_required;
+		bool choppIsRequired = outputs[OUT_CHOPP_OUTPUT].isConnected();
+		bool aIsRequired = outputs[OUT_A_OUTPUT].isConnected() || choppIsRequired;
+		bool bIsRequired = outputs[OUT_B_OUTPUT].isConnected() || choppIsRequired;
 		
-		in_a = in_a * gain_a;
-		in_b = in_b * gain_b;
-		float in_chopp = output_a_to_chopp ? 1.f : 0.f;
+		inA = inA * gainA;
+		inB = inB * gainB;
+		float inChopp = outputAToChopp ? 1.f : 0.f;
 
-		if (a_is_required) {
-			oversampler[CHANNEL_A].upsample(in_a);
+		if (aIsRequired) {
+			oversampler[CHANNEL_A].upsample(inA);
 		}
-		if (b_is_required) {
-			oversampler[CHANNEL_B].upsample(in_b);
+		if (bIsRequired) {
+			oversampler[CHANNEL_B].upsample(inB);
 		}
-		if (chopp_is_required) {
-			oversampler[CHANNEL_CHOPP].upsample(in_chopp);
+		if (choppIsRequired) {
+			oversampler[CHANNEL_CHOPP].upsample(inChopp);
 		}
 
 		float* osBufferA = oversampler[CHANNEL_A].getOSBuffer();
@@ -167,33 +167,33 @@ struct ChoppingKinky : Module {
 		float* osBufferChopp = oversampler[CHANNEL_CHOPP].getOSBuffer();
 
 		for (int i = 0; i < oversampler[0].getOversamplingRatio(); i++) {
-			if (a_is_required) {
+			if (aIsRequired) {
 				osBufferA[i] = foldResponse(4.0f * osBufferA[i], -0.2);
 			}
-			if (b_is_required) {
+			if (bIsRequired) {
 				osBufferB[i] = foldResponseSin(4.0f * osBufferB[i]);
 			}
-			if (chopp_is_required) {
+			if (choppIsRequired) {
 				osBufferChopp[i] = osBufferChopp[i] * osBufferA[i] + (1.f - osBufferChopp[i]) * osBufferB[i];
 			}
 		}
 
-		float out_a = a_is_required ? oversampler[CHANNEL_A].downsample() : 0.f;
-		float out_b = b_is_required ? oversampler[CHANNEL_B].downsample() : 0.f;
-		float out_chopp = chopp_is_required ? oversampler[CHANNEL_CHOPP].downsample() : 0.f;
+		float outA = aIsRequired ? oversampler[CHANNEL_A].downsample() : 0.f;
+		float outB = bIsRequired ? oversampler[CHANNEL_B].downsample() : 0.f;
+		float outChopp = choppIsRequired ? oversampler[CHANNEL_CHOPP].downsample() : 0.f;
 
 		if (blockDC) {
-			out_chopp = blockDCFilter.process(out_chopp);			
+			outChopp = blockDCFilter.process(outChopp);			
 		}
-		previous_a = in_a;
+		previousA = inA;
 
-		outputs[OUT_A_OUTPUT].setVoltage(out_a * 5.0f);
-		outputs[OUT_B_OUTPUT].setVoltage(out_b * 5.0f);
-		outputs[OUT_CHOPP_OUTPUT].setVoltage(out_chopp * 5.0f);
+		outputs[OUT_A_OUTPUT].setVoltage(outA * 5.0f);
+		outputs[OUT_B_OUTPUT].setVoltage(outB * 5.0f);
+		outputs[OUT_CHOPP_OUTPUT].setVoltage(outChopp * 5.0f);
 
 		if (inputs[IN_GATE_INPUT].isConnected()) {
-			lights[LED_A_LIGHT].setSmoothBrightness((float) output_a_to_chopp, args.sampleTime);
-			lights[LED_B_LIGHT].setSmoothBrightness((float)(!output_a_to_chopp), args.sampleTime);
+			lights[LED_A_LIGHT].setSmoothBrightness((float) outputAToChopp, args.sampleTime);
+			lights[LED_B_LIGHT].setSmoothBrightness((float)(!outputAToChopp), args.sampleTime);
 		}
 		else {
 			lights[LED_A_LIGHT].setBrightness(0.f);
@@ -239,19 +239,19 @@ struct ChoppingKinkyWidget : ModuleWidget {
 		addParam(createParamCentered<BefacoTinyKnob>(mm2px(Vec(10.515, 83.321)), module, ChoppingKinky::CV_A_PARAM));
 		addParam(createParamCentered<BefacoTinyKnob>(mm2px(Vec(30.583, 83.321)), module, ChoppingKinky::CV_B_PARAM));
 
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(6.35, 28.391)), module, ChoppingKinky::IN_A_INPUT));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(6.35, 56.551)), module, ChoppingKinky::IN_B_INPUT));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(6.35, 28.391)), module, ChoppingKinky::IN_A_INPUT));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(6.35, 56.551)), module, ChoppingKinky::IN_B_INPUT));
 
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(26.106, 42.613)), module, ChoppingKinky::IN_GATE_INPUT));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(26.106, 42.613)), module, ChoppingKinky::IN_GATE_INPUT));
 
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(5.189, 98.957)), module, ChoppingKinky::CV_A_INPUT));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(15.19, 98.957)), module, ChoppingKinky::VCA_CV_A_INPUT));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(25.19, 98.957)), module, ChoppingKinky::CV_B_INPUT));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(35.19, 98.957)), module, ChoppingKinky::VCA_CV_B_INPUT));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(5.189, 98.957)), module, ChoppingKinky::CV_A_INPUT));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(15.19, 98.957)), module, ChoppingKinky::VCA_CV_A_INPUT));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(25.19, 98.957)), module, ChoppingKinky::CV_B_INPUT));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(35.19, 98.957)), module, ChoppingKinky::VCA_CV_B_INPUT));
 
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(9.982, 111.076)), module, ChoppingKinky::OUT_A_OUTPUT));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(31.558, 111.076)), module, ChoppingKinky::OUT_B_OUTPUT));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(20.638, 110.15)), module, ChoppingKinky::OUT_CHOPP_OUTPUT));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(9.982, 111.076)), module, ChoppingKinky::OUT_A_OUTPUT));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(31.558, 111.076)), module, ChoppingKinky::OUT_B_OUTPUT));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(20.638, 110.15)), module, ChoppingKinky::OUT_CHOPP_OUTPUT));
 
 		addChild(createLightCentered<SmallLight<RedLight>>(mm2px(Vec(26.106, 33.342)), module, ChoppingKinky::LED_A_LIGHT));
 		addChild(createLightCentered<SmallLight<RedLight>>(mm2px(Vec(26.106, 51.717)), module, ChoppingKinky::LED_B_LIGHT));

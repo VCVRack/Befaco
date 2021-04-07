@@ -3,6 +3,33 @@
 #include <rack.hpp>
 #include <dsp/common.hpp>
 
+struct BefacoTinyKnobRed : app::SvgKnob {
+	BefacoTinyKnobRed() {
+		minAngle = -0.8 * M_PI;
+		maxAngle = 0.8 * M_PI;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoTinyKnobRed.svg")));
+	}
+};
+
+struct BefacoTinyKnobWhite : app::SvgKnob {
+	BefacoTinyKnobWhite() {
+		minAngle = -0.8 * M_PI;
+		maxAngle = 0.8 * M_PI;
+		setSvg(APP->window->loadSvg(asset::system("res/ComponentLibrary/BefacoTinyKnob.svg")));
+	}
+};
+
+struct BefacoOutputPort : app::SvgPort {
+	BefacoOutputPort() {		
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoOutputPort.svg")));
+	}
+};
+
+struct BefacoInputPort : app::SvgPort {
+	BefacoInputPort() {		
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoInputPort.svg")));
+	}
+};
 
 /**
     High-order filter to be used for anti-aliasing or anti-imaging.

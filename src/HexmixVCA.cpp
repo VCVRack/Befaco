@@ -1,20 +1,6 @@
 #include "plugin.hpp"
+#include "Common.hpp"
 
-struct BefacoTinyKnobRed : app::SvgKnob {
-	BefacoTinyKnobRed() {
-		minAngle = -0.8 * M_PI;
-		maxAngle = 0.8 * M_PI;
-		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoTinyKnobRed.svg")));
-	}
-};
-
-struct BefacoTinyKnobWhite : app::SvgKnob {
-	BefacoTinyKnobWhite() {
-		minAngle = -0.8 * M_PI;
-		maxAngle = 0.8 * M_PI;
-		setSvg(APP->window->loadSvg(asset::system("res/ComponentLibrary/BefacoTinyKnob.svg")));
-	}
-};
 
 static float gainFunction(float x, float shape) {
 	float lin = x;
@@ -77,8 +63,8 @@ struct HexmixVCA : Module {
 
 			int channels = 1;
 			simd::float_4 in[4] = {};
-			bool input_is_connected = inputs[IN_INPUT + row].isConnected();
-			if (input_is_connected) {
+			bool inputIsConnected = inputs[IN_INPUT + row].isConnected();
+			if (inputIsConnected) {
 				channels = inputs[row].getChannels();
 				maxChannels = std::max(maxChannels, channels);
 
@@ -151,26 +137,26 @@ struct HexmixVCAWidget : ModuleWidget {
 		addParam(createParamCentered<BefacoTinyKnobRed>(mm2px(Vec(35.458, 89.93)), module, HexmixVCA::VOL_PARAM + 4));
 		addParam(createParamCentered<BefacoTinyKnobRed>(mm2px(Vec(35.458, 108.536)), module, HexmixVCA::VOL_PARAM + 5));
 
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(6.581, 15.51)), module, HexmixVCA::IN_INPUT + 0));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(6.581, 34.115)), module, HexmixVCA::IN_INPUT + 1));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(6.581, 52.72)), module, HexmixVCA::IN_INPUT + 2));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(6.581, 71.325)), module, HexmixVCA::IN_INPUT + 3));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(6.581, 89.93)), module, HexmixVCA::IN_INPUT + 4));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(6.581, 108.536)), module, HexmixVCA::IN_INPUT + 5));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(6.581, 15.51)), module, HexmixVCA::IN_INPUT + 0));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(6.581, 34.115)), module, HexmixVCA::IN_INPUT + 1));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(6.581, 52.72)), module, HexmixVCA::IN_INPUT + 2));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(6.581, 71.325)), module, HexmixVCA::IN_INPUT + 3));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(6.581, 89.93)), module, HexmixVCA::IN_INPUT + 4));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(6.581, 108.536)), module, HexmixVCA::IN_INPUT + 5));
 
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(52.083, 15.51)), module, HexmixVCA::CV_INPUT + 0));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(52.083, 34.115)), module, HexmixVCA::CV_INPUT + 1));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(52.083, 52.72)), module, HexmixVCA::CV_INPUT + 2));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(52.083, 71.325)), module, HexmixVCA::CV_INPUT + 3));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(52.083, 89.93)), module, HexmixVCA::CV_INPUT + 4));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(52.083, 108.536)), module, HexmixVCA::CV_INPUT + 5));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(52.083, 15.51)), module, HexmixVCA::CV_INPUT + 0));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(52.083, 34.115)), module, HexmixVCA::CV_INPUT + 1));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(52.083, 52.72)), module, HexmixVCA::CV_INPUT + 2));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(52.083, 71.325)), module, HexmixVCA::CV_INPUT + 3));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(52.083, 89.93)), module, HexmixVCA::CV_INPUT + 4));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(52.083, 108.536)), module, HexmixVCA::CV_INPUT + 5));
 
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(64.222, 15.51)), module, HexmixVCA::OUT_OUTPUT + 0));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(64.222, 34.115)), module, HexmixVCA::OUT_OUTPUT + 1));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(64.222, 52.72)), module, HexmixVCA::OUT_OUTPUT + 2));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(64.222, 71.325)), module, HexmixVCA::OUT_OUTPUT + 3));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(64.222, 89.93)), module, HexmixVCA::OUT_OUTPUT + 4));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(64.222, 108.536)), module, HexmixVCA::OUT_OUTPUT + 5));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(64.222, 15.51)), module, HexmixVCA::OUT_OUTPUT + 0));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(64.222, 34.115)), module, HexmixVCA::OUT_OUTPUT + 1));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(64.222, 52.72)), module, HexmixVCA::OUT_OUTPUT + 2));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(64.222, 71.325)), module, HexmixVCA::OUT_OUTPUT + 3));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(64.222, 89.93)), module, HexmixVCA::OUT_OUTPUT + 4));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(64.222, 108.536)), module, HexmixVCA::OUT_OUTPUT + 5));
 	}
 };
 
