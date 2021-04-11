@@ -16,4 +16,5 @@ void init(rack::Plugin *p) {
 	p->addModel(modelPercall);
 	p->addModel(modelHexmixVCA);
 	p->addModel(modelChoppingKinky);
+	p->addModel(modelKickall);
 }

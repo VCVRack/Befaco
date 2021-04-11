@@ -19,14 +19,28 @@ struct BefacoTinyKnobWhite : app::SvgKnob {
 	}
 };
 
+struct BefacoTinyKnobGrey : app::SvgKnob {
+	BefacoTinyKnobGrey() {
+		minAngle = -0.8 * M_PI;
+		maxAngle = 0.8 * M_PI;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoTinyKnobGrey.svg")));
+	}
+};
+
+struct Davies1900hLargeGreyKnob : Davies1900hKnob {
+	Davies1900hLargeGreyKnob() {
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Davies1900hLargeGrey.svg")));
+	}
+};
+
 struct BefacoOutputPort : app::SvgPort {
-	BefacoOutputPort() {		
+	BefacoOutputPort() {
 		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoOutputPort.svg")));
 	}
 };
 
 struct BefacoInputPort : app::SvgPort {
-	BefacoInputPort() {		
+	BefacoInputPort() {
 		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoInputPort.svg")));
 	}
 };
@@ -36,7 +50,7 @@ struct BefacoInputPort : app::SvgPort {
     The template parameter N should be 1/2 the desired filter order.
 
     Currently uses an 2*N-th order Butterworth filter.
-    @TODO: implement Chebyshev, Elliptic filter options.
+    source: https://github.com/jatinchowdhury18/ChowDSP-VCV/blob/master/src/shared/AAFilter.hpp
 */
 template<int N>
 class AAFilter {
@@ -86,6 +100,7 @@ private:
 
 /**
  * Base class for oversampling of any order
+ * source: https://github.com/jatinchowdhury18/ChowDSP-VCV/blob/master/src/shared/oversampling.hpp
  */
 class BaseOversampling {
 public:
@@ -170,6 +185,8 @@ private:
         osBuffer[k] = processSample(osBuffer[k]);
     float y = oversample.downsample();
     @endcode
+
+	source (modified): https://github.com/jatinchowdhury18/ChowDSP-VCV/blob/master/src/shared/VariableOversampling.hpp
 */
 template<int filtN = 4>
 class VariableOversampling {
