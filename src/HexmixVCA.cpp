@@ -37,6 +37,7 @@ struct HexmixVCA : Module {
 	dsp::ClockDivider cvDivider;
 	float outputLevels[numRows] = {1.f};
 	float shapes[numRows] = {0.f};
+	bool finalRowIsMix = true;
 
 	HexmixVCA() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
@@ -79,13 +80,14 @@ struct HexmixVCA : Module {
 			// if not the final row
 			if (row != numRows - 1) {
 				if (outputs[OUT_OUTPUT + row].isConnected()) {
+					// if output is connected, we don't add to mix
 					outputs[OUT_OUTPUT + row].setChannels(channels);
 					for (int c = 0; c < channels; c += 4) {
 						in[c / 4].store(outputs[OUT_OUTPUT + row].getVoltages(c));
 					}
 				}
-				else {
-					// else add to mix
+				else if (finalRowIsMix) {
+					// else add to mix (if setting enabled)
 					for (int c = 0; c < channels; c += 4) {
 						mix[c / 4] += in[c / 4];
 					}
@@ -94,21 +96,41 @@ struct HexmixVCA : Module {
 			// final row
 			else {
 				if (outputs[OUT_OUTPUT + row].isConnected()) {
+					if (finalRowIsMix) {
+						outputs[OUT_OUTPUT + row].setChannels(maxChannels);
 
-					outputs[OUT_OUTPUT + row].setChannels(maxChannels);
+						// last channel must always go into mix
+						for (int c = 0; c < channels; c += 4) {
+							mix[c / 4] += in[c / 4];
+						}
 
-					// last channel must always go into mix
-					for (int c = 0; c < channels; c += 4) {
-						mix[c / 4] += in[c / 4];
+						for (int c = 0; c < maxChannels; c += 4) {
+							mix[c / 4].store(outputs[OUT_OUTPUT + row].getVoltages(c));
+						}
 					}
-
-					for (int c = 0; c < maxChannels; c += 4) {
-						mix[c / 4].store(outputs[OUT_OUTPUT + row].getVoltages(c));
+					else {
+						// same as other rows
+						outputs[OUT_OUTPUT + row].setChannels(channels);
+						for (int c = 0; c < channels; c += 4) {
+							in[c / 4].store(outputs[OUT_OUTPUT + row].getVoltages(c));
+						}
 					}
 				}
 			}
-
 		}
+	}
+
+	void dataFromJson(json_t* rootJ) override {
+		json_t* modeJ = json_object_get(rootJ, "finalRowIsMix");
+		if (modeJ) {
+			finalRowIsMix = json_boolean_value(modeJ);
+		}
+	}
+
+	json_t* dataToJson() override {
+		json_t* rootJ = json_object();
+		json_object_set_new(rootJ, "finalRowIsMix", json_boolean(finalRowIsMix));
+		return rootJ;
 	}
 };
 
@@ -157,6 +179,24 @@ struct HexmixVCAWidget : ModuleWidget {
 		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(64.222, 71.325)), module, HexmixVCA::OUT_OUTPUT + 3));
 		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(64.222, 89.93)), module, HexmixVCA::OUT_OUTPUT + 4));
 		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(64.222, 108.536)), module, HexmixVCA::OUT_OUTPUT + 5));
+	}
+
+	struct MixMenuItem : MenuItem {
+		HexmixVCA* module;
+		void onAction(const event::Action& e) override {
+			module->finalRowIsMix ^= true;
+		}
+	};
+
+	void appendContextMenu(Menu* menu) override {
+		HexmixVCA* module = dynamic_cast<HexmixVCA*>(this->module);
+		assert(module);
+
+		menu->addChild(new MenuSeparator());
+
+		MixMenuItem* mixItem = createMenuItem<MixMenuItem>("Final row is mix", CHECKMARK(module->finalRowIsMix));
+		mixItem->module = module;
+		menu->addChild(mixItem);
 	}
 };
 
