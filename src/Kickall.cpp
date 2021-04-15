@@ -1,5 +1,6 @@
 #include "plugin.hpp"
 #include "Common.hpp"
+#include "ChowDSP.hpp"
 
 struct ADEnvelope {
 
@@ -13,6 +14,7 @@ struct ADEnvelope {
 	float env = 0.f;
 	float attackTime = 0.1, decayTime = 0.1;
 
+	// TODO: add shape, and generlise to use with Percall
 	ADEnvelope() { };
 
 	void process(const float& sampleTime) {
@@ -98,8 +100,8 @@ struct Kickall : Module {
 	static constexpr float FREQ_A0 = 27.5f;
 	static constexpr float FREQ_B2 = 123.471f;
 
-	static const int UPSAMPLE = 4;
-	Oversampling<UPSAMPLE> oversampler;
+	static const int UPSAMPLE = 8;
+	chowdsp::Oversampling<UPSAMPLE> oversampler;
 	float shaperBuf[UPSAMPLE];
 
 	void process(const ProcessArgs& args) override {
@@ -124,19 +126,8 @@ struct Kickall : Module {
 		float freq = params[TUNE_PARAM].getValue();
 		freq *= std::pow(2, inputs[TUNE_INPUT].getVoltage());
 
-		//float kickFrequency = std::max(50.0f, params[TUNE_PARAM].getValue() + bendRange * bend * pitch.env);
-		float kickFrequency = std::max(50.0f, freq + bendRange * bend * pitch.env);
-
-		phase += args.sampleTime * kickFrequency;
-		if (phase > 1.0f) {
-			phase -= 1.0f;
-		}
-
-		// TODO: faster approximation
-		float wave = std::sin(2.0 * M_PI * phase);
-
-		oversampler.upsample(wave);
-		float* inputBuf = oversampler.getOSBuffer();
+		const float kickFrequency = std::max(10.0f, freq + bendRange * bend * pitch.env);
+		const float phaseInc = args.sampleTime * kickFrequency / UPSAMPLE;
 
 		float shape = clamp(inputs[SHAPE_INPUT].getVoltage() / 2.f + params[SHAPE_PARAM].getValue() * 5.0f, 0.0f, 10.0f);
 		shape = clamp(shape, 0.f, 5.0f) * 0.2f;
@@ -144,14 +135,19 @@ struct Kickall : Module {
 		const float shapeB = (1.0f - shape) / (1.0f + shape);
 		const float shapeA = (4.0f * shape) / ((1.0f - shape) * (1.0f + shape));
 
+		float* inputBuf = oversampler.getOSBuffer();
 		for (int i = 0; i < UPSAMPLE; ++i) {
+			phase += phaseInc;
+			phase -= std::floor(phase);
+
+			inputBuf[i] = sin2pi_pade_05_5_4(phase);
 			inputBuf[i] = inputBuf[i] * (shapeA + shapeB) / ((std::abs(inputBuf[i]) * shapeA) + shapeB);
 		}
 
 		float out = volume.env * oversampler.downsample() * 5.0f * vcaGain;
 		outputs[OUT_OUTPUT].setVoltage(out);
 
-		lights[ENV_LIGHT].setBrightness(volume.stage);
+		lights[ENV_LIGHT].setBrightness(volume.env);
 	}
 };
 
@@ -164,22 +160,22 @@ struct KickallWidget : ModuleWidget {
 		addChild(createWidget<Knurlie>(Vec(RACK_GRID_WIDTH, 0)));
 		addChild(createWidget<Knurlie>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-		addParam(createParamCentered<BefacoTinyKnobGrey>(mm2px(Vec(8.76, 29.068)), module, Kickall::TUNE_PARAM));
-		addParam(createParamCentered<BefacoPush>(mm2px(Vec(22.651, 29.068)), module, Kickall::TRIGG_BUTTON_PARAM));
-		addParam(createParamCentered<Davies1900hLargeGreyKnob>(mm2px(Vec(15.781, 49.278)), module, Kickall::SHAPE_PARAM));
-		addParam(createParam<BefacoSlidePot>(mm2px(Vec(19.913, 64.004)), module, Kickall::DECAY_PARAM));
-		addParam(createParamCentered<BefacoTinyKnobWhite>(mm2px(Vec(8.977, 71.626)), module, Kickall::TIME_PARAM));
-		addParam(createParamCentered<BefacoTinyKnobWhite>(mm2px(Vec(8.977, 93.549)), module, Kickall::BEND_PARAM));
+		addParam(createParamCentered<BefacoTinyKnobGrey>(mm2px(Vec(8.472, 28.97)), module, Kickall::TUNE_PARAM));
+		addParam(createParamCentered<BefacoPush>(mm2px(Vec(22.409, 29.159)), module, Kickall::TRIGG_BUTTON_PARAM));
+		addParam(createParamCentered<Davies1900hLargeGreyKnob>(mm2px(Vec(15.526, 49.292)), module, Kickall::SHAPE_PARAM));
+		addParam(createParam<BefacoSlidePot>(mm2px(Vec(19.667, 63.897)), module, Kickall::DECAY_PARAM));
+		addParam(createParamCentered<BefacoTinyKnob>(mm2px(Vec(8.521, 71.803)), module, Kickall::TIME_PARAM));
+		addParam(createParamCentered<BefacoTinyKnob>(mm2px(Vec(8.521, 93.517)), module, Kickall::BEND_PARAM));
 
-		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(5.715, 14.651)), module, Kickall::TRIGG_INPUT));
-		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(15.748, 14.651)), module, Kickall::VOLUME_INPUT));
-		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(5.697, 113.286)), module, Kickall::TUNE_INPUT));
-		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(15.794, 113.286)), module, Kickall::SHAPE_INPUT));
-		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(25.891, 113.286)), module, Kickall::DECAY_INPUT));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(15.501, 14.508)), module, Kickall::VOLUME_INPUT));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(5.499, 14.536)), module, Kickall::TRIGG_INPUT));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(25.525, 113.191)), module, Kickall::DECAY_INPUT));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(5.499, 113.208)), module, Kickall::TUNE_INPUT));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(15.485, 113.208)), module, Kickall::SHAPE_INPUT));
 
-		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(25.781, 14.651)), module, Kickall::OUT_OUTPUT));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(25.525, 14.52)), module, Kickall::OUT_OUTPUT));
 
-		addChild(createLightCentered<SmallLight<RedLight>>(mm2px(Vec(15.723, 34.971)), module, Kickall::ENV_LIGHT));
+		addChild(createLightCentered<SmallLight<RedLight>>(mm2px(Vec(15.535, 34.943)), module, Kickall::ENV_LIGHT));
 	}
 };
 

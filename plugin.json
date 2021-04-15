@@ -1,6 +1,6 @@
 {
   "slug": "Befaco",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "license": "GPL-3.0-or-later",
   "name": "Befaco",
   "author": "VCV",
@@ -97,6 +97,7 @@
       "tags": [
         "Envelope generator",
         "Mixer",
+        "Poly",
         "Hardware clone"
       ]
     },
@@ -108,20 +109,30 @@
       "tags": [
         "Mixer",
         "Hardware clone",
+        "Poly",
         "VCA"
       ]
     },
     {
       "slug": "ChoppingKinky",
       "name": "ChoppingKinky",
-      "description": "",
-      "tags": []
+      "description": "Voltage controllable, dual channel wavefolder",
+      "tags": [
+        "Dual",
+        "Hardware clone",
+        "Voltage-controlled amplifier",
+        "Waveshaper"
+      ]
     },
     {
       "slug": "Kickall",
       "name": "Kickall",
       "description": "",
-      "tags": []
+      "tags": [
+        "Drum",
+        "Hardware clone",
+        "Synth voice"
+      ]
     }
   ]
 }

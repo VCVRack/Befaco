@@ -1,21 +1,10 @@
 #include "plugin.hpp"
 #include "Common.hpp"
+#include "ChowDSP.hpp"
 
 static const size_t BUF_LEN = 32;
 
-template <typename T>
-T sin2pi_pade_05_5_4(T x) {
-	x -= 0.5f;
-	return (T(-6.283185307) * x + T(33.19863968) * simd::pow(x, 3) - T(32.44191367) * simd::pow(x, 5))
-	       / (1 + T(1.296008659) * simd::pow(x, 2) + T(0.7028072946) * simd::pow(x, 4));
-}
 
-template <typename T>
-T tanh_pade(T x) {
-	T x2 = x * x;
-	T q = 12.f + x2;
-	return 12.f * x * q / (36.f * x2 + q * q);
-}
 
 static float foldResponse(float inputGain, float G) {
 	return std::tanh(inputGain) + G * std::sin(M_PI * inputGain);
@@ -69,7 +58,7 @@ struct ChoppingKinky : Module {
 	bool outputAToChopp;
 	float previousA = 0.0;
 
-	VariableOversampling<> oversampler[NUM_CHANNELS];
+	chowdsp::VariableOversampling<> oversampler[NUM_CHANNELS];
 	int oversamplingIndex = 2;
 	
 	dsp::BiquadFilter blockDCFilter; 
