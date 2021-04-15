@@ -1,7 +1,7 @@
 #include <string.h>
 #include "plugin.hpp"
 #include "pffft.h"
-
+#include "Common.hpp"
 
 BINARY(src_SpringReverbIR_pcm);
 
@@ -154,14 +154,14 @@ struct SpringReverbWidget : ModuleWidget {
 
 		addParam(createParam<Davies1900hWhiteKnob>(Vec(42, 210), module, SpringReverb::HPF_PARAM));
 
-		addInput(createInput<PJ301MPort>(Vec(7, 243), module, SpringReverb::CV1_INPUT));
-		addInput(createInput<PJ301MPort>(Vec(88, 243), module, SpringReverb::CV2_INPUT));
-		addInput(createInput<PJ301MPort>(Vec(27, 281), module, SpringReverb::IN1_INPUT));
-		addInput(createInput<PJ301MPort>(Vec(67, 281), module, SpringReverb::IN2_INPUT));
+		addInput(createInput<BefacoInputPort>(Vec(7, 243), module, SpringReverb::CV1_INPUT));
+		addInput(createInput<BefacoInputPort>(Vec(88, 243), module, SpringReverb::CV2_INPUT));
+		addInput(createInput<BefacoInputPort>(Vec(27, 281), module, SpringReverb::IN1_INPUT));
+		addInput(createInput<BefacoInputPort>(Vec(67, 281), module, SpringReverb::IN2_INPUT));
 
-		addOutput(createOutput<PJ301MPort>(Vec(7, 317), module, SpringReverb::MIX_OUTPUT));
-		addInput(createInput<PJ301MPort>(Vec(47, 324), module, SpringReverb::MIX_CV_INPUT));
-		addOutput(createOutput<PJ301MPort>(Vec(88, 317), module, SpringReverb::WET_OUTPUT));
+		addOutput(createOutput<BefacoOutputPort>(Vec(7, 317), module, SpringReverb::MIX_OUTPUT));
+		addInput(createInput<BefacoInputPort>(Vec(47, 324), module, SpringReverb::MIX_CV_INPUT));
+		addOutput(createOutput<BefacoOutputPort>(Vec(88, 317), module, SpringReverb::WET_OUTPUT));
 
 		addChild(createLight<MediumLight<GreenRedLight>>(Vec(55, 269), module, SpringReverb::PEAK_LIGHT));
 		addChild(createLight<MediumLight<RedLight>>(Vec(55, 113), module, SpringReverb::VU1_LIGHT + 0));

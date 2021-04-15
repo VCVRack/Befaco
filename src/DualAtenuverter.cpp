@@ -1,5 +1,5 @@
 #include "plugin.hpp"
-
+#include "Common.hpp"
 
 struct DualAtenuverter : Module {
 	enum ParamIds {
@@ -64,11 +64,11 @@ struct DualAtenuverterWidget : ModuleWidget {
 		addParam(createParam<Davies1900hWhiteKnob>(Vec(20, 201), module, DualAtenuverter::ATEN2_PARAM));
 		addParam(createParam<Davies1900hRedKnob>(Vec(20, 260), module, DualAtenuverter::OFFSET2_PARAM));
 
-		addInput(createInput<PJ301MPort>(Vec(7, 152), module, DualAtenuverter::IN1_INPUT));
-		addOutput(createOutput<PJ301MPort>(Vec(43, 152), module, DualAtenuverter::OUT1_OUTPUT));
+		addInput(createInput<BefacoInputPort>(Vec(7, 152), module, DualAtenuverter::IN1_INPUT));
+		addOutput(createOutput<BefacoOutputPort>(Vec(43, 152), module, DualAtenuverter::OUT1_OUTPUT));
 
-		addInput(createInput<PJ301MPort>(Vec(7, 319), module, DualAtenuverter::IN2_INPUT));
-		addOutput(createOutput<PJ301MPort>(Vec(43, 319), module, DualAtenuverter::OUT2_OUTPUT));
+		addInput(createInput<BefacoInputPort>(Vec(7, 319), module, DualAtenuverter::IN2_INPUT));
+		addOutput(createOutput<BefacoOutputPort>(Vec(43, 319), module, DualAtenuverter::OUT2_OUTPUT));
 
 		addChild(createLight<MediumLight<GreenRedLight>>(Vec(33, 143), module, DualAtenuverter::OUT1_POS_LIGHT));
 		addChild(createLight<MediumLight<GreenRedLight>>(Vec(33, 311), module, DualAtenuverter::OUT2_POS_LIGHT));

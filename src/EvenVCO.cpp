@@ -1,5 +1,5 @@
 #include "plugin.hpp"
-
+#include "Common.hpp"
 
 struct EvenVCO : Module {
 	enum ParamIds {
@@ -131,18 +131,18 @@ struct EvenVCOWidget : ModuleWidget {
 		addParam(createParam<BefacoTinyKnob>(Vec(73, 131), module, EvenVCO::TUNE_PARAM));
 		addParam(createParam<Davies1900hRedKnob>(Vec(16, 230), module, EvenVCO::PWM_PARAM));
 
-		addInput(createInput<PJ301MPort>(Vec(8, 120), module, EvenVCO::PITCH1_INPUT));
-		addInput(createInput<PJ301MPort>(Vec(19, 157), module, EvenVCO::PITCH2_INPUT));
-		addInput(createInput<PJ301MPort>(Vec(48, 183), module, EvenVCO::FM_INPUT));
-		addInput(createInput<PJ301MPort>(Vec(86, 189), module, EvenVCO::SYNC_INPUT));
+		addInput(createInput<BefacoInputPort>(Vec(8, 120), module, EvenVCO::PITCH1_INPUT));
+		addInput(createInput<BefacoInputPort>(Vec(19, 157), module, EvenVCO::PITCH2_INPUT));
+		addInput(createInput<BefacoInputPort>(Vec(48, 183), module, EvenVCO::FM_INPUT));
+		addInput(createInput<BefacoInputPort>(Vec(86, 189), module, EvenVCO::SYNC_INPUT));
 
-		addInput(createInput<PJ301MPort>(Vec(72, 236), module, EvenVCO::PWM_INPUT));
+		addInput(createInput<BefacoInputPort>(Vec(72, 236), module, EvenVCO::PWM_INPUT));
 
-		addOutput(createOutput<PJ301MPort>(Vec(10, 283), module, EvenVCO::TRI_OUTPUT));
-		addOutput(createOutput<PJ301MPort>(Vec(87, 283), module, EvenVCO::SINE_OUTPUT));
-		addOutput(createOutput<PJ301MPort>(Vec(48, 306), module, EvenVCO::EVEN_OUTPUT));
-		addOutput(createOutput<PJ301MPort>(Vec(10, 327), module, EvenVCO::SAW_OUTPUT));
-		addOutput(createOutput<PJ301MPort>(Vec(87, 327), module, EvenVCO::SQUARE_OUTPUT));
+		addOutput(createOutput<BefacoOutputPort>(Vec(10, 283), module, EvenVCO::TRI_OUTPUT));
+		addOutput(createOutput<BefacoOutputPort>(Vec(87, 283), module, EvenVCO::SINE_OUTPUT));
+		addOutput(createOutput<BefacoOutputPort>(Vec(48, 306), module, EvenVCO::EVEN_OUTPUT));
+		addOutput(createOutput<BefacoOutputPort>(Vec(10, 327), module, EvenVCO::SAW_OUTPUT));
+		addOutput(createOutput<BefacoOutputPort>(Vec(87, 327), module, EvenVCO::SQUARE_OUTPUT));
 	}
 };
 

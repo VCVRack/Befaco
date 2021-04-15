@@ -1,5 +1,5 @@
 #include "plugin.hpp"
-
+#include "Common.hpp"
 
 struct Mixer : Module {
 	enum ParamIds {
@@ -65,14 +65,14 @@ struct MixerWidget : ModuleWidget {
 		addParam(createParam<Davies1900hWhiteKnob>(Vec(19, 137), module, Mixer::CH3_PARAM));
 		addParam(createParam<Davies1900hWhiteKnob>(Vec(19, 190), module, Mixer::CH4_PARAM));
 
-		addInput(createInput<PJ301MPort>(Vec(7, 242), module, Mixer::IN1_INPUT));
-		addInput(createInput<PJ301MPort>(Vec(43, 242), module, Mixer::IN2_INPUT));
+		addInput(createInput<BefacoInputPort>(Vec(7, 242), module, Mixer::IN1_INPUT));
+		addInput(createInput<BefacoInputPort>(Vec(43, 242), module, Mixer::IN2_INPUT));
 
-		addInput(createInput<PJ301MPort>(Vec(7, 281), module, Mixer::IN3_INPUT));
-		addInput(createInput<PJ301MPort>(Vec(43, 281), module, Mixer::IN4_INPUT));
+		addInput(createInput<BefacoInputPort>(Vec(7, 281), module, Mixer::IN3_INPUT));
+		addInput(createInput<BefacoInputPort>(Vec(43, 281), module, Mixer::IN4_INPUT));
 
-		addOutput(createOutput<PJ301MPort>(Vec(7, 324), module, Mixer::OUT1_OUTPUT));
-		addOutput(createOutput<PJ301MPort>(Vec(43, 324), module, Mixer::OUT2_OUTPUT));
+		addOutput(createOutput<BefacoOutputPort>(Vec(7, 324), module, Mixer::OUT1_OUTPUT));
+		addOutput(createOutput<BefacoOutputPort>(Vec(43, 324), module, Mixer::OUT2_OUTPUT));
 
 		addChild(createLight<MediumLight<GreenRedLight>>(Vec(32.7, 310), module, Mixer::OUT_POS_LIGHT));
 	}

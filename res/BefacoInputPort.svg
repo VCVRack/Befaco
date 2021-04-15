@@ -152,7 +152,7 @@
      showgrid="false"
      inkscape:window-width="2560"
      inkscape:window-height="1361"
-     inkscape:window-x="-9"
+     inkscape:window-x="2551"
      inkscape:window-y="-9"
      inkscape:window-maximized="1"
      units="px"
@@ -188,8 +188,9 @@
        id="rect883"
        width="1.2277683"
        height="8.059844"
-       x="92.175079"
-       y="119.35728" />
+       x="122.77332"
+       y="-96.818886"
+       transform="rotate(90)" />
     <path
        inkscape:connector-curvature="0"
        id="path7261"

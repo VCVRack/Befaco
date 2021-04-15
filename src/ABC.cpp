@@ -1,5 +1,5 @@
 #include "plugin.hpp"
-
+#include "Common.hpp"
 
 inline float clip(float x) {
 	// Pade approximant of x/(1 + x^12)^(1/12)
@@ -95,14 +95,14 @@ struct ABCWidget : ModuleWidget {
 		addParam(createParam<Davies1900hRedKnob>(Vec(45, 204), module, ABC::B2_LEVEL_PARAM));
 		addParam(createParam<Davies1900hWhiteKnob>(Vec(45, 274), module, ABC::C2_LEVEL_PARAM));
 
-		addInput(createInput<PJ301MPort>(Vec(7, 28), module, ABC::A1_INPUT));
-		addInput(createInput<PJ301MPort>(Vec(7, 70), module, ABC::B1_INPUT));
-		addInput(createInput<PJ301MPort>(Vec(7, 112), module, ABC::C1_INPUT));
-		addOutput(createOutput<PJ301MPort>(Vec(7, 154), module, ABC::OUT1_OUTPUT));
-		addInput(createInput<PJ301MPort>(Vec(7, 195), module, ABC::A2_INPUT));
-		addInput(createInput<PJ301MPort>(Vec(7, 237), module, ABC::B2_INPUT));
-		addInput(createInput<PJ301MPort>(Vec(7, 279), module, ABC::C2_INPUT));
-		addOutput(createOutput<PJ301MPort>(Vec(7, 321), module, ABC::OUT2_OUTPUT));
+		addInput(createInput<BefacoInputPort>(Vec(7, 28), module, ABC::A1_INPUT));
+		addInput(createInput<BefacoInputPort>(Vec(7, 70), module, ABC::B1_INPUT));
+		addInput(createInput<BefacoInputPort>(Vec(7, 112), module, ABC::C1_INPUT));
+		addOutput(createOutput<BefacoOutputPort>(Vec(7, 154), module, ABC::OUT1_OUTPUT));
+		addInput(createInput<BefacoInputPort>(Vec(7, 195), module, ABC::A2_INPUT));
+		addInput(createInput<BefacoInputPort>(Vec(7, 237), module, ABC::B2_INPUT));
+		addInput(createInput<BefacoInputPort>(Vec(7, 279), module, ABC::C2_INPUT));
+		addOutput(createOutput<BefacoOutputPort>(Vec(7, 321), module, ABC::OUT2_OUTPUT));
 
 		addChild(createLight<MediumLight<GreenRedLight>>(Vec(37, 162), module, ABC::OUT1_LIGHT));
 		addChild(createLight<MediumLight<GreenRedLight>>(Vec(37, 329), module, ABC::OUT2_LIGHT));

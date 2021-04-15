@@ -1,5 +1,5 @@
 #include "plugin.hpp"
-
+#include "Common.hpp"
 
 struct SlewLimiter : Module {
 	enum ParamIds {
@@ -73,11 +73,11 @@ struct SlewLimiterWidget : ModuleWidget {
 		addParam(createParam<BefacoSlidePot>(Vec(15, 102), module, ::SlewLimiter::RISE_PARAM));
 		addParam(createParam<BefacoSlidePot>(Vec(60, 102), module, ::SlewLimiter::FALL_PARAM));
 
-		addInput(createInput<PJ301MPort>(Vec(10, 273), module, ::SlewLimiter::RISE_INPUT));
-		addInput(createInput<PJ301MPort>(Vec(55, 273), module, ::SlewLimiter::FALL_INPUT));
+		addInput(createInput<BefacoInputPort>(Vec(10, 273), module, ::SlewLimiter::RISE_INPUT));
+		addInput(createInput<BefacoInputPort>(Vec(55, 273), module, ::SlewLimiter::FALL_INPUT));
 
-		addInput(createInput<PJ301MPort>(Vec(10, 323), module, ::SlewLimiter::IN_INPUT));
-		addOutput(createOutput<PJ301MPort>(Vec(55, 323), module, ::SlewLimiter::OUT_OUTPUT));
+		addInput(createInput<BefacoInputPort>(Vec(10, 323), module, ::SlewLimiter::IN_INPUT));
+		addOutput(createOutput<BefacoOutputPort>(Vec(55, 323), module, ::SlewLimiter::OUT_OUTPUT));
 	}
 };
 
