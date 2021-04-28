@@ -70,15 +70,15 @@ struct HexmixVCA : Module {
 				maxChannels = std::max(maxChannels, channels);
 
 				float cvGain = clamp(inputs[CV_INPUT + row].getNormalVoltage(10.f) / 10.f, 0.f, 1.f);
-				float gain = gainFunction(cvGain, shapes[row]);
+				float gain = gainFunction(cvGain, shapes[row]) * outputLevels[row];
 
 				for (int c = 0; c < channels; c += 4) {
-					in[c / 4] = simd::float_4::load(inputs[row].getVoltages(c)) * gain * outputLevels[row];
+					in[c / 4] = simd::float_4::load(inputs[row].getVoltages(c)) * gain;
 				}
 			}
-
-			// if not the final row
-			if (row != numRows - 1) {
+			
+			bool finalRow = (row == numRows - 1);
+			if (!finalRow) {
 				if (outputs[OUT_OUTPUT + row].isConnected()) {
 					// if output is connected, we don't add to mix
 					outputs[OUT_OUTPUT + row].setChannels(channels);

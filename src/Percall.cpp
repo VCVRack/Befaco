@@ -33,27 +33,29 @@ struct Percall : Module {
 		NUM_LIGHTS
 	};
 
-	enum Stage {
-		STAGE_OFF,
-		STAGE_ATTACK,
-		STAGE_DECAY
-	};
+	ADEnvelope envs[4];
 
-	Stage stage[4] = {};
-	float env[4] = {};
 	float gains[4] = {};
-	float fallTimes[4] = {};
+	
 	float strength = 1.0f;
 	dsp::SchmittTrigger trigger[4];
 	dsp::ClockDivider cvDivider;
 	dsp::ClockDivider lightDivider;
 	const int LAST_CHANNEL_ID = 3;
 
+	const float attackTime = 1.5e-3;
+	const float minDecayTime = 4.5e-3;
+	const float maxDecayTime = 4.f;
+
 	Percall() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 		for (int i = 0; i < 4; i++) {
 			configParam(VOL_PARAMS + i, 0.f, 1.f, 1.f, "Ch " + std::to_string(i + 1) + " level", "%", 0, 100);
 			configParam(DECAY_PARAMS + i, 0.f, 1.f, 0.f, "Ch " + std::to_string(i + 1) + " decay time");
+			envs[i].attackTime = attackTime;
+			envs[i].attackShape = 0.5f;
+			envs[i].decayShape = 3.0f;
+
 		}
 		for (int i = 0; i < 2; i++) {
 			std::string description = "Choke " + std::to_string(2 * i + 1) + " to " + std::to_string(2 * i + 2);
@@ -77,7 +79,7 @@ struct Percall : Module {
 				gains[i] = std::pow(params[VOL_PARAMS + i].getValue(), 2.f) * strength;
 
 				float fallCv = inputs[CV_INPUTS + i].getVoltage() + params[DECAY_PARAMS + i].getValue() * 10.f;
-				fallTimes[i] = 0.01 * std::pow(2.0, clamp(fallCv, 0.0f, 10.0f));
+				envs[i].decayTime = minDecayTime * std::pow(2.0, clamp(fallCv, 0.0f, 10.0f));
 			}
 		}
 
@@ -88,36 +90,16 @@ struct Percall : Module {
 		for (int i = 0; i < 4; i++) {
 
 			if (trigger[i].process(rescale(inputs[TRIG_INPUTS + i].getVoltage(), 0.1f, 2.f, 0.f, 1.f))) {
-				stage[i] = STAGE_ATTACK;
+				envs[i].stage = ADEnvelope::STAGE_ATTACK;
 			}
 			// if choke is enabled, and current channel is odd and left channel is in attack
-			if ((i % 2) && params[CHOKE_PARAMS + i / 2].getValue() && stage[i - 1] == STAGE_ATTACK) {
+			if ((i % 2) && params[CHOKE_PARAMS + i / 2].getValue() && envs[i - 1].stage == ADEnvelope::STAGE_ATTACK) {
 				// TODO: is there a more graceful way to choke, e.g. rapid envelope?
 				// TODO: this will just silence it instantly, maybe switch to STAGE_DECAY and modify fall time
-				stage[i] = STAGE_OFF;
+				envs[i].stage = ADEnvelope::STAGE_OFF;
 			}
 
-			float targetVoltage = (stage[i] == STAGE_ATTACK) ? 10.0f : 0.0f;
-			float delta = targetVoltage - env[i];
-
-			if (stage[i] == STAGE_OFF) {
-				env[i] = 0.0f;
-			}
-			else if (stage[i] == STAGE_ATTACK) {
-				env[i] += expDelta(delta, 2e-3) * args.sampleTime;
-			}
-			else if (stage[i] == STAGE_DECAY) {
-				env[i] += expDelta(delta, fallTimes[i]) * args.sampleTime;
-			}
-
-			if (env[i] >= 10.0f) {
-				stage[i] = STAGE_DECAY;
-				env[i] = 10.0f;
-			}
-			else if (env[i] <= 0.0f) {
-				stage[i] = STAGE_OFF;
-				env[i] = 0.0f;
-			}
+			envs[i].process(args.sampleTime);
 
 			int channels = 1;
 			simd::float_4 in[4] = {};
@@ -129,8 +111,8 @@ struct Percall : Module {
 				maxChannels = std::max(maxChannels, channels);
 
 				// only process input audio if envelope is active
-				if (stage[i] != STAGE_OFF) {
-					float gain = gains[i] * env[i] / 10.0f;
+				if (envs[i].stage != ADEnvelope::STAGE_OFF) {
+					float gain = gains[i] * envs[i].env;
 					for (int c = 0; c < channels; c += 4) {
 						in[c / 4] = simd::float_4::load(inputs[channel_to_read_from].getVoltages(c)) * gain;
 					}
@@ -169,13 +151,13 @@ struct Percall : Module {
 
 			// set env output
 			if (outputs[ENV_OUTPUTS + i].isConnected()) {
-				outputs[ENV_OUTPUTS + i].setVoltage(strength * env[i]);
+				outputs[ENV_OUTPUTS + i].setVoltage(10.f * strength * envs[i].env);
 			}
 		}
 
 		if (lightDivider.process()) {
 			for (int i = 0; i < 4; i++) {
-				lights[LEDS + i].setBrightness(stage[i] != STAGE_OFF);
+				lights[LEDS + i].setBrightness(envs[i].env);
 			}
 		}
 

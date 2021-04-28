@@ -58,3 +58,49 @@ T tanh_pade(T x) {
 	T q = 12.f + x2;
 	return 12.f * x * q / (36.f * x2 + q * q);
 }
+
+
+struct ADEnvelope {
+
+	enum Stage {
+		STAGE_OFF,
+		STAGE_ATTACK,
+		STAGE_DECAY
+	};
+
+	Stage stage = STAGE_OFF;
+	float env = 0.f;
+	float attackTime = 0.1, decayTime = 0.1;
+	float attackShape = 1.0, decayShape = 1.0;
+	
+	ADEnvelope() { };
+
+	void process(const float& sampleTime) {
+
+		if (stage == STAGE_OFF) {
+			env = envLinear = 0.0f;
+		}
+		else if (stage == STAGE_ATTACK) {
+			envLinear += sampleTime / attackTime;			
+			env = std::pow(envLinear, attackShape);
+		}
+		else if (stage == STAGE_DECAY) {
+			envLinear -= sampleTime / decayTime;
+			env = std::pow(envLinear, decayShape);
+		}
+
+		if (env >= 1.0f) {
+			stage = STAGE_DECAY;
+			env = envLinear = 1.0f;
+		}
+		else if (env <= 0.0f) {
+			stage = STAGE_OFF;
+			env = envLinear = 0.0f;
+		}
+
+	}
+
+private:
+	float envLinear = 0.f;
+
+};

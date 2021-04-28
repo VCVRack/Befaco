@@ -2,43 +2,6 @@
 #include "Common.hpp"
 #include "ChowDSP.hpp"
 
-struct ADEnvelope {
-
-	enum Stage {
-		STAGE_OFF,
-		STAGE_ATTACK,
-		STAGE_DECAY
-	};
-
-	Stage stage = STAGE_OFF;
-	float env = 0.f;
-	float attackTime = 0.1, decayTime = 0.1;
-
-	// TODO: add shape, and generlise to use with Percall
-	ADEnvelope() { };
-
-	void process(const float& sampleTime) {
-
-		if (stage == STAGE_OFF) {
-			env = 0.0f;
-		}
-		else if (stage == STAGE_ATTACK) {
-			env += sampleTime / attackTime;
-		}
-		else if (stage == STAGE_DECAY) {
-			env -= sampleTime / decayTime;
-		}
-
-		if (env >= 1.0f) {
-			stage = STAGE_DECAY;
-			env = 1.0f;
-		}
-		else if (env <= 0.0f) {
-			stage = STAGE_OFF;
-			env = 0.0f;
-		}
-	}
-};
 
 struct Kickall : Module {
 	enum ParamIds {
