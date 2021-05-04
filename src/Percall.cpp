@@ -2,13 +2,6 @@
 #include "Common.hpp"
 
 
-static float expDelta(float delta, float tau) {
-	float lin = sgn(delta) * 10.f / tau;
-	float exp = M_E * delta / tau;
-	return crossfade(lin, exp, 0.90f);
-}
-
-
 struct Percall : Module {
 	enum ParamIds {
 		ENUMS(VOL_PARAMS, 4),
@@ -36,7 +29,7 @@ struct Percall : Module {
 	ADEnvelope envs[4];
 
 	float gains[4] = {};
-	
+
 	float strength = 1.0f;
 	dsp::SchmittTrigger trigger[4];
 	dsp::ClockDivider cvDivider;

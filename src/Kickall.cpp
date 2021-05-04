@@ -82,8 +82,8 @@ struct Kickall : Module {
 		pitch.decayTime = params[TIME_PARAM].getValue();
 		pitch.process(args.sampleTime);
 
-		// volume envelope TODO: wire in decay CV
-		volume.decayTime = params[DECAY_PARAM].getValue();
+		// volume envelope TODO: calibrate CV/slider interaction
+		volume.decayTime = clamp(params[DECAY_PARAM].getValue() + inputs[DECAY_INPUT].getVoltage() * 0.1f, 0.01, 1.0);
 		volume.process(args.sampleTime);
 
 		float freq = params[TUNE_PARAM].getValue();
