@@ -4,20 +4,6 @@
 
 static const size_t BUF_LEN = 32;
 
-
-
-static float foldResponse(float inputGain, float G) {
-	return std::tanh(inputGain) + G * std::sin(M_PI * inputGain);
-	//return tanh_pade(inputGain) + G * sin2pi_pade_05_5_4(inputGain / 2);
-}
-
-static float foldResponseSin(float inputGain) {
-	return std::sin(2 * M_PI * inputGain / 2.5);
-	//return sin2pi_pade_05_5_4(inputGain / 2.5);
-	//return (std::abs(inputGain) < 1.0) ? inputGain : 1.0f;
-}
-
-
 struct ChoppingKinky : Module {
 	enum ParamIds {
 		FOLD_A_PARAM,
@@ -54,14 +40,19 @@ struct ChoppingKinky : Module {
 		NUM_CHANNELS
 	};
 
+	static const int WAVESHAPE_CACHE_SIZE = 128;
+	float waveshapeA[WAVESHAPE_CACHE_SIZE + 1] = {0.f};
+	float waveshapeBPositive[WAVESHAPE_CACHE_SIZE + 1] = {0.f};
+	float waveshapeBNegative[WAVESHAPE_CACHE_SIZE + 1] = {0.f};
+
 	dsp::SchmittTrigger trigger;
 	bool outputAToChopp;
 	float previousA = 0.0;
 
 	chowdsp::VariableOversampling<> oversampler[NUM_CHANNELS];
 	int oversamplingIndex = 2;
-	
-	dsp::BiquadFilter blockDCFilter; 
+
+	dsp::BiquadFilter blockDCFilter;
 	bool blockDC = false;
 
 	ChoppingKinky() {
@@ -71,6 +62,8 @@ struct ChoppingKinky : Module {
 		configParam(CV_A_PARAM, -1.f, 1.f, 0.f, "");
 		configParam(CV_B_PARAM, -1.f, 1.f, 0.f, "");
 
+		cacheWaveshaperResponses();
+
 		// calculate up/downsampling rates
 		onSampleRateChange();
 	}
@@ -78,11 +71,11 @@ struct ChoppingKinky : Module {
 	void onSampleRateChange() override {
 		// SampleRateConverter needs integer value
 		int sampleRate = APP->engine->getSampleRate();
-		
+
 		blockDCFilter.setParameters(dsp::BiquadFilter::HIGHPASS, 10.3f / sampleRate, M_SQRT1_2, 1.0f);
 
-		for (int channel_idx = 0; channel_idx < NUM_CHANNELS; channel_idx++) {			
-			oversampler[channel_idx].setOversamplingIndex(oversamplingIndex); 
+		for (int channel_idx = 0; channel_idx < NUM_CHANNELS; channel_idx++) {
+			oversampler[channel_idx].setOversamplingIndex(oversamplingIndex);
 			oversampler[channel_idx].reset(sampleRate);
 		}
 	}
@@ -109,10 +102,10 @@ struct ChoppingKinky : Module {
 		float inA = 0;
 		float inB = 0;
 		if (inputs[IN_A_INPUT].isConnected()) {
-			inA = inputs[IN_A_INPUT].getVoltage() / 5.0f;
+			inA = inputs[IN_A_INPUT].getVoltage();
 		}
 		if (inputs[IN_B_INPUT].isConnected()) {
-			inB = inputs[IN_B_INPUT].getVoltage() / 5.0f;
+			inB = inputs[IN_B_INPUT].getVoltage();
 		}
 		else if (inputs[IN_A_INPUT].isConnected()) {
 			inB = inA;
@@ -132,22 +125,20 @@ struct ChoppingKinky : Module {
 				outputAToChopp = true;
 			}
 		}
+		previousA = inA;
 
 		bool choppIsRequired = outputs[OUT_CHOPP_OUTPUT].isConnected();
 		bool aIsRequired = outputs[OUT_A_OUTPUT].isConnected() || choppIsRequired;
 		bool bIsRequired = outputs[OUT_B_OUTPUT].isConnected() || choppIsRequired;
-		
-		inA = inA * gainA;
-		inB = inB * gainB;
-		float inChopp = outputAToChopp ? 1.f : 0.f;
 
 		if (aIsRequired) {
-			oversampler[CHANNEL_A].upsample(inA);
+			oversampler[CHANNEL_A].upsample(inA * gainA);
 		}
 		if (bIsRequired) {
-			oversampler[CHANNEL_B].upsample(inB);
+			oversampler[CHANNEL_B].upsample(inB * gainB);
 		}
 		if (choppIsRequired) {
+			float inChopp = outputAToChopp ? 1.f : 0.f;
 			oversampler[CHANNEL_CHOPP].upsample(inChopp);
 		}
 
@@ -157,10 +148,14 @@ struct ChoppingKinky : Module {
 
 		for (int i = 0; i < oversampler[0].getOversamplingRatio(); i++) {
 			if (aIsRequired) {
-				osBufferA[i] = foldResponse(4.0f * osBufferA[i], -0.2);
+				// TODO: replace with LUT of measured wavefolder response
+				//osBufferA[i] = wavefolderAResponse(osBufferA[i]);
+				osBufferA[i] = wavefolderAResponseCached(osBufferA[i]);
 			}
 			if (bIsRequired) {
-				osBufferB[i] = foldResponseSin(4.0f * osBufferB[i]);
+				// TODO: replace with LUT of measured wavefolder response
+				//osBufferB[i] = wavefolderBResponse(osBufferB[i]);
+				osBufferB[i] = wavefolderBResponseCached(osBufferB[i]);
 			}
 			if (choppIsRequired) {
 				osBufferChopp[i] = osBufferChopp[i] * osBufferA[i] + (1.f - osBufferChopp[i]) * osBufferB[i];
@@ -172,13 +167,12 @@ struct ChoppingKinky : Module {
 		float outChopp = choppIsRequired ? oversampler[CHANNEL_CHOPP].downsample() : 0.f;
 
 		if (blockDC) {
-			outChopp = blockDCFilter.process(outChopp);			
+			outChopp = blockDCFilter.process(outChopp);
 		}
-		previousA = inA;
 
-		outputs[OUT_A_OUTPUT].setVoltage(outA * 5.0f);
-		outputs[OUT_B_OUTPUT].setVoltage(outB * 5.0f);
-		outputs[OUT_CHOPP_OUTPUT].setVoltage(outChopp * 5.0f);
+		outputs[OUT_A_OUTPUT].setVoltage(outA);
+		outputs[OUT_B_OUTPUT].setVoltage(outB);
+		outputs[OUT_CHOPP_OUTPUT].setVoltage(outChopp);
 
 		if (inputs[IN_GATE_INPUT].isConnected()) {
 			lights[LED_A_LIGHT].setSmoothBrightness((float) outputAToChopp, args.sampleTime);
@@ -187,6 +181,114 @@ struct ChoppingKinky : Module {
 		else {
 			lights[LED_A_LIGHT].setBrightness(0.f);
 			lights[LED_B_LIGHT].setBrightness(0.f);
+		}
+	}
+
+	float wavefolderAResponseCached(float x) {
+		if (x >= 0) {
+			float j = rescale(clamp(x, 0.f, 10.f), 0.f, 10.f, 0, WAVESHAPE_CACHE_SIZE - 1);
+			return interpolateLinear(waveshapeA, j);
+		}
+		else {
+			return -wavefolderAResponseCached(-x);
+		}
+	}
+
+	float wavefolderBResponseCached(float x) {
+		if (x >= 0) {
+			float j = rescale(clamp(x, 0.f, 10.f), 0.f, 10.f, 0, WAVESHAPE_CACHE_SIZE - 1);
+			return interpolateLinear(waveshapeBPositive, j);
+		}
+		else {
+			float j = rescale(clamp(-x, 0.f, 10.f), 0.f, 10.f, 0, WAVESHAPE_CACHE_SIZE - 1);
+			return interpolateLinear(waveshapeBNegative, j);
+		}
+	}
+
+	static float wavefolderAResponse(float x) {
+
+		if (x < 0) {
+			return -wavefolderAResponse(-x);
+		}
+
+		float xScaleFactor = 1.f / 20.f;
+		float yScaleFactor = 12.5f;
+		x = x * xScaleFactor;
+
+		float piecewiseX1 = 0.087;
+		float piecewiseX2 = 0.245;
+		float piecewiseX3 = 0.3252;
+
+		if (x < piecewiseX1) {
+			float x_ = x / piecewiseX1;
+			return -0.38 * yScaleFactor * (std::sin(M_PI * std::pow(x_, 0.8)) + 1.0 / (3 * 1.6) * std::sin(3 * M_PI * std::pow(x_, 0.8)));
+		}
+		else if (x < piecewiseX2) {
+			float x_ = x - piecewiseX1;
+			return -yScaleFactor * (-0.2 * std::sin(0.5 * M_PI * 12.69 * x_) - 0.24 * std::sin(1.5 * M_PI * 12.69 * x_));
+		}
+		else if (x < piecewiseX3) {
+			float x_ = 9.8 * (x - piecewiseX2);
+			return -0.33 * yScaleFactor * std::sin(x_ / 0.165) * (1 + 0.9 * std::pow(x_, 3) / (1.0 + 2.0 * std::pow(x_, 6)));
+		}
+		else {
+			float x_ = (x - piecewiseX3) / 0.05;
+			return yScaleFactor * ((0.4274 - 0.031) * std::exp(-std::pow(x_, 2.0)) + 0.031);
+		}
+	}
+
+	static float wavefolderBResponse(float x) {
+		float xScaleFactor = 1.f / 20.f;
+		float yScaleFactor = 12.5f;
+		x = x * xScaleFactor;
+
+		// assymetric response
+		if (x > 0) {
+			float piecewiseX1 = 0.117;
+			float piecewiseX2 = 0.2837;
+
+			if (x <  piecewiseX1) {
+				float x_ = x / piecewiseX1;
+				return -0.3 * yScaleFactor * (std::sin(M_PI * std::pow(x_, 0.67)) + 1.0 / (3 * 0.8) * std::sin(3 * M_PI * std::pow(x_, 0.67)));
+			}
+			else if (x < piecewiseX2) {
+				float x_ = x - piecewiseX1;
+				return 0.35 * yScaleFactor * std::sin(12. * M_PI * x_);
+			}
+			else {
+				float x_ = (x - piecewiseX2);
+				return 0.57 * yScaleFactor * std::tanh(x_ / 0.03);
+			}
+		}
+		else {
+			float piecewiseX1 = -0.105;
+			float piecewiseX2 = -0.20722;
+
+			if (x > piecewiseX1) {
+				float x_ = x / piecewiseX1;
+				return 0.37 * yScaleFactor * (std::sin(M_PI * std::pow(x_, 0.65)) + 1.0 / (3 * 1.2) * std::sin(3 * M_PI * std::pow(x_, 0.65)));
+			}
+			else if (x > piecewiseX2) {
+				float x_ = x - piecewiseX1;
+				return 0.2 * yScaleFactor * std::sin(15 * M_PI * x_) * (1.0 - 10.f * x_);
+			}
+			else {
+				float x_ = (x - piecewiseX2) / 0.07;
+				return yScaleFactor * ((0.4022 - 0.065) * std::exp(-std::pow(x_, 2)) + 0.065);
+			}
+		}
+	}
+
+	void cacheWaveshaperResponses() {
+		for (int i = 0; i < WAVESHAPE_CACHE_SIZE; ++i) {
+			float x = rescale(i, 0, WAVESHAPE_CACHE_SIZE - 1, 0.0, 10.f);
+			waveshapeA[i] = wavefolderAResponse(x);
+
+			float j = rescale(x, 0.0, 10., 0, WAVESHAPE_CACHE_SIZE - 1);
+			float lookupResult = math::interpolateLinear(waveshapeA, j);
+
+			waveshapeBPositive[i] = wavefolderBResponse(+x);
+			waveshapeBNegative[i] = wavefolderBResponse(-x);
 		}
 	}
 

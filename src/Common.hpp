@@ -72,7 +72,7 @@ struct ADEnvelope {
 	float env = 0.f;
 	float attackTime = 0.1, decayTime = 0.1;
 	float attackShape = 1.0, decayShape = 1.0;
-	
+
 	ADEnvelope() { };
 
 	void process(const float& sampleTime) {
@@ -81,7 +81,7 @@ struct ADEnvelope {
 			env = envLinear = 0.0f;
 		}
 		else if (stage == STAGE_ATTACK) {
-			envLinear += sampleTime / attackTime;			
+			envLinear += sampleTime / attackTime;
 			env = std::pow(envLinear, attackShape);
 		}
 		else if (stage == STAGE_DECAY) {
