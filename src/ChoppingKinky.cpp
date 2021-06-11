@@ -2,7 +2,6 @@
 #include "Common.hpp"
 #include "ChowDSP.hpp"
 
-static const size_t BUF_LEN = 32;
 
 struct ChoppingKinky : Module {
 	enum ParamIds {
@@ -40,7 +39,7 @@ struct ChoppingKinky : Module {
 		NUM_CHANNELS
 	};
 
-	static const int WAVESHAPE_CACHE_SIZE = 128;
+	static const int WAVESHAPE_CACHE_SIZE = 256;
 	float waveshapeA[WAVESHAPE_CACHE_SIZE + 1] = {0.f};
 	float waveshapeBPositive[WAVESHAPE_CACHE_SIZE + 1] = {0.f};
 	float waveshapeBNegative[WAVESHAPE_CACHE_SIZE + 1] = {0.f};
@@ -48,9 +47,9 @@ struct ChoppingKinky : Module {
 	dsp::SchmittTrigger trigger;
 	bool outputAToChopp;
 	float previousA = 0.0;
-
+	
 	chowdsp::VariableOversampling<> oversampler[NUM_CHANNELS];
-	int oversamplingIndex = 2;
+	int oversamplingIndex = 2; 	// default is 2^oversamplingIndex == x4 oversampling
 
 	dsp::BiquadFilter blockDCFilter;
 	bool blockDC = false;
@@ -68,9 +67,8 @@ struct ChoppingKinky : Module {
 		onSampleRateChange();
 	}
 
-	void onSampleRateChange() override {
-		// SampleRateConverter needs integer value
-		int sampleRate = APP->engine->getSampleRate();
+	void onSampleRateChange() override {		
+		float sampleRate = APP->engine->getSampleRate();
 
 		blockDCFilter.setParameters(dsp::BiquadFilter::HIGHPASS, 10.3f / sampleRate, M_SQRT1_2, 1.0f);
 
@@ -80,43 +78,27 @@ struct ChoppingKinky : Module {
 		}
 	}
 
-
 	void process(const ProcessArgs& args) override {
 
 		float gainA = params[FOLD_A_PARAM].getValue();
-		if (inputs[CV_A_INPUT].isConnected()) {
-			gainA += params[CV_A_PARAM].getValue() * inputs[CV_A_INPUT].getVoltage() / 10.f;
-		}
-		if (inputs[VCA_CV_A_INPUT].isConnected()) {
-			gainA += inputs[VCA_CV_A_INPUT].getVoltage() / 10.f;
-		}
+		gainA += params[CV_A_PARAM].getValue() * inputs[CV_A_INPUT].getVoltage() / 10.f;
+		gainA += inputs[VCA_CV_A_INPUT].getVoltage() / 10.f;
 
+		// CV_B_INPUT is normalled to CV_A_INPUT (input with attenuverter)
 		float gainB = params[FOLD_B_PARAM].getValue();
-		if (inputs[CV_B_INPUT].isConnected()) {
-			gainB += params[CV_B_PARAM].getValue() * inputs[CV_B_INPUT].getVoltage() / 10.f;
-		}
-		if (inputs[VCA_CV_B_INPUT].isConnected()) {
-			gainB += inputs[VCA_CV_B_INPUT].getVoltage() / 10.f;
-		}
+		gainB += params[CV_B_PARAM].getValue() * inputs[CV_B_INPUT].getNormalVoltage(inputs[CV_A_INPUT].getVoltage()) / 10.f;
+		gainB += inputs[VCA_CV_B_INPUT].getVoltage() / 10.f;
 
-		float inA = 0;
-		float inB = 0;
-		if (inputs[IN_A_INPUT].isConnected()) {
-			inA = inputs[IN_A_INPUT].getVoltage();
-		}
-		if (inputs[IN_B_INPUT].isConnected()) {
-			inB = inputs[IN_B_INPUT].getVoltage();
-		}
-		else if (inputs[IN_A_INPUT].isConnected()) {
-			inB = inA;
-		}
+		const float inA = inputs[IN_A_INPUT].getVoltage();
+		const float inB = inputs[IN_B_INPUT].getNormalVoltage(inputs[IN_A_INPUT].getVoltage());
 
 		// if the CHOPP gate is wired in, do chop logic
 		if (inputs[IN_GATE_INPUT].isConnected()) {
 			// TODO: check rescale?
 			trigger.process(rescale(inputs[IN_GATE_INPUT].getVoltage(), 0.1f, 2.f, 0.f, 1.f));
 			outputAToChopp = trigger.isHigh();
-		}
+		}	
+		// else zero-crossing detector on input A switches between A and B
 		else {
 			if (previousA > 0 && inA < 0) {
 				outputAToChopp = false;
@@ -127,9 +109,9 @@ struct ChoppingKinky : Module {
 		}
 		previousA = inA;
 
-		bool choppIsRequired = outputs[OUT_CHOPP_OUTPUT].isConnected();
-		bool aIsRequired = outputs[OUT_A_OUTPUT].isConnected() || choppIsRequired;
-		bool bIsRequired = outputs[OUT_B_OUTPUT].isConnected() || choppIsRequired;
+		const bool choppIsRequired = outputs[OUT_CHOPP_OUTPUT].isConnected();
+		const bool aIsRequired = outputs[OUT_A_OUTPUT].isConnected() || choppIsRequired;
+		const bool bIsRequired = outputs[OUT_B_OUTPUT].isConnected() || choppIsRequired;
 
 		if (aIsRequired) {
 			oversampler[CHANNEL_A].upsample(inA * gainA);
@@ -138,8 +120,7 @@ struct ChoppingKinky : Module {
 			oversampler[CHANNEL_B].upsample(inB * gainB);
 		}
 		if (choppIsRequired) {
-			float inChopp = outputAToChopp ? 1.f : 0.f;
-			oversampler[CHANNEL_CHOPP].upsample(inChopp);
+			oversampler[CHANNEL_CHOPP].upsample(outputAToChopp ? 1.f : 0.f);
 		}
 
 		float* osBufferA = oversampler[CHANNEL_A].getOSBuffer();
@@ -148,12 +129,10 @@ struct ChoppingKinky : Module {
 
 		for (int i = 0; i < oversampler[0].getOversamplingRatio(); i++) {
 			if (aIsRequired) {
-				// TODO: replace with LUT of measured wavefolder response
 				//osBufferA[i] = wavefolderAResponse(osBufferA[i]);
 				osBufferA[i] = wavefolderAResponseCached(osBufferA[i]);
 			}
 			if (bIsRequired) {
-				// TODO: replace with LUT of measured wavefolder response
 				//osBufferB[i] = wavefolderBResponse(osBufferB[i]);
 				osBufferB[i] = wavefolderBResponseCached(osBufferB[i]);
 			}
@@ -279,19 +258,16 @@ struct ChoppingKinky : Module {
 		}
 	}
 
+	// functional form for waveshapers uses a lot of transcendental functions, so we cache
+	// the response in a LUT
 	void cacheWaveshaperResponses() {
 		for (int i = 0; i < WAVESHAPE_CACHE_SIZE; ++i) {
 			float x = rescale(i, 0, WAVESHAPE_CACHE_SIZE - 1, 0.0, 10.f);
 			waveshapeA[i] = wavefolderAResponse(x);
-
-			float j = rescale(x, 0.0, 10., 0, WAVESHAPE_CACHE_SIZE - 1);
-			float lookupResult = math::interpolateLinear(waveshapeA, j);
-
 			waveshapeBPositive[i] = wavefolderBResponse(+x);
 			waveshapeBNegative[i] = wavefolderBResponse(-x);
 		}
 	}
-
 
 	json_t* dataToJson() override {
 		json_t* rootJ = json_object();
@@ -357,9 +333,9 @@ struct ChoppingKinkyWidget : ModuleWidget {
 
 	struct ModeItem : MenuItem {
 		ChoppingKinky* module;
-		int mode;
+		int oversamplingIndex;
 		void onAction(const event::Action& e) override {
-			module->oversamplingIndex = mode;
+			module->oversamplingIndex = oversamplingIndex;
 			module->onSampleRateChange();
 		}
 	};
@@ -380,7 +356,7 @@ struct ChoppingKinkyWidget : ModuleWidget {
 			ModeItem* modeItem = createMenuItem<ModeItem>(std::to_string(int (1 << i)) + "x");
 			modeItem->rightText = CHECKMARK(module->oversamplingIndex == i);
 			modeItem->module = module;
-			modeItem->mode = i;
+			modeItem->oversamplingIndex = i;
 			menu->addChild(modeItem);
 		}
 	}
