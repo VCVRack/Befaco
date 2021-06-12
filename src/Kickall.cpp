@@ -30,42 +30,46 @@ struct Kickall : Module {
 		NUM_LIGHTS
 	};
 
-	Kickall() {
-		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
-		// TODO: review this mapping, using displayBase multiplier seems more normal
-		configParam(TUNE_PARAM, FREQ_A0, FREQ_B2, 0.5 * (FREQ_A0 + FREQ_B2), "Tune", "Hz");
-		configParam(TRIGG_BUTTON_PARAM, 0.f, 1.f, 0.f, "Manual trigger");
-		configParam(SHAPE_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(DECAY_PARAM, 0.01f, 1.f, 0.01f, "VCA Envelope decay time");
-		configParam(TIME_PARAM, 0.0079f, 0.076f, 0.0079f, "Pitch envelope decay time", "ms", 0.0f, 1000.f);
-		configParam(BEND_PARAM, 0.f, 1.f, 0.f, "Pitch envelope attenuator");
-
-		volume.attackTime = 0.00165;
-		pitch.attackTime = 0.00165;
-
-		// calculate up/downsampling rates
-		onSampleRateChange();
-	}
-
-	void onSampleRateChange() override {
-		// SampleRateConverter needs integer value
-		int sampleRate = APP->engine->getSampleRate();
-		oversampler.reset(sampleRate);
-	}
-
-	float bendRange = 600;
+	static constexpr float FREQ_A0 = 27.5f;
+	static constexpr float FREQ_B2 = 123.471f;
+	static constexpr float minVolumeDecay = 0.075f;
+	static constexpr float maxVolumeDecay = 4.f;
+	static constexpr float minPitchDecay = 0.0075f;
+	static constexpr float maxPitchDecay = 1.f;
+	static constexpr float bendRange = 10000;
 	float phase = 0.f;
 	ADEnvelope volume;
 	ADEnvelope pitch;
 
 	dsp::SchmittTrigger trigger;
 
-	static constexpr float FREQ_A0 = 27.5f;
-	static constexpr float FREQ_B2 = 123.471f;
-
 	static const int UPSAMPLE = 8;
 	chowdsp::Oversampling<UPSAMPLE> oversampler;
 	float shaperBuf[UPSAMPLE];
+
+	Kickall() {
+		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
+		// TODO: review this mapping, using displayBase multiplier seems more normal
+		configParam(TUNE_PARAM, FREQ_A0, FREQ_B2, 0.5 * (FREQ_A0 + FREQ_B2), "Tune", "Hz");
+		configParam(TRIGG_BUTTON_PARAM, 0.f, 1.f, 0.f, "Manual trigger");
+		configParam(SHAPE_PARAM, 0.f, 1.f, 0.f, "Wave shape");
+		configParam(DECAY_PARAM, 0.f, 1.f, 0.01f, "VCA Envelope decay time");
+		configParam(TIME_PARAM, 0.f, 1.0f, 0.f, "Pitch envelope decay time");
+		configParam(BEND_PARAM, 0.f, 1.f, 0.f, "Pitch envelope attenuator");
+
+		volume.attackTime = 0.01;
+		volume.decayShape = 3.0;
+		pitch.attackTime = 0.00165;
+		pitch.decayShape = 3.0;
+
+		// calculate up/downsampling rates
+		onSampleRateChange();
+	}
+
+	void onSampleRateChange() override {		
+		oversampler.reset(APP->engine->getSampleRate());
+	}
+
 
 	void process(const ProcessArgs& args) override {
 
@@ -75,26 +79,26 @@ struct Kickall : Module {
 			pitch.stage = ADEnvelope::STAGE_ATTACK;
 		}
 
-		float vcaGain = clamp(inputs[VOLUME_INPUT].getNormalVoltage(10.f) / 10.f, 0.f, 1.0f);
+		const float vcaGain = clamp(inputs[VOLUME_INPUT].getNormalVoltage(10.f) / 10.f, 0.f, 1.0f);
 
 		// pitch envelope
-		float bend = params[BEND_PARAM].getValue();
-		pitch.decayTime = params[TIME_PARAM].getValue();
+		const float bend = bendRange * std::pow(params[BEND_PARAM].getValue(), 3.0);
+		pitch.decayTime = rescale(params[TIME_PARAM].getValue(), 0.f, 1.0f, minPitchDecay, maxPitchDecay);
 		pitch.process(args.sampleTime);
 
-		// volume envelope TODO: calibrate CV/slider interaction
-		volume.decayTime = clamp(params[DECAY_PARAM].getValue() + inputs[DECAY_INPUT].getVoltage() * 0.1f, 0.01, 1.0);
+		// volume envelope
+		const float volumeDecay = minVolumeDecay * std::pow(2.f, params[DECAY_PARAM].getValue() * std::log2(maxVolumeDecay / minVolumeDecay));
+		volume.decayTime = clamp(volumeDecay + inputs[DECAY_INPUT].getVoltage() * 0.1f, 0.01, 10.0);
 		volume.process(args.sampleTime);
 
 		float freq = params[TUNE_PARAM].getValue();
-		freq *= std::pow(2, inputs[TUNE_INPUT].getVoltage());
+		freq *= std::pow(2.f, inputs[TUNE_INPUT].getVoltage());
 
-		const float kickFrequency = std::max(10.0f, freq + bendRange * bend * pitch.env);
-		const float phaseInc = args.sampleTime * kickFrequency / UPSAMPLE;
+		const float kickFrequency = std::max(10.0f, freq + bend * pitch.env);
+		const float phaseInc = clamp(args.sampleTime * kickFrequency / UPSAMPLE, 1e-6, 0.35f);
 
-		float shape = clamp(inputs[SHAPE_INPUT].getVoltage() / 2.f + params[SHAPE_PARAM].getValue() * 5.0f, 0.0f, 10.0f);
-		shape = clamp(shape, 0.f, 5.0f) * 0.2f;
-		shape *= 0.99f;
+
+		const float shape = clamp(inputs[SHAPE_INPUT].getVoltage() / 10.f + params[SHAPE_PARAM].getValue(), 0.0f, 1.0f) * 0.99f;		
 		const float shapeB = (1.0f - shape) / (1.0f + shape);
 		const float shapeA = (4.0f * shape) / ((1.0f - shape) * (1.0f + shape));
 
@@ -107,7 +111,7 @@ struct Kickall : Module {
 			inputBuf[i] = inputBuf[i] * (shapeA + shapeB) / ((std::abs(inputBuf[i]) * shapeA) + shapeB);
 		}
 
-		float out = volume.env * oversampler.downsample() * 5.0f * vcaGain;
+		const float out = volume.env * oversampler.downsample() * 5.0f * vcaGain;
 		outputs[OUT_OUTPUT].setVoltage(out);
 
 		lights[ENV_LIGHT].setBrightness(volume.env);

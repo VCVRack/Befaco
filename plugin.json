@@ -117,6 +117,7 @@
       "slug": "ChoppingKinky",
       "name": "ChoppingKinky",
       "description": "Voltage controllable, dual channel wavefolder",
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-chopping-kinky",
       "tags": [
         "Dual",
         "Hardware clone",
@@ -127,7 +128,8 @@
     {
       "slug": "Kickall",
       "name": "Kickall",
-      "description": "",
+      "description": "Bassdrum module, with pitch and volume envelopes",
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-kickall",
       "tags": [
         "Drum",
         "Hardware clone",

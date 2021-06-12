@@ -89,11 +89,11 @@ struct ADEnvelope {
 			env = std::pow(envLinear, decayShape);
 		}
 
-		if (env >= 1.0f) {
+		if (envLinear >= 1.0f) {
 			stage = STAGE_DECAY;
 			env = envLinear = 1.0f;
 		}
-		else if (env <= 0.0f) {
+		else if (envLinear <= 0.0f) {
 			stage = STAGE_OFF;
 			env = envLinear = 0.0f;
 		}

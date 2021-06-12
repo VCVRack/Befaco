@@ -56,10 +56,10 @@ struct ChoppingKinky : Module {
 
 	ChoppingKinky() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
-		configParam(FOLD_A_PARAM, 0.f, 2.f, 0.f, "");
-		configParam(FOLD_B_PARAM, 0.f, 2.f, 0.f, "");
-		configParam(CV_A_PARAM, -1.f, 1.f, 0.f, "");
-		configParam(CV_B_PARAM, -1.f, 1.f, 0.f, "");
+		configParam(FOLD_A_PARAM, 0.f, 2.f, 0.f, "Gain/shape control for channel A");
+		configParam(FOLD_B_PARAM, 0.f, 2.f, 0.f, "Gain/shape control for channel B");
+		configParam(CV_A_PARAM, -1.f, 1.f, 0.f, "Channel A CV control attenuverter");
+		configParam(CV_B_PARAM, -1.f, 1.f, 0.f, "Channel A CV control attenuverter");
 
 		cacheWaveshaperResponses();
 
