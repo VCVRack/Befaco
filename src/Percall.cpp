@@ -83,7 +83,7 @@ struct Percall : Module {
 		for (int i = 0; i < 4; i++) {
 
 			if (trigger[i].process(rescale(inputs[TRIG_INPUTS + i].getVoltage(), 0.1f, 2.f, 0.f, 1.f))) {
-				envs[i].stage = ADEnvelope::STAGE_ATTACK;
+				envs[i].trigger();
 			}
 			// if choke is enabled, and current channel is odd and left channel is in attack
 			if ((i % 2) && params[CHOKE_PARAMS + i / 2].getValue() && envs[i - 1].stage == ADEnvelope::STAGE_ATTACK) {

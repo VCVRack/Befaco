@@ -58,6 +58,7 @@ struct Kickall : Module {
 		configParam(BEND_PARAM, 0.f, 1.f, 0.f, "Pitch envelope attenuator");
 
 		volume.attackTime = 0.01;
+		volume.attackShape = 0.5;
 		volume.decayShape = 3.0;
 		pitch.attackTime = 0.00165;
 		pitch.decayShape = 3.0;
@@ -75,8 +76,8 @@ struct Kickall : Module {
 
 		// TODO: check values
 		if (trigger.process(inputs[TRIGG_INPUT].getVoltage() / 2.0f + params[TRIGG_BUTTON_PARAM].getValue() * 10.0)) {
-			volume.stage = ADEnvelope::STAGE_ATTACK;
-			pitch.stage = ADEnvelope::STAGE_ATTACK;
+			volume.trigger();
+			pitch.trigger();
 		}
 
 		const float vcaGain = clamp(inputs[VOLUME_INPUT].getNormalVoltage(10.f) / 10.f, 0.f, 1.0f);

@@ -97,7 +97,13 @@ struct ADEnvelope {
 			stage = STAGE_OFF;
 			env = envLinear = 0.0f;
 		}
+	}
 
+	void trigger() {
+		stage = ADEnvelope::STAGE_ATTACK;
+		// non-linear envelopes won't retrigger at the correct starting point if
+		// attackShape != decayShape, so we advance the linear envelope
+		envLinear = std::pow(env, 1.0f / attackShape);
 	}
 
 private:
