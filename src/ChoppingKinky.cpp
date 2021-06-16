@@ -83,11 +83,13 @@ struct ChoppingKinky : Module {
 		float gainA = params[FOLD_A_PARAM].getValue();
 		gainA += params[CV_A_PARAM].getValue() * inputs[CV_A_INPUT].getVoltage() / 10.f;
 		gainA += inputs[VCA_CV_A_INPUT].getVoltage() / 10.f;
+		gainA = std::max(gainA, 0.f);
 
 		// CV_B_INPUT is normalled to CV_A_INPUT (input with attenuverter)
 		float gainB = params[FOLD_B_PARAM].getValue();
 		gainB += params[CV_B_PARAM].getValue() * inputs[CV_B_INPUT].getNormalVoltage(inputs[CV_A_INPUT].getVoltage()) / 10.f;
 		gainB += inputs[VCA_CV_B_INPUT].getVoltage() / 10.f;
+		gainB = std::max(gainB, 0.f);
 
 		const float inA = inputs[IN_A_INPUT].getVoltage();
 		const float inB = inputs[IN_B_INPUT].getNormalVoltage(inputs[IN_A_INPUT].getVoltage());
@@ -301,27 +303,25 @@ struct ChoppingKinkyWidget : ModuleWidget {
 		addChild(createWidget<Knurlie>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 		addChild(createWidget<Knurlie>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-		addParam(createParamCentered<Davies1900hLargeWhiteKnob>(mm2px(Vec(26.106, 22.108)), module, ChoppingKinky::FOLD_A_PARAM));
-		addParam(createParamCentered<Davies1900hLargeWhiteKnob>(mm2px(Vec(26.106, 63.118)), module, ChoppingKinky::FOLD_B_PARAM));
-		addParam(createParamCentered<BefacoTinyKnob>(mm2px(Vec(10.515, 83.321)), module, ChoppingKinky::CV_A_PARAM));
-		addParam(createParamCentered<BefacoTinyKnob>(mm2px(Vec(30.583, 83.321)), module, ChoppingKinky::CV_B_PARAM));
+		addParam(createParamCentered<Davies1900hLargeWhiteKnob>(mm2px(Vec(26.051, 21.999)), module, ChoppingKinky::FOLD_A_PARAM));
+		addParam(createParamCentered<Davies1900hLargeWhiteKnob>(mm2px(Vec(26.051, 62.768)), module, ChoppingKinky::FOLD_B_PARAM));
+		addParam(createParamCentered<BefacoTinyKnob>(mm2px(Vec(10.266, 83.297)), module, ChoppingKinky::CV_A_PARAM));
+		addParam(createParamCentered<BefacoTinyKnob>(mm2px(Vec(30.277, 83.297)), module, ChoppingKinky::CV_B_PARAM));
 
-		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(6.35, 28.391)), module, ChoppingKinky::IN_A_INPUT));
-		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(6.35, 56.551)), module, ChoppingKinky::IN_B_INPUT));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(6.127, 27.843)), module, ChoppingKinky::IN_A_INPUT));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(26.057, 42.228)), module, ChoppingKinky::IN_GATE_INPUT));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(6.104, 56.382)), module, ChoppingKinky::IN_B_INPUT));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(5.209, 98.499)), module, ChoppingKinky::CV_A_INPUT));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(15.259, 98.499)), module, ChoppingKinky::VCA_CV_A_INPUT));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(25.308, 98.499)), module, ChoppingKinky::CV_B_INPUT));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(35.358, 98.499)), module, ChoppingKinky::VCA_CV_B_INPUT));
 
-		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(26.106, 42.613)), module, ChoppingKinky::IN_GATE_INPUT));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(20.23, 109.669)), module, ChoppingKinky::OUT_CHOPP_OUTPUT));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(31.091, 110.747)), module, ChoppingKinky::OUT_B_OUTPUT));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(9.589, 110.777)), module, ChoppingKinky::OUT_A_OUTPUT));
 
-		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(5.189, 98.957)), module, ChoppingKinky::CV_A_INPUT));
-		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(15.19, 98.957)), module, ChoppingKinky::VCA_CV_A_INPUT));
-		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(25.19, 98.957)), module, ChoppingKinky::CV_B_INPUT));
-		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(35.19, 98.957)), module, ChoppingKinky::VCA_CV_B_INPUT));
-
-		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(9.982, 111.076)), module, ChoppingKinky::OUT_A_OUTPUT));
-		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(31.558, 111.076)), module, ChoppingKinky::OUT_B_OUTPUT));
-		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(20.638, 110.15)), module, ChoppingKinky::OUT_CHOPP_OUTPUT));
-
-		addChild(createLightCentered<SmallLight<RedLight>>(mm2px(Vec(26.106, 33.342)), module, ChoppingKinky::LED_A_LIGHT));
-		addChild(createLightCentered<SmallLight<RedLight>>(mm2px(Vec(26.106, 51.717)), module, ChoppingKinky::LED_B_LIGHT));
+		addChild(createLightCentered<SmallLight<RedLight>>(mm2px(Vec(26.057, 33.307)), module, ChoppingKinky::LED_A_LIGHT));
+		addChild(createLightCentered<SmallLight<RedLight>>(mm2px(Vec(26.057, 51.53)), module, ChoppingKinky::LED_B_LIGHT));
 	}
 
 	struct DCMenuItem : MenuItem {
