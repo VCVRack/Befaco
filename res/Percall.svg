@@ -69,9 +69,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="3.959798"
-     inkscape:cx="82.179307"
-     inkscape:cy="177.94298"
+     inkscape:zoom="1.979899"
+     inkscape:cx="-102.06946"
+     inkscape:cy="247.5987"
      inkscape:document-units="mm"
      inkscape:current-layer="layer3"
      showgrid="false"
@@ -109,7 +109,7 @@
        inkscape:export-xdpi="300"
        inkscape:export-ydpi="300">
       <path
-         style="display:inline;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.708073;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         style="display:inline;fill:#171717;fill-opacity:1;stroke:#000000;stroke-width:0.708073;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
          d="M 0.35432708,-5.4094851e-5 H 143.1496 V 454.60624 H 0.35432708 Z"
          id="path27438"
          inkscape:connector-curvature="0" />
@@ -211,7 +211,7 @@
            style="fill:#ffffff">
           <polygon
              id="polygon27470"
-             points="606.315,328.304 571.691,328.304 571.691,305.222 571.691,289.29 606.315,289.29 606.316,298.069 640.94,298.069 640.94,259.056 537.067,259.056 537.067,362.929 640.94,362.929 640.94,328.304 "
+             points="606.315,289.29 606.316,298.069 640.94,298.069 640.94,259.056 537.067,259.056 537.067,362.929 640.94,362.929 640.94,328.304 606.315,328.304 571.691,328.304 571.691,305.222 571.691,289.29 "
              style="fill:#ffffff" />
           <path
              id="path27472"
@@ -230,11 +230,11 @@
              style="fill:#ffffff" />
           <polygon
              id="polygon27478"
-             points="254.394,332.696 190.825,332.696 190.825,362.929 294.698,362.929 294.698,332.696 272.366,311.113 294.698,289.29 294.698,259.056 190.825,259.056 190.825,289.29 253.516,289.29 231.128,310.993 "
+             points="294.698,332.696 272.366,311.113 294.698,289.29 294.698,259.056 190.825,259.056 190.825,289.29 253.516,289.29 231.128,310.993 254.394,332.696 190.825,332.696 190.825,362.929 294.698,362.929 "
              style="fill:#ffffff" />
           <polygon
              id="polygon27480"
-             points="333.836,311.113 312.344,332.865 312.344,363.049 355.542,363.289 355.542,332.559 375.968,311.113 355.542,289.273 405.684,289.41 436.556,259.176 312.344,259.176 312.344,289.41 "
+             points="355.542,332.559 375.968,311.113 355.542,289.273 405.684,289.41 436.556,259.176 312.344,259.176 312.344,289.41 333.836,311.113 312.344,332.865 312.344,363.049 355.542,363.289 "
              style="fill:#ffffff" />
         </g>
         <g
