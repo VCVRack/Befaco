@@ -123,17 +123,16 @@ struct SpringReverb : Module {
 
 		// Set lights
 		float lightRate = 5.0 * args.sampleTime;
-		vuFilter.setRate(lightRate);
-		vuFilter.process(std::fabs(wet));
-		lightFilter.setRate(lightRate);
-		lightFilter.process(std::fabs(dry * 50.0));
-
-		float vuValue = vuFilter.peak();
+		vuFilter.setLambda(1.f - lightRate);
+		float vuValue = vuFilter.process(1.f, std::fabs(wet));
+		lightFilter.setLambda(1.f - lightRate);
+		float lightValue = lightFilter.process(1.f, std::fabs(dry * 50.0));
+		
 		for (int i = 0; i < 7; i++) {
 			float light = std::pow(1.413, i) * vuValue / 10.0 - 1.0;
 			lights[VU1_LIGHTS + i].value = clamp(light, 0.0f, 1.0f);
 		}
-		lights[PEAK_LIGHT].value = lightFilter.peak();
+		lights[PEAK_LIGHT].value = lightValue;
 	}
 };
 
