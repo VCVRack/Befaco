@@ -1,5 +1,6 @@
 #include "plugin.hpp"
 #include "Common.hpp"
+#include "simd_input.hpp"
 
 struct DualAtenuverter : Module {
 	enum ParamIds {
@@ -20,10 +21,8 @@ struct DualAtenuverter : Module {
 		NUM_OUTPUTS
 	};
 	enum LightIds {
-		OUT1_POS_LIGHT,
-		OUT1_NEG_LIGHT,
-		OUT2_POS_LIGHT,
-		OUT2_NEG_LIGHT,
+		ENUMS(OUT1_LIGHT, 3),
+		ENUMS(OUT2_LIGHT, 3),
 		NUM_LIGHTS
 	};
 
@@ -36,17 +35,63 @@ struct DualAtenuverter : Module {
 	}
 
 	void process(const ProcessArgs &args) override {
-		float out1 = inputs[IN1_INPUT].getVoltage() * params[ATEN1_PARAM].getValue() + params[OFFSET1_PARAM].getValue();
-		float out2 = inputs[IN2_INPUT].getVoltage() * params[ATEN2_PARAM].getValue() + params[OFFSET2_PARAM].getValue();
-		out1 = clamp(out1, -10.f, 10.f);
-		out2 = clamp(out2, -10.f, 10.f);
+		using simd::float_4;
 
-		outputs[OUT1_OUTPUT].setVoltage(out1);
-		outputs[OUT2_OUTPUT].setVoltage(out2);
-		lights[OUT1_POS_LIGHT].setSmoothBrightness(out1 / 5.f, args.sampleTime);
-		lights[OUT1_NEG_LIGHT].setSmoothBrightness(-out1 / 5.f, args.sampleTime);
-		lights[OUT2_POS_LIGHT].setSmoothBrightness(out2 / 5.f, args.sampleTime);
-		lights[OUT2_NEG_LIGHT].setSmoothBrightness(-out2 / 5.f, args.sampleTime);
+		float_4 out1[4];
+		float_4 out2[4];
+
+		int channels1 = inputs[IN1_INPUT].getChannels();
+		channels1 = channels1 > 0 ? channels1 : 1;
+		int channels2 = inputs[IN2_INPUT].getChannels();
+		channels2 = channels2 > 0 ? channels2 : 1;
+
+		float att1 = params[ATEN1_PARAM].getValue();
+		float att2 = params[ATEN2_PARAM].getValue();
+
+		float offset1 = params[OFFSET1_PARAM].getValue();
+		float offset2 = params[OFFSET2_PARAM].getValue();
+
+		for (int c = 0; c < channels1; c += 4) {
+			out1[c / 4] = clamp(float_4::load(inputs[IN1_INPUT].getVoltages(c)) * att1 + offset1, -10.f, 10.f);
+		}
+		for (int c = 0; c < channels2; c += 4) {
+			out2[c / 4] = clamp(float_4::load(inputs[IN2_INPUT].getVoltages(c)) * att2 + offset2, -10.f, 10.f);
+		}
+
+		outputs[OUT1_OUTPUT].setChannels(channels1);
+		outputs[OUT2_OUTPUT].setChannels(channels2);
+
+		for (int c = 0; c < channels1; c += 4) {
+			out1[c / 4].store(outputs[OUT1_OUTPUT].getVoltages(c));
+		}
+		for (int c = 0; c < channels2; c += 4) {
+			out2[c / 4].store(outputs[OUT2_OUTPUT].getVoltages(c));
+		}
+
+		float light1 = outputs[OUT1_OUTPUT].getVoltageSum() / channels1;
+		float light2 = outputs[OUT2_OUTPUT].getVoltageSum() / channels2;
+
+		if (channels1 == 1) {
+			lights[OUT1_LIGHT + 0].setSmoothBrightness(light1 / 5.f, args.sampleTime);
+			lights[OUT1_LIGHT + 1].setSmoothBrightness(-light1 / 5.f, args.sampleTime);
+			lights[OUT1_LIGHT + 2].setBrightness(0.0f);
+		}
+		else {
+			lights[OUT1_LIGHT + 0].setBrightness(0.0f);
+			lights[OUT1_LIGHT + 1].setBrightness(0.0f);
+			lights[OUT1_LIGHT + 2].setBrightness(10.0f);
+		}
+
+		if (channels2 == 1) {
+			lights[OUT2_LIGHT + 0].setSmoothBrightness(light2 / 5.f, args.sampleTime);
+			lights[OUT2_LIGHT + 1].setSmoothBrightness(-light2 / 5.f, args.sampleTime);
+			lights[OUT2_LIGHT + 2].setBrightness(0.0f);
+		}
+		else {
+			lights[OUT2_LIGHT + 0].setBrightness(0.0f);
+			lights[OUT2_LIGHT + 1].setBrightness(0.0f);
+			lights[OUT2_LIGHT + 2].setBrightness(10.0f);
+		}
 	}
 };
 
@@ -70,8 +115,8 @@ struct DualAtenuverterWidget : ModuleWidget {
 		addInput(createInput<BefacoInputPort>(Vec(7, 319), module, DualAtenuverter::IN2_INPUT));
 		addOutput(createOutput<BefacoOutputPort>(Vec(43, 319), module, DualAtenuverter::OUT2_OUTPUT));
 
-		addChild(createLight<MediumLight<GreenRedLight>>(Vec(33, 143), module, DualAtenuverter::OUT1_POS_LIGHT));
-		addChild(createLight<MediumLight<GreenRedLight>>(Vec(33, 311), module, DualAtenuverter::OUT2_POS_LIGHT));
+		addChild(createLight<MediumLight<RedGreenBlueLight>>(Vec(33, 143), module, DualAtenuverter::OUT1_LIGHT));
+		addChild(createLight<MediumLight<RedGreenBlueLight>>(Vec(33, 311), module, DualAtenuverter::OUT2_LIGHT));
 	}
 };
 

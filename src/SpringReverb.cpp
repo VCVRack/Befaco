@@ -32,15 +32,15 @@ struct SpringReverb : Module {
 	};
 	enum LightIds {
 		PEAK_LIGHT,
-		VU1_LIGHT,
-		NUM_LIGHTS = VU1_LIGHT + 7
+		ENUMS(VU1_LIGHTS, 7),
+		NUM_LIGHTS
 	};
 
 	dsp::RealTimeConvolver *convolver = NULL;
 	dsp::SampleRateConverter<1> inputSrc;
 	dsp::SampleRateConverter<1> outputSrc;
-	dsp::DoubleRingBuffer<dsp::Frame<1>, 16*BLOCK_SIZE> inputBuffer;
-	dsp::DoubleRingBuffer<dsp::Frame<1>, 16*BLOCK_SIZE> outputBuffer;
+	dsp::DoubleRingBuffer<dsp::Frame<1>, 16 * BLOCK_SIZE> inputBuffer;
+	dsp::DoubleRingBuffer<dsp::Frame<1>, 16 * BLOCK_SIZE> outputBuffer;
 
 	dsp::RCFilter dryFilter;
 	dsp::PeakFilter vuFilter;
@@ -55,7 +55,7 @@ struct SpringReverb : Module {
 
 		convolver = new dsp::RealTimeConvolver(BLOCK_SIZE);
 
-		const float *kernel = (const float*) BINARY_START(src_SpringReverbIR_pcm);
+		const float *kernel = (const float *) BINARY_START(src_SpringReverbIR_pcm);
 		size_t kernelLen = BINARY_SIZE(src_SpringReverbIR_pcm) / sizeof(float);
 		convolver->setKernel(kernel, kernelLen);
 	}
@@ -65,8 +65,8 @@ struct SpringReverb : Module {
 	}
 
 	void process(const ProcessArgs &args) override {
-		float in1 = inputs[IN1_INPUT].getVoltage();
-		float in2 = inputs[IN2_INPUT].getVoltage();
+		float in1 = inputs[IN1_INPUT].getVoltageSum();
+		float in2 = inputs[IN2_INPUT].getVoltageSum();
 		const float levelScale = 0.030;
 		const float levelBase = 25.0;
 		float level1 = levelScale * dsp::exponentialBipolar(levelBase, params[LEVEL1_PARAM].getValue()) * inputs[CV1_INPUT].getNormalVoltage(10.0) / 10.0;
@@ -94,7 +94,7 @@ struct SpringReverb : Module {
 				inputSrc.setRates(args.sampleRate, 48000);
 				int inLen = inputBuffer.size();
 				int outLen = BLOCK_SIZE;
-				inputSrc.process(inputBuffer.startData(), &inLen, (dsp::Frame<1>*) input, &outLen);
+				inputSrc.process(inputBuffer.startData(), &inLen, (dsp::Frame<1> *) input, &outLen);
 				inputBuffer.startIncr(inLen);
 			}
 
@@ -106,7 +106,7 @@ struct SpringReverb : Module {
 				outputSrc.setRates(48000, args.sampleRate);
 				int inLen = BLOCK_SIZE;
 				int outLen = outputBuffer.capacity();
-				outputSrc.process((dsp::Frame<1>*) output, &inLen, outputBuffer.endData(), &outLen);
+				outputSrc.process((dsp::Frame<1> *) output, &inLen, outputBuffer.endData(), &outLen);
 				outputBuffer.endIncr(outLen);
 			}
 		}
@@ -123,14 +123,14 @@ struct SpringReverb : Module {
 
 		// Set lights
 		float lightRate = 5.0 * args.sampleTime;
-		vuFilter.setLambda(1.0f - lightRate);
+		vuFilter.setLambda(1.f - lightRate);
 		float vuValue = vuFilter.process(1.f, std::fabs(wet));
-		lightFilter.setLambda(1.0f - lightRate);
-		float lightValue = lightFilter.process(1.f, std::fabs(dry*50.0));
+		lightFilter.setLambda(1.f - lightRate);
+		float lightValue = lightFilter.process(1.f, std::fabs(dry * 50.0));
 		
 		for (int i = 0; i < 7; i++) {
 			float light = std::pow(1.413, i) * vuValue / 10.0 - 1.0;
-			lights[VU1_LIGHT + i].value = clamp(light, 0.0f, 1.0f);
+			lights[VU1_LIGHTS + i].value = clamp(light, 0.0f, 1.0f);
 		}
 		lights[PEAK_LIGHT].value = lightValue;
 	}
@@ -144,8 +144,8 @@ struct SpringReverbWidget : ModuleWidget {
 
 		addChild(createWidget<Knurlie>(Vec(15, 0)));
 		addChild(createWidget<Knurlie>(Vec(15, 365)));
-		addChild(createWidget<Knurlie>(Vec(15*6, 0)));
-		addChild(createWidget<Knurlie>(Vec(15*6, 365)));
+		addChild(createWidget<Knurlie>(Vec(15 * 6, 0)));
+		addChild(createWidget<Knurlie>(Vec(15 * 6, 365)));
 
 		addParam(createParam<BefacoBigKnob>(Vec(22, 29), module, SpringReverb::WET_PARAM));
 
@@ -164,13 +164,13 @@ struct SpringReverbWidget : ModuleWidget {
 		addOutput(createOutput<BefacoOutputPort>(Vec(88, 317), module, SpringReverb::WET_OUTPUT));
 
 		addChild(createLight<MediumLight<GreenRedLight>>(Vec(55, 269), module, SpringReverb::PEAK_LIGHT));
-		addChild(createLight<MediumLight<RedLight>>(Vec(55, 113), module, SpringReverb::VU1_LIGHT + 0));
-		addChild(createLight<MediumLight<YellowLight>>(Vec(55, 126), module, SpringReverb::VU1_LIGHT + 1));
-		addChild(createLight<MediumLight<YellowLight>>(Vec(55, 138), module, SpringReverb::VU1_LIGHT + 2));
-		addChild(createLight<MediumLight<GreenLight>>(Vec(55, 150), module, SpringReverb::VU1_LIGHT + 3));
-		addChild(createLight<MediumLight<GreenLight>>(Vec(55, 163), module, SpringReverb::VU1_LIGHT + 4));
-		addChild(createLight<MediumLight<GreenLight>>(Vec(55, 175), module, SpringReverb::VU1_LIGHT + 5));
-		addChild(createLight<MediumLight<GreenLight>>(Vec(55, 188), module, SpringReverb::VU1_LIGHT + 6));
+		addChild(createLight<MediumLight<RedLight>>(Vec(55, 113), module, SpringReverb::VU1_LIGHTS + 0));
+		addChild(createLight<MediumLight<YellowLight>>(Vec(55, 126), module, SpringReverb::VU1_LIGHTS + 1));
+		addChild(createLight<MediumLight<YellowLight>>(Vec(55, 138), module, SpringReverb::VU1_LIGHTS + 2));
+		addChild(createLight<MediumLight<GreenLight>>(Vec(55, 150), module, SpringReverb::VU1_LIGHTS + 3));
+		addChild(createLight<MediumLight<GreenLight>>(Vec(55, 163), module, SpringReverb::VU1_LIGHTS + 4));
+		addChild(createLight<MediumLight<GreenLight>>(Vec(55, 175), module, SpringReverb::VU1_LIGHTS + 5));
+		addChild(createLight<MediumLight<GreenLight>>(Vec(55, 188), module, SpringReverb::VU1_LIGHTS + 6));
 	}
 };
 

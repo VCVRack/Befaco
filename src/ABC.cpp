@@ -1,17 +1,20 @@
 #include "plugin.hpp"
 #include "Common.hpp"
+#include "simd_input.hpp"
 
-inline float clip(float x) {
+template <typename T>
+static T clip4(T x) {
 	// Pade approximant of x/(1 + x^12)^(1/12)
-	const float limit = 1.16691853009184f;
-	x = clamp(x, -limit, limit);
-	return (x + 1.45833f * std::pow(x, 13) + 0.559028f * std::pow(x, 25) + 0.0427035f * std::pow(x, 37))
-		/ (1 + 1.54167f * std::pow(x, 12) + 0.642361f * std::pow(x, 24) + 0.0579909f * std::pow(x, 36));
+	const T limit = 1.16691853009184f;
+	x = clamp(x * 0.1f, -limit, limit);
+	return 10.0f * (x + 1.45833f * simd::pow(x, 13) + 0.559028f * simd::pow(x, 25) + 0.0427035f * simd::pow(x, 37))
+	       / (1.0f + 1.54167f * simd::pow(x, 12) + 0.642361f * simd::pow(x, 24) + 0.0579909f * simd::pow(x, 36));
 }
 
-inline float exponentialBipolar80Pade_5_4(float x) {
-	return (0.109568f * x + 0.281588f * std::pow(x, 3) + 0.133841f * std::pow(x, 5))
-		/ (1 - 0.630374f * std::pow(x, 2) + 0.166271f * std::pow(x, 4));
+
+static float exponentialBipolar80Pade_5_4(float x) {
+	return (0.109568 * x + 0.281588 * std::pow(x, 3) + 0.133841 * std::pow(x, 5))
+	       / (1. - 0.630374 * std::pow(x, 2) + 0.166271 * std::pow(x, 4));
 }
 
 
@@ -38,8 +41,8 @@ struct ABC : Module {
 		NUM_OUTPUTS
 	};
 	enum LightIds {
-		ENUMS(OUT1_LIGHT, 2),
-		ENUMS(OUT2_LIGHT, 2),
+		ENUMS(OUT1_LIGHT, 3),
+		ENUMS(OUT2_LIGHT, 3),
 		NUM_LIGHTS
 	};
 
@@ -52,32 +55,158 @@ struct ABC : Module {
 	}
 
 	void process(const ProcessArgs &args) override {
-		float a1 = inputs[A1_INPUT].getVoltage();
-		float b1 = inputs[B1_INPUT].getNormalVoltage(5.f) * 2.f*exponentialBipolar80Pade_5_4(params[B1_LEVEL_PARAM].getValue());
-		float c1 = inputs[C1_INPUT].getNormalVoltage(10.f) * exponentialBipolar80Pade_5_4(params[C1_LEVEL_PARAM].getValue());
-		float out1 = a1 * b1 / 5.f + c1;
 
-		float a2 = inputs[A2_INPUT].getVoltage();
-		float b2 = inputs[B2_INPUT].getNormalVoltage(5.f) * 2.f*exponentialBipolar80Pade_5_4(params[B2_LEVEL_PARAM].getValue());
-		float c2 = inputs[C2_INPUT].getNormalVoltage(10.f) * exponentialBipolar80Pade_5_4(params[C2_LEVEL_PARAM].getValue());
-		float out2 = a2 * b2 / 5.f + c2;
+		simd::float_4 a1[4] = {};
+		simd::float_4 b1[4] = {};
+		simd::float_4 c1[4] = {};
+		simd::float_4 out1[4];
+
+		simd::float_4 a2[4] = {};
+		simd::float_4 b2[4] = {};
+		simd::float_4 c2[4] = {};
+		simd::float_4 out2[4];
+
+		int channels_1 = 1;
+		int channels_2 = 1;
+
+		memset(out1, 0, sizeof(out1));
+		memset(out2, 0, sizeof(out2));
+
+		// process upper section
+
+		if (outputs[OUT1_OUTPUT].isConnected() || outputs[OUT2_OUTPUT].isConnected()) {
+
+			int channels_A1 = inputs[A1_INPUT].getChannels();
+			int channels_B1 = inputs[B1_INPUT].getChannels();
+			int channels_C1 = inputs[C1_INPUT].getChannels();
+
+			channels_1 = std::max(channels_1, channels_A1);
+			channels_1 = std::max(channels_1, channels_B1);
+			channels_1 = std::max(channels_1, channels_C1);
+
+			float mult_B1 = (2.f / 5.f) * exponentialBipolar80Pade_5_4(params[B1_LEVEL_PARAM].getValue());
+			float mult_C1 = exponentialBipolar80Pade_5_4(params[C1_LEVEL_PARAM].getValue());
+
+			if (inputs[A1_INPUT].isConnected())
+				load_input(inputs[A1_INPUT], a1, channels_A1);
+			else
+				memset(a1, 0, sizeof(a1));
+
+			if (inputs[B1_INPUT].isConnected()) {
+				load_input(inputs[B1_INPUT], b1, channels_B1);
+				for (int c = 0; c < channels_1; c += 4)
+					b1[c / 4] *= simd::float_4(mult_B1);
+			}
+			else {
+				for (int c = 0; c < channels_1; c += 4)
+					b1[c / 4] = simd::float_4(5.f * mult_B1);
+			}
+
+			if (inputs[C1_INPUT].isConnected()) {
+				load_input(inputs[C1_INPUT], c1, channels_C1);
+				for (int c = 0; c < channels_1; c += 4)
+					c1[c / 4] *= simd::float_4(mult_C1);
+			}
+			else {
+				for (int c = 0; c < channels_1; c += 4)
+					c1[c / 4] = simd::float_4(10.f * mult_C1);
+			}
+
+			for (int c = 0; c < channels_1; c += 4)
+				out1[c / 4] = clip4(a1[c / 4] * b1[c / 4] + c1[c / 4]);
+		}
+
+		// process lower section
+
+		if (outputs[OUT2_OUTPUT].isConnected()) {
+			int channels_A2 = inputs[A2_INPUT].getChannels();
+			int channels_B2 = inputs[B2_INPUT].getChannels();
+			int channels_C2 = inputs[C2_INPUT].getChannels();
+
+			channels_2 = std::max(channels_2, channels_A2);
+			channels_2 = std::max(channels_2, channels_B2);
+			channels_2 = std::max(channels_2, channels_C2);
+
+			float mult_B2 = (2.f / 5.f) * exponentialBipolar80Pade_5_4(params[B2_LEVEL_PARAM].getValue());
+			float mult_C2 = exponentialBipolar80Pade_5_4(params[C2_LEVEL_PARAM].getValue());
+
+			if (inputs[A2_INPUT].isConnected())
+				load_input(inputs[A2_INPUT], a2, channels_A2);
+			else
+				memset(a2, 0, sizeof(a2));
+
+			if (inputs[B2_INPUT].isConnected()) {
+				load_input(inputs[B2_INPUT], b2, channels_B2);
+				for (int c = 0; c < channels_2; c += 4)
+					b2[c / 4] *= simd::float_4(mult_B2);
+			}
+			else {
+				for (int c = 0; c < channels_2; c += 4)
+					b2[c / 4] = simd::float_4(5.f * mult_B2);
+			}
+
+			if (inputs[C2_INPUT].isConnected()) {
+				load_input(inputs[C2_INPUT], c2, channels_C2);
+				for (int c = 0; c < channels_2; c += 4)
+					c2[c / 4] *= simd::float_4(mult_C2);
+			}
+			else {
+				for (int c = 0; c < channels_2; c += 4)
+					c2[c / 4] = simd::float_4(10.f * mult_C2);
+			}
+
+			for (int c = 0; c < channels_2; c += 4)
+				out2[c / 4] = clip4(a2[c / 4] * b2[c / 4] + c2[c / 4]);
+		};
 
 		// Set outputs
 		if (outputs[OUT1_OUTPUT].isConnected()) {
-			outputs[OUT1_OUTPUT].setVoltage(clip(out1 / 10.f) * 10.f);
+			outputs[OUT1_OUTPUT].setChannels(channels_1);
+			for (int c = 0; c < channels_1; c += 4)
+				out1[c / 4].store(outputs[OUT1_OUTPUT].getVoltages(c));
 		}
 		else {
-			out2 += out1;
+			for (int c = 0; c < channels_1; c += 4)
+				out2[c / 4] += out1[c / 4];
+			channels_2 = std::max(channels_1, channels_2);
 		}
+
 		if (outputs[OUT2_OUTPUT].isConnected()) {
-			outputs[OUT2_OUTPUT].setVoltage(clip(out2 / 10.f) * 10.f);
+			outputs[OUT2_OUTPUT].setChannels(channels_2);
+			for (int c = 0; c < channels_2; c += 4)
+				out2[c / 4].store(outputs[OUT2_OUTPUT].getVoltages(c));
 		}
 
 		// Lights
-		lights[OUT1_LIGHT + 0].setSmoothBrightness(out1 / 5.f, args.sampleTime);
-		lights[OUT1_LIGHT + 1].setSmoothBrightness(-out1 / 5.f, args.sampleTime);
-		lights[OUT2_LIGHT + 0].setSmoothBrightness(out2 / 5.f, args.sampleTime);
-		lights[OUT2_LIGHT + 1].setSmoothBrightness(-out2 / 5.f, args.sampleTime);
+
+		float light_1;
+		float light_2;
+
+		if (channels_1 == 1) {
+			light_1 = out1[0].s[0];
+			lights[OUT1_LIGHT + 0].setSmoothBrightness(light_1 / 5.f, args.sampleTime);
+			lights[OUT1_LIGHT + 1].setSmoothBrightness(-light_1 / 5.f, args.sampleTime);
+			lights[OUT1_LIGHT + 2].setBrightness(0.f);
+		}
+		else {
+			light_1 = 10.f;
+			lights[OUT1_LIGHT + 0].setBrightness(0.0f);
+			lights[OUT1_LIGHT + 1].setBrightness(0.0f);
+			lights[OUT1_LIGHT + 2].setBrightness(light_1);
+		}
+
+		if (channels_2 == 1) {
+			light_2 = out2[0].s[0];
+			lights[OUT2_LIGHT + 0].setSmoothBrightness(light_2 / 5.f, args.sampleTime);
+			lights[OUT2_LIGHT + 1].setSmoothBrightness(-light_2 / 5.f, args.sampleTime);
+			lights[OUT2_LIGHT + 2].setBrightness(0.f);
+		}
+		else {
+			light_2 = 10.f;
+			lights[OUT2_LIGHT + 0].setBrightness(0.0f);
+			lights[OUT2_LIGHT + 1].setBrightness(0.0f);
+			lights[OUT2_LIGHT + 2].setBrightness(light_2);
+		}
 	}
 };
 
@@ -104,8 +233,8 @@ struct ABCWidget : ModuleWidget {
 		addInput(createInput<BefacoInputPort>(Vec(7, 279), module, ABC::C2_INPUT));
 		addOutput(createOutput<BefacoOutputPort>(Vec(7, 321), module, ABC::OUT2_OUTPUT));
 
-		addChild(createLight<MediumLight<GreenRedLight>>(Vec(37, 162), module, ABC::OUT1_LIGHT));
-		addChild(createLight<MediumLight<GreenRedLight>>(Vec(37, 329), module, ABC::OUT2_LIGHT));
+		addChild(createLight<MediumLight<RedGreenBlueLight>>(Vec(37, 162), module, ABC::OUT1_LIGHT));
+		addChild(createLight<MediumLight<RedGreenBlueLight>>(Vec(37, 329), module, ABC::OUT2_LIGHT));
 	}
 };
 

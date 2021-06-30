@@ -16,7 +16,8 @@
       "modularGridUrl": "https://www.modulargrid.net/e/befaco-even-vco-",
       "tags": [
         "VCO",
-        "Hardware clone"
+        "Hardware clone",
+        "Polyphonic"
       ]
     },
     {
@@ -31,7 +32,8 @@
         "Slew Limiter",
         "Envelope Follower",
         "Dual",
-        "Hardware clone"
+        "Hardware clone",
+        "Polyphonic"
       ]
     },
     {
@@ -44,7 +46,8 @@
         "Ring Modulator",
         "Attenuator",
         "Dual",
-        "Hardware clone"
+        "Hardware clone",
+        "Polyphonic"
       ]
     },
     {
@@ -64,7 +67,8 @@
       "modularGridUrl": "https://www.modulargrid.net/e/befaco-mixer-",
       "tags": [
         "Mixer",
-        "Hardware clone"
+        "Hardware clone",
+        "Polyphonic"
       ]
     },
     {
@@ -75,7 +79,8 @@
       "tags": [
         "Slew Limiter",
         "Envelope Follower",
-        "Hardware clone"
+        "Hardware clone",
+        "Polyphonic"
       ]
     },
     {
@@ -86,7 +91,8 @@
       "tags": [
         "Attenuator",
         "Dual",
-        "Hardware clone"
+        "Hardware clone",
+        "Polyphonic"
       ]
     },
     {
