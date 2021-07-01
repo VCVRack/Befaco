@@ -1,6 +1,7 @@
 #include "plugin.hpp"
 #include "Common.hpp"
-#include "simd_input.hpp"
+
+using simd::float_4;
 
 struct SlewLimiter : Module {
 	enum ParamIds {
@@ -20,7 +21,7 @@ struct SlewLimiter : Module {
 		NUM_OUTPUTS
 	};
 
-	simd::float_4 out[4];
+	float_4 out[4];
 
 	SlewLimiter() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
@@ -31,14 +32,14 @@ struct SlewLimiter : Module {
 		memset(out, 0, sizeof(out));
 	}
 
-	void process(const ProcessArgs &args) override {
+	void process(const ProcessArgs& args) override {
 
-		simd::float_4 in[4];
-		simd::float_4 riseCV[4];
-		simd::float_4 fallCV[4];
+		float_4 in[4] = {0.f};
+		float_4 riseCV[4] = {0.f};
+		float_4 fallCV[4] = {0.f};
 
-		int channels = inputs[IN_INPUT].getChannels();
-
+		// this is the number of active polyphony engines, defined by the input
+		int numPolyphonyEngines = inputs[IN_INPUT].getChannels();
 
 		// minimum and std::maximum slopes in volts per second
 		const float slewMin = 0.1;
@@ -46,32 +47,45 @@ struct SlewLimiter : Module {
 		// Amount of extra slew per voltage difference
 		const float shapeScale = 1 / 10.f;
 
-		const simd::float_4 shape = simd::float_4(params[SHAPE_PARAM].getValue());
-		const simd::float_4 param_rise = simd::float_4(params[RISE_PARAM].getValue() * 10.f);
-		const simd::float_4 param_fall = simd::float_4(params[FALL_PARAM].getValue() * 10.f);
+		const float_4 shape = float_4(params[SHAPE_PARAM].getValue());
+		const float_4 param_rise = float_4(params[RISE_PARAM].getValue() * 10.f);
+		const float_4 param_fall = float_4(params[FALL_PARAM].getValue() * 10.f);
 
-		outputs[OUT_OUTPUT].setChannels(channels);
+		outputs[OUT_OUTPUT].setChannels(numPolyphonyEngines);
 
-		load_input(inputs[IN_INPUT], in, channels);
-		load_input(inputs[RISE_INPUT], riseCV, channels);
-		load_input(inputs[FALL_INPUT], fallCV, channels);
+		for (int c = 0; c < numPolyphonyEngines; c += 4) {
+			in[c / 4] = inputs[IN_INPUT].getVoltageSimd<float_4>(c);
 
-		for (int c = 0; c < channels; c += 4) {
+			if (inputs[RISE_INPUT].isConnected()) {
+				if (inputs[RISE_INPUT].getChannels() == 1) {
+					riseCV[c / 4] = float_4(inputs[RISE_INPUT].getVoltage());
+				}
+				else {
+					riseCV[c / 4] = inputs[RISE_INPUT].getVoltageSimd<float_4>(c);
+				}
+			}
+			if (inputs[FALL_INPUT].isConnected()) {
+				if (inputs[FALL_INPUT].getChannels() == 1) {
+					fallCV[c / 4] = float_4(inputs[FALL_INPUT].getVoltage());
+				}
+				else {
+					fallCV[c / 4] = inputs[FALL_INPUT].getVoltageSimd<float_4>(c);
+				}
+			}
+
 			riseCV[c / 4] += param_rise;
 			fallCV[c / 4] += param_fall;
 
-			simd::float_4 delta = in[c / 4] - out[c / 4];
+			float_4 delta = in[c / 4] - out[c / 4];
+			float_4 delta_gt_0 = delta > float_4::zero();
+			float_4 delta_lt_0 = delta < float_4::zero();
 
-			simd::float_4 delta_gt_0 = delta > simd::float_4::zero();
-			simd::float_4 delta_lt_0 = delta < simd::float_4::zero();
-
-			simd::float_4 rateCV;
-			rateCV = ifelse(delta_gt_0, riseCV[c / 4], simd::float_4::zero());
+			float_4 rateCV;
+			rateCV = ifelse(delta_gt_0, riseCV[c / 4], float_4::zero());
 			rateCV = ifelse(delta_lt_0, fallCV[c / 4], rateCV) * 0.1f;
 
-			simd::float_4 pm_one = simd::sgn(delta);
-
-			simd::float_4 slew = slewMax * simd::pow(simd::float_4(slewMin / slewMax), rateCV);
+			float_4 pm_one = simd::sgn(delta);
+			float_4 slew = slewMax * simd::pow(float_4(slewMin / slewMax), rateCV);
 
 			out[c / 4] += slew * simd::crossfade(pm_one, shapeScale * delta, shape) * args.sampleTime;
 			out[c / 4] = ifelse(delta_gt_0 & (out[c / 4] > in[c / 4]), in[c / 4], out[c / 4]);
@@ -84,7 +98,7 @@ struct SlewLimiter : Module {
 
 
 struct SlewLimiterWidget : ModuleWidget {
-	SlewLimiterWidget(::SlewLimiter *module) {
+	SlewLimiterWidget(SlewLimiter* module) {
 		setModule(module);
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/SlewLimiter.svg")));
 
@@ -105,4 +119,4 @@ struct SlewLimiterWidget : ModuleWidget {
 };
 
 
-Model *modelSlewLimiter = createModel<::SlewLimiter, SlewLimiterWidget>("SlewLimiter");
+Model* modelSlewLimiter = createModel<::SlewLimiter, SlewLimiterWidget>("SlewLimiter");

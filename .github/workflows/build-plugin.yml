@@ -17,7 +17,7 @@ jobs:
         config:
         - {
             name: Linux,
-            os: ubuntu-latest,
+            os: ubuntu-16.04,
             prepare-os: sudo apt install -y libglu-dev
           }
         - {
@@ -68,7 +68,7 @@ jobs:
     # only create a release if a tag was created that is called e.g. v1.2.3
     # see also https://vcvrack.com/manual/Manifest#version
     if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-16.04
     needs: build
     steps:
       - uses: actions/checkout@v2

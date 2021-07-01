@@ -1,6 +1,5 @@
 #include "plugin.hpp"
 #include "Common.hpp"
-#include "simd_input.hpp"
 
 struct DualAtenuverter : Module {
 	enum ParamIds {
@@ -34,7 +33,7 @@ struct DualAtenuverter : Module {
 		configParam(OFFSET2_PARAM, -10.0, 10.0, 0.0, "Ch 2 offset", " V");
 	}
 
-	void process(const ProcessArgs &args) override {
+	void process(const ProcessArgs& args) override {
 		using simd::float_4;
 
 		float_4 out1[4];
@@ -52,10 +51,10 @@ struct DualAtenuverter : Module {
 		float offset2 = params[OFFSET2_PARAM].getValue();
 
 		for (int c = 0; c < channels1; c += 4) {
-			out1[c / 4] = clamp(float_4::load(inputs[IN1_INPUT].getVoltages(c)) * att1 + offset1, -10.f, 10.f);
+			out1[c / 4] = clamp(inputs[IN1_INPUT].getVoltageSimd<float_4>(c) * att1 + offset1, -10.f, 10.f);
 		}
 		for (int c = 0; c < channels2; c += 4) {
-			out2[c / 4] = clamp(float_4::load(inputs[IN2_INPUT].getVoltages(c)) * att2 + offset2, -10.f, 10.f);
+			out2[c / 4] = clamp(inputs[IN2_INPUT].getVoltageSimd<float_4>(c) * att2 + offset2, -10.f, 10.f);
 		}
 
 		outputs[OUT1_OUTPUT].setChannels(channels1);
@@ -97,7 +96,7 @@ struct DualAtenuverter : Module {
 
 
 struct DualAtenuverterWidget : ModuleWidget {
-	DualAtenuverterWidget(DualAtenuverter *module) {
+	DualAtenuverterWidget(DualAtenuverter* module) {
 		setModule(module);
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/DualAtenuverter.svg")));
 
@@ -121,4 +120,4 @@ struct DualAtenuverterWidget : ModuleWidget {
 };
 
 
-Model *modelDualAtenuverter = createModel<DualAtenuverter, DualAtenuverterWidget>("DualAtenuverter");
+Model* modelDualAtenuverter = createModel<DualAtenuverter, DualAtenuverterWidget>("DualAtenuverter");

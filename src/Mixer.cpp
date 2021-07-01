@@ -1,6 +1,7 @@
 #include "plugin.hpp"
 #include "Common.hpp"
-#include "simd_input.hpp"
+
+using simd::float_4;
 
 struct Mixer : Module {
 	enum ParamIds {
@@ -37,7 +38,7 @@ struct Mixer : Module {
 		configParam(CH4_PARAM, 0.0, 1.0, 0.0, "Ch 4 level", "%", 0, 100);
 	}
 
-	void process(const ProcessArgs &args) override {
+	void process(const ProcessArgs& args) override {
 		int channels1 = inputs[IN1_INPUT].getChannels();
 		int channels2 = inputs[IN2_INPUT].getChannels();
 		int channels3 = inputs[IN3_INPUT].getChannels();
@@ -49,36 +50,34 @@ struct Mixer : Module {
 		out_channels = std::max(out_channels, channels3);
 		out_channels = std::max(out_channels, channels4);
 
-		simd::float_4 mult1 = simd::float_4(params[CH1_PARAM].getValue());
-		simd::float_4 mult2 = simd::float_4(params[CH2_PARAM].getValue());
-		simd::float_4 mult3 = simd::float_4(params[CH3_PARAM].getValue());
-		simd::float_4 mult4 = simd::float_4(params[CH4_PARAM].getValue());
+		float_4 mult1 = float_4(params[CH1_PARAM].getValue());
+		float_4 mult2 = float_4(params[CH2_PARAM].getValue());
+		float_4 mult3 = float_4(params[CH3_PARAM].getValue());
+		float_4 mult4 = float_4(params[CH4_PARAM].getValue());
 
-		simd::float_4 out[4];
+		float_4 out[4];
 
 		std::memset(out, 0, sizeof(out));
 
-
 		if (inputs[IN1_INPUT].isConnected()) {
 			for (int c = 0; c < channels1; c += 4)
-				out[c / 4] += simd::float_4::load(inputs[IN1_INPUT].getVoltages(c)) * mult1;
+				out[c / 4] += inputs[IN1_INPUT].getVoltageSimd<float_4>(c) * mult1;
 		}
 
 		if (inputs[IN2_INPUT].isConnected()) {
 			for (int c = 0; c < channels2; c += 4)
-				out[c / 4] += simd::float_4::load(inputs[IN2_INPUT].getVoltages(c)) * mult2;
+				out[c / 4] += inputs[IN2_INPUT].getVoltageSimd<float_4>(c) * mult2;
 		}
 
 		if (inputs[IN3_INPUT].isConnected()) {
 			for (int c = 0; c < channels3; c += 4)
-				out[c / 4] += simd::float_4::load(inputs[IN3_INPUT].getVoltages(c)) * mult3;
+				out[c / 4] += inputs[IN3_INPUT].getVoltageSimd<float_4>(c) * mult3;
 		}
 
 		if (inputs[IN4_INPUT].isConnected()) {
 			for (int c = 0; c < channels4; c += 4)
-				out[c / 4] += simd::float_4::load(inputs[IN4_INPUT].getVoltages(c)) * mult4;
+				out[c / 4] += inputs[IN4_INPUT].getVoltageSimd<float_4>(c) * mult4;
 		}
-
 
 		outputs[OUT1_OUTPUT].setChannels(out_channels);
 		outputs[OUT2_OUTPUT].setChannels(out_channels);
@@ -105,13 +104,12 @@ struct Mixer : Module {
 			lights[OUT_NEG_LIGHT].setBrightness(0.0f);
 			lights[OUT_BLUE_LIGHT].setSmoothBrightness(light / 5.f, args.sampleTime);
 		}
-
 	}
 };
 
 
 struct MixerWidget : ModuleWidget {
-	MixerWidget(Mixer *module) {
+	MixerWidget(Mixer* module) {
 		setModule(module);
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Mixer.svg")));
 
@@ -137,4 +135,4 @@ struct MixerWidget : ModuleWidget {
 };
 
 
-Model *modelMixer = createModel<Mixer, MixerWidget>("Mixer");
+Model* modelMixer = createModel<Mixer, MixerWidget>("Mixer");

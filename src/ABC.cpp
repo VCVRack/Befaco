@@ -1,6 +1,7 @@
 #include "plugin.hpp"
 #include "Common.hpp"
-#include "simd_input.hpp"
+
+using simd::float_4;
 
 template <typename T>
 static T clip4(T x) {
@@ -54,126 +55,112 @@ struct ABC : Module {
 		configParam(C2_LEVEL_PARAM, -1.0, 1.0, 0.0, "C2 Level");
 	}
 
-	void process(const ProcessArgs &args) override {
+	int processSection(simd::float_4* out, InputIds inputA, InputIds inputB, InputIds inputC,
+	                   ParamIds levelB, ParamIds levelC) {
 
-		simd::float_4 a1[4] = {};
-		simd::float_4 b1[4] = {};
-		simd::float_4 c1[4] = {};
-		simd::float_4 out1[4];
+		float_4 inA[4] = {0.f};
+		float_4 inB[4] = {0.f};
+		float_4 inC[4] = {0.f};
 
-		simd::float_4 a2[4] = {};
-		simd::float_4 b2[4] = {};
-		simd::float_4 c2[4] = {};
-		simd::float_4 out2[4];
+		int channelsA = inputs[inputA].getChannels();
+		int channelsB = inputs[inputB].getChannels();
+		int channelsC = inputs[inputC].getChannels();
 
-		int channels_1 = 1;
-		int channels_2 = 1;
+		// this sets the number of active engines (according to polyphony standard)
+		// NOTE: A*B + C has the number of active engines set by any one of the three inputs
+		int activeEngines = std::max(1, channelsA);
+		activeEngines = std::max(activeEngines, channelsB);
+		activeEngines = std::max(activeEngines, channelsC);
 
-		memset(out1, 0, sizeof(out1));
-		memset(out2, 0, sizeof(out2));
+		float mult_B = (2.f / 5.f) * exponentialBipolar80Pade_5_4(params[levelB].getValue());
+		float mult_C = exponentialBipolar80Pade_5_4(params[levelC].getValue());
 
-		// process upper section
-
-		if (outputs[OUT1_OUTPUT].isConnected() || outputs[OUT2_OUTPUT].isConnected()) {
-
-			int channels_A1 = inputs[A1_INPUT].getChannels();
-			int channels_B1 = inputs[B1_INPUT].getChannels();
-			int channels_C1 = inputs[C1_INPUT].getChannels();
-
-			channels_1 = std::max(channels_1, channels_A1);
-			channels_1 = std::max(channels_1, channels_B1);
-			channels_1 = std::max(channels_1, channels_C1);
-
-			float mult_B1 = (2.f / 5.f) * exponentialBipolar80Pade_5_4(params[B1_LEVEL_PARAM].getValue());
-			float mult_C1 = exponentialBipolar80Pade_5_4(params[C1_LEVEL_PARAM].getValue());
-
-			if (inputs[A1_INPUT].isConnected())
-				load_input(inputs[A1_INPUT], a1, channels_A1);
-			else
-				memset(a1, 0, sizeof(a1));
-
-			if (inputs[B1_INPUT].isConnected()) {
-				load_input(inputs[B1_INPUT], b1, channels_B1);
-				for (int c = 0; c < channels_1; c += 4)
-					b1[c / 4] *= simd::float_4(mult_B1);
+		if (inputs[inputA].isConnected()) {
+			// if monophonic, broadcast to number of active engines
+			if (channelsA == 1) {
+				for (int c = 0; c < activeEngines; c += 4)
+					inA[c / 4] = float_4(inputs[inputA].getVoltage());
 			}
 			else {
-				for (int c = 0; c < channels_1; c += 4)
-					b1[c / 4] = simd::float_4(5.f * mult_B1);
+				for (int c = 0; c < channelsA; c += 4)
+					inA[c / 4] = inputs[inputA].getVoltageSimd<float_4>(c);
 			}
-
-			if (inputs[C1_INPUT].isConnected()) {
-				load_input(inputs[C1_INPUT], c1, channels_C1);
-				for (int c = 0; c < channels_1; c += 4)
-					c1[c / 4] *= simd::float_4(mult_C1);
-			}
-			else {
-				for (int c = 0; c < channels_1; c += 4)
-					c1[c / 4] = simd::float_4(10.f * mult_C1);
-			}
-
-			for (int c = 0; c < channels_1; c += 4)
-				out1[c / 4] = clip4(a1[c / 4] * b1[c / 4] + c1[c / 4]);
 		}
 
+		if (inputs[inputB].isConnected()) {
+			// if monophonic, broadcast to number of active engines
+			if (channelsB == 1) {
+				for (int c = 0; c < activeEngines; c += 4)
+					inB[c / 4] = float_4(inputs[inputB].getVoltage());
+			}
+			else {
+				for (int c = 0; c < channelsB; c += 4)
+					inB[c / 4] = inputs[inputB].getVoltageSimd<float_4>(c);
+			}
+			for (int c = 0; c < activeEngines; c += 4)
+				inB[c / 4] *= mult_B;
+		}
+		else {
+			for (int c = 0; c < activeEngines; c += 4)
+				inB[c / 4] = 5.f * mult_B;
+		}
+
+		if (inputs[inputC].isConnected()) {
+			// if monophonic, broadcast to number of active engines
+			if (channelsC == 1) {
+				for (int c = 0; c < activeEngines; c += 4)
+					inC[c / 4] = float_4(inputs[inputC].getVoltage());
+			}
+			else {
+				for (int c = 0; c < channelsC; c += 4)
+					inC[c / 4] = inputs[inputC].getVoltageSimd<float_4>(c);
+			}
+
+			for (int c = 0; c < activeEngines; c += 4)
+				inC[c / 4] *= mult_C;
+		}
+		else {
+			for (int c = 0; c < activeEngines; c += 4)
+				inC[c / 4] = float_4(10.f * mult_C);
+		}
+
+		for (int c = 0; c < activeEngines; c += 4)
+			out[c / 4] = clip4(inA[c / 4] * inB[c / 4] + inC[c / 4]);
+
+		return activeEngines;
+	}
+
+	void process(const ProcessArgs& args) override {
+
+		// process upper section
+		float_4 out1[4] = {0.f};
+		int activeEngines1 = 1;
+		if (outputs[OUT1_OUTPUT].isConnected() || outputs[OUT2_OUTPUT].isConnected()) {
+			activeEngines1 = processSection(out1, A1_INPUT, B1_INPUT, C1_INPUT, B1_LEVEL_PARAM, C1_LEVEL_PARAM);
+		}
+
+		float_4 out2[4] = {0.f};
+		int activeEngines2 = 1;
 		// process lower section
-
 		if (outputs[OUT2_OUTPUT].isConnected()) {
-			int channels_A2 = inputs[A2_INPUT].getChannels();
-			int channels_B2 = inputs[B2_INPUT].getChannels();
-			int channels_C2 = inputs[C2_INPUT].getChannels();
-
-			channels_2 = std::max(channels_2, channels_A2);
-			channels_2 = std::max(channels_2, channels_B2);
-			channels_2 = std::max(channels_2, channels_C2);
-
-			float mult_B2 = (2.f / 5.f) * exponentialBipolar80Pade_5_4(params[B2_LEVEL_PARAM].getValue());
-			float mult_C2 = exponentialBipolar80Pade_5_4(params[C2_LEVEL_PARAM].getValue());
-
-			if (inputs[A2_INPUT].isConnected())
-				load_input(inputs[A2_INPUT], a2, channels_A2);
-			else
-				memset(a2, 0, sizeof(a2));
-
-			if (inputs[B2_INPUT].isConnected()) {
-				load_input(inputs[B2_INPUT], b2, channels_B2);
-				for (int c = 0; c < channels_2; c += 4)
-					b2[c / 4] *= simd::float_4(mult_B2);
-			}
-			else {
-				for (int c = 0; c < channels_2; c += 4)
-					b2[c / 4] = simd::float_4(5.f * mult_B2);
-			}
-
-			if (inputs[C2_INPUT].isConnected()) {
-				load_input(inputs[C2_INPUT], c2, channels_C2);
-				for (int c = 0; c < channels_2; c += 4)
-					c2[c / 4] *= simd::float_4(mult_C2);
-			}
-			else {
-				for (int c = 0; c < channels_2; c += 4)
-					c2[c / 4] = simd::float_4(10.f * mult_C2);
-			}
-
-			for (int c = 0; c < channels_2; c += 4)
-				out2[c / 4] = clip4(a2[c / 4] * b2[c / 4] + c2[c / 4]);
-		};
+			activeEngines2 = processSection(out2, A2_INPUT, B2_INPUT, C2_INPUT, B2_LEVEL_PARAM, C2_LEVEL_PARAM);
+		}
 
 		// Set outputs
 		if (outputs[OUT1_OUTPUT].isConnected()) {
-			outputs[OUT1_OUTPUT].setChannels(channels_1);
-			for (int c = 0; c < channels_1; c += 4)
+			outputs[OUT1_OUTPUT].setChannels(activeEngines1);
+			for (int c = 0; c < activeEngines1; c += 4)
 				out1[c / 4].store(outputs[OUT1_OUTPUT].getVoltages(c));
 		}
-		else {
-			for (int c = 0; c < channels_1; c += 4)
-				out2[c / 4] += out1[c / 4];
-			channels_2 = std::max(channels_1, channels_2);
-		}
+		else if (outputs[OUT2_OUTPUT].isConnected()) {
 
-		if (outputs[OUT2_OUTPUT].isConnected()) {
-			outputs[OUT2_OUTPUT].setChannels(channels_2);
-			for (int c = 0; c < channels_2; c += 4)
+			for (int c = 0; c < activeEngines1; c += 4)
+				out2[c / 4] += out1[c / 4];
+
+			activeEngines2 = std::max(activeEngines1, activeEngines2);
+
+			outputs[OUT2_OUTPUT].setChannels(activeEngines2);
+			for (int c = 0; c < activeEngines2; c += 4)
 				out2[c / 4].store(outputs[OUT2_OUTPUT].getVoltages(c));
 		}
 
@@ -182,7 +169,7 @@ struct ABC : Module {
 		float light_1;
 		float light_2;
 
-		if (channels_1 == 1) {
+		if (activeEngines1 == 1) {
 			light_1 = out1[0].s[0];
 			lights[OUT1_LIGHT + 0].setSmoothBrightness(light_1 / 5.f, args.sampleTime);
 			lights[OUT1_LIGHT + 1].setSmoothBrightness(-light_1 / 5.f, args.sampleTime);
@@ -195,7 +182,7 @@ struct ABC : Module {
 			lights[OUT1_LIGHT + 2].setBrightness(light_1);
 		}
 
-		if (channels_2 == 1) {
+		if (activeEngines2 == 1) {
 			light_2 = out2[0].s[0];
 			lights[OUT2_LIGHT + 0].setSmoothBrightness(light_2 / 5.f, args.sampleTime);
 			lights[OUT2_LIGHT + 1].setSmoothBrightness(-light_2 / 5.f, args.sampleTime);
@@ -212,7 +199,7 @@ struct ABC : Module {
 
 
 struct ABCWidget : ModuleWidget {
-	ABCWidget(ABC *module) {
+	ABCWidget(ABC* module) {
 		setModule(module);
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/ABC.svg")));
 
@@ -239,4 +226,4 @@ struct ABCWidget : ModuleWidget {
 };
 
 
-Model *modelABC = createModel<ABC, ABCWidget>("ABC");
+Model* modelABC = createModel<ABC, ABCWidget>("ABC");

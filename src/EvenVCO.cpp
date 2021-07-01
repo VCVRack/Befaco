@@ -1,6 +1,7 @@
 #include "plugin.hpp"
-#include "simd_input.hpp"
 #include "Common.hpp"
+
+using simd::float_4;
 
 struct EvenVCO : Module {
 	enum ParamIds {
@@ -26,8 +27,8 @@ struct EvenVCO : Module {
 		NUM_OUTPUTS
 	};
 
-	simd::float_4 phase[4];
-	simd::float_4 tri[4];
+	float_4 phase[4];
+	float_4 tri[4];
 
 	/** The value of the last sync input */
 	float sync = 0.0;
@@ -51,23 +52,14 @@ struct EvenVCO : Module {
 		configParam(PWM_PARAM, -1.0, 1.0, 0.0, "Pulse width");
 
 		for (int i = 0; i < 4; i++) {
-			phase[i] = simd::float_4(0.0f);
-			tri[i] = simd::float_4(0.0f);
+			phase[i] = float_4(0.0f);
+			tri[i] = float_4(0.0f);
 		}
 		for (int c = 0; c < PORT_MAX_CHANNELS; c++)
 			halfPhase[c] = false;
 	}
 
-	void process(const ProcessArgs &args) override {
-		simd::float_4 pitch[4];
-		simd::float_4 pitch_1[4];
-		simd::float_4 pitch_2[4];
-		simd::float_4 pitch_fm[4];
-		simd::float_4 freq[4];
-		simd::float_4 pw[4];
-		simd::float_4 pwm[4];
-		simd::float_4 deltaPhase[4];
-		simd::float_4 oldPhase[4];
+	void process(const ProcessArgs& args) override {
 
 		int channels_pitch1 = inputs[PITCH1_INPUT].getChannels();
 		int channels_pitch2 = inputs[PITCH2_INPUT].getChannels();
@@ -81,56 +73,79 @@ struct EvenVCO : Module {
 		float pitch_0 = 1.f + std::round(params[OCTAVE_PARAM].getValue()) + params[TUNE_PARAM].getValue() / 12.f;
 
 		// Compute frequency, pitch is 1V/oct
-
+		float_4 pitch[4];
 		for (int c = 0; c < channels; c += 4)
-			pitch[c / 4] = simd::float_4(pitch_0);
+			pitch[c / 4] = float_4(pitch_0);
 
 		if (inputs[PITCH1_INPUT].isConnected()) {
-			load_input(inputs[PITCH1_INPUT], pitch_1, channels_pitch1);
-			for (int c = 0; c < channels_pitch1; c += 4)
-				pitch[c / 4] += pitch_1[c / 4];
+			// if pitch_1 monophonic, broadcast
+			if (channels_pitch1 == 1) {
+				for (int c = 0; c < channels; c += 4)
+					pitch[c / 4] += float_4(inputs[PITCH1_INPUT].getVoltage());
+			}
+			else {
+				for (int c = 0; c < std::min(channels, channels_pitch1); c += 4)
+					pitch[c / 4] += inputs[PITCH1_INPUT].getVoltageSimd<float_4>(c);
+			}
 		}
 
 		if (inputs[PITCH2_INPUT].isConnected()) {
-			load_input(inputs[PITCH2_INPUT], pitch_2, channels_pitch2);
-			for (int c = 0; c < channels_pitch2; c += 4)
-				pitch[c / 4] += pitch_2[c / 4];
+			// if pitch_2 monophonic, broadcast
+			if (channels_pitch2 == 1) {
+				for (int c = 0; c < channels; c += 4)
+					pitch[c / 4] += float_4(inputs[PITCH2_INPUT].getVoltage());
+			}
+			else {
+				for (int c = 0; c < std::min(channels, channels_pitch2); c += 4)
+					pitch[c / 4] += inputs[PITCH2_INPUT].getVoltageSimd<float_4>(c);
+			}
 		}
 
 		if (inputs[FM_INPUT].isConnected()) {
-			load_input(inputs[FM_INPUT], pitch_fm, channels_fm);
-			for (int c = 0; c < channels_fm; c += 4)
-				pitch[c / 4] += pitch_fm[c / 4] / 4.f;
+			// if FM is monophonic, broadcast
+			if (channels_fm == 1) {
+				for (int c = 0; c < channels; c += 4)
+					pitch[c / 4] += float_4(inputs[FM_INPUT].getVoltage() / 4.f);
+			}
+			else {
+				for (int c = 0; c < std::min(channels, channels_fm); c += 4)
+					pitch[c / 4] += inputs[FM_INPUT].getVoltageSimd<float_4>(c) / 4.f;
+			}
 		}
 
+		float_4 freq[4];
 		for (int c = 0; c < channels; c += 4) {
 			freq[c / 4] = dsp::FREQ_C4 * simd::pow(2.f, pitch[c / 4]);
 			freq[c / 4] = clamp(freq[c / 4], 0.f, 20000.f);
 		}
 
-
 		// Pulse width
-
 		float pw_0 = params[PWM_PARAM].getValue();
-
+		float_4 pw[4];
 		for (int c = 0; c < channels; c += 4)
-			pw[c / 4] = simd::float_4(pw_0);
+			pw[c / 4] = float_4(pw_0);
 
 		if (inputs[PWM_INPUT].isConnected()) {
-			load_input(inputs[PWM_INPUT], pwm, channels_pwm);
-			for (int c = 0; c < channels_pwm; c += 4)
-				pw[c / 4] += pwm[c / 4] / 5.f;
+			if (channels_pwm == 1) {
+				for (int c = 0; c < channels; c += 4)
+					pw[c / 4] += float_4(inputs[PWM_INPUT].getVoltage() / 5.f);
+			}
+			else {
+				for (int c = 0; c < std::min(channels, channels_pwm); c += 4)
+					pw[c / 4] += inputs[PWM_INPUT].getVoltageSimd<float_4>(c) / 5.f;
+			}
 		}
 
-		const simd::float_4 minPw_4 = simd::float_4(0.05f);
-		const simd::float_4 m_one_4 = simd::float_4(-1.0f);
-		const simd::float_4 one_4 = simd::float_4(1.0f);
-
+		const float_4 minPw_4 = float_4(0.05f);
+		const float_4 m_one_4 = float_4(-1.0f);
+		const float_4 one_4 = float_4(1.0f);
+		float_4 deltaPhase[4];
+		float_4 oldPhase[4];
 		for (int c = 0; c < channels; c += 4) {
 			pw[c / 4] = rescale(clamp(pw[c / 4], m_one_4, one_4), m_one_4, one_4, minPw_4, one_4 - minPw_4);
 
 			// Advance phase
-			deltaPhase[c / 4] = clamp(freq[c / 4] * args.sampleTime, simd::float_4(1e-6f), simd::float_4(0.5f));
+			deltaPhase[c / 4] = clamp(freq[c / 4] * args.sampleTime, float_4(1e-6f), float_4(0.5f));
 			oldPhase[c / 4] = phase[c / 4];
 			phase[c / 4] += deltaPhase[c / 4];
 		}
@@ -163,19 +178,19 @@ struct EvenVCO : Module {
 			}
 		}
 
-		simd::float_4 triSquareMinBlepOut[4];
-		simd::float_4 doubleSawMinBlepOut[4];
-		simd::float_4 sawMinBlepOut[4];
-		simd::float_4 squareMinBlepOut[4];
+		float_4 triSquareMinBlepOut[4];
+		float_4 doubleSawMinBlepOut[4];
+		float_4 sawMinBlepOut[4];
+		float_4 squareMinBlepOut[4];
 
-		simd::float_4 triSquare[4];
-		simd::float_4 sine[4];
-		simd::float_4 doubleSaw[4];
+		float_4 triSquare[4];
+		float_4 sine[4];
+		float_4 doubleSaw[4];
 
-		simd::float_4 even[4];
-		simd::float_4 saw[4];
-		simd::float_4 square[4];
-		simd::float_4 triOut[4];
+		float_4 even[4];
+		float_4 saw[4];
+		float_4 square[4];
+		float_4 triOut[4];
 
 		for (int c = 0; c < channels; c++) {
 			triSquareMinBlepOut[c / 4].s[c % 4] = triSquareMinBlep[c].process();
@@ -231,7 +246,7 @@ struct EvenVCO : Module {
 
 
 struct EvenVCOWidget : ModuleWidget {
-	EvenVCOWidget(EvenVCO *module) {
+	EvenVCOWidget(EvenVCO* module) {
 		setModule(module);
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/EvenVCO.svg")));
 
@@ -260,4 +275,4 @@ struct EvenVCOWidget : ModuleWidget {
 };
 
 
-Model *modelEvenVCO = createModel<EvenVCO, EvenVCOWidget>("EvenVCO");
+Model* modelEvenVCO = createModel<EvenVCO, EvenVCOWidget>("EvenVCO");
