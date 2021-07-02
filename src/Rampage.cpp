@@ -135,11 +135,11 @@ struct Rampage : Module {
 		// loop over two parts of Rampage:
 		for (int part = 0; part < 2; part++) {
 
-			float_4 in[4];
-			float_4 in_trig[4];
-			float_4 riseCV[4];
-			float_4 fallCV[4];
-			float_4 cycle[4];
+			float_4 in[4] = {0.f};
+			float_4 in_trig[4] = {0.f};
+			float_4 riseCV[4] = {0.f};
+			float_4 fallCV[4] = {0.f};
+			float_4 cycle[4] = {0.f};
 
 			// get parameters:
 			float shape = params[SHAPE_A_PARAM + part].getValue();
@@ -169,47 +169,20 @@ struct Rampage : Module {
 			}
 
 			// read inputs:
-			if (inputs[IN_A_INPUT + part].isConnected()) {
-				// if IN_<A,B>_INPUT is monophonic, broadcast to the active number of engines (channels[part])
-				if (inputs[IN_A_INPUT + part].getChannels() == 1) {
-					for (int c = 0; c < channels[part]; c += 4)
-						in[c / 4] = float_4(inputs[IN_A_INPUT + part].getVoltage());
-				}
-				else {
-					for (int c = 0; c < channels[part]; c += 4)
-						in[c / 4] = inputs[IN_A_INPUT + part].getVoltageSimd<float_4>(c);
-				}
-			}
-			else {
-				std::memset(in, 0, sizeof(in));
+			if (inputs[IN_A_INPUT + part].isConnected()) {				
+				for (int c = 0; c < channels[part]; c += 4)
+					in[c / 4] = inputs[IN_A_INPUT + part].getPolyVoltageSimd<float_4>(c);
 			}
 
 			if (inputs[TRIGG_A_INPUT + part].isConnected()) {
-				// if TRIGG_<A,B>_INPUT is monophonic, broadcast to the active number of engines (channels[part])
-				if (inputs[TRIGG_A_INPUT + part].getChannels() == 1) {
-					for (int c = 0; c < channels[part]; c += 4)
-						in_trig[c / 4] += float_4(inputs[TRIGG_A_INPUT + part].getVoltage());
-				}
-				else {
-					for (int c = 0; c < channels[part]; c += 4)
-						in_trig[c / 4] += inputs[TRIGG_A_INPUT + part].getVoltageSimd<float_4>(c);
-				}
+				for (int c = 0; c < channels[part]; c += 4)
+					in_trig[c / 4] += inputs[TRIGG_A_INPUT + part].getPolyVoltageSimd<float_4>(c);
 			}
 
 			if (inputs[EXP_CV_A_INPUT + part].isConnected()) {
-				float_4 expCV[4];
-				int expCVChannels = inputs[EXP_CV_A_INPUT + part].getChannels();
-				// if EXP_CV_<A,B>_INPUT is monophonic, broadcast to the active number of engines (channels[part])
-				if (expCVChannels == 1) {
-					for (int c = 0; c < channels[part]; c += 4)
-						expCV[c / 4] = float_4(inputs[EXP_CV_A_INPUT + part].getVoltage());
-				}
-				else {
-					// otherwise read in the polyphonic expCV data, either to the number of active engines (channels[part])
-					// or the number of channels of expCV, whichever is smaller
-					for (int c = 0; c < std::min(channels[part], expCVChannels); c += 4)
-						expCV[c / 4] = inputs[EXP_CV_A_INPUT + part].getVoltageSimd<float_4>(c);
-				}
+				float_4 expCV[4];				
+				for (int c = 0; c < channels[part]; c += 4)
+					expCV[c / 4] = inputs[EXP_CV_A_INPUT + part].getPolyVoltageSimd<float_4>(c);
 
 				for (int c = 0; c < channels[part]; c += 4) {
 					riseCV[c / 4] -= expCV[c / 4];
@@ -217,44 +190,17 @@ struct Rampage : Module {
 				}
 			}
 
-			const int riseCVChannels = inputs[RISE_CV_A_INPUT + part].getChannels();
-			// if EXP_CV_<A,B>_INPUT is monophonic, broadcast to the active number of engines (channels[part])
-			if (riseCVChannels == 1) {
-				for (int c = 0; c < channels[part]; c += 4)
-					riseCV[c / 4] += float_4(inputs[RISE_CV_A_INPUT + part].getVoltage());
-			}
-			else {
-				// otherwise read in the polyphonic rise CV data, either to the number of active engines (channels[part])
-				// or the number of channels of expCV, whichever is smaller
-				for (int c = 0; c < std::min(channels[part], riseCVChannels); c += 4)
-					riseCV[c / 4] += inputs[RISE_CV_A_INPUT + part].getVoltageSimd<float_4>(c);
-			}
-
-			const int fallCVChannels = inputs[FALL_CV_A_INPUT + part].getChannels();
-			if (fallCVChannels == 1) {
-				for (int c = 0; c < channels[part]; c += 4)
-					fallCV[c / 4] += float_4(inputs[FALL_CV_A_INPUT + part].getVoltage());
-			}
-			else {
-				for (int c = 0; c < std::min(channels[part], fallCVChannels); c += 4)
-					fallCV[c / 4] += inputs[FALL_CV_A_INPUT + part].getVoltageSimd<float_4>(c);
-			}
-
-			const int cycleChannels = inputs[CYCLE_A_INPUT + part].getChannels();
-			if (cycleChannels == 1) {
-				for (int c = 0; c < channels[part]; c += 4)
-					cycle[c / 4] += float_4(inputs[CYCLE_A_INPUT + part].getVoltage());
-			}
-			else {
-				for (int c = 0; c < std::min(channels[part], cycleChannels); c += 4)
-					cycle[c / 4] += inputs[CYCLE_A_INPUT + part].getVoltageSimd<float_4>(c);
-			}
+			for (int c = 0; c < channels[part]; c += 4)
+				riseCV[c / 4] += inputs[RISE_CV_A_INPUT + part].getPolyVoltageSimd<float_4>(c);		
+			for (int c = 0; c < channels[part]; c += 4)
+				fallCV[c / 4] += inputs[FALL_CV_A_INPUT + part].getPolyVoltageSimd<float_4>(c);
+			for (int c = 0; c < channels[part]; c += 4)
+				cycle[c / 4] += inputs[CYCLE_A_INPUT + part].getPolyVoltageSimd<float_4>(c);			
 
 			// start processing:
 			for (int c = 0; c < channels[part]; c += 4) {
 
 				// process SchmittTriggers
-
 				float_4 trig_mask = trigger_4[part][c / 4].process(in_trig[c / 4] / 2.0);
 				gate[part][c / 4] = ifelse(trig_mask, float_4::mask(), gate[part][c / 4]);
 				in[c / 4] = ifelse(gate[part][c / 4], float_4(10.0f), in[c / 4]);
@@ -295,9 +241,9 @@ struct Rampage : Module {
 
 				out[part][c / 4].store(outputs[OUT_A_OUTPUT + part].getVoltages(c));
 
-				out_rising.store(outputs[RISING_A_OUTPUT + part].getVoltages(c));
-				out_falling.store(outputs[FALLING_A_OUTPUT + part].getVoltages(c));
-				out_EOC.store(outputs[EOC_A_OUTPUT + part].getVoltages(c));
+				outputs[RISING_A_OUTPUT + part].setVoltageSimd(out_rising, c);
+				outputs[FALLING_A_OUTPUT + part].setVoltageSimd(out_falling, c);
+				outputs[EOC_A_OUTPUT + part].setVoltageSimd(out_EOC, c);
 
 			} // for(int c, ...)
 

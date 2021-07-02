@@ -76,29 +76,13 @@ struct ABC : Module {
 		float mult_C = exponentialBipolar80Pade_5_4(params[levelC].getValue());
 
 		if (inputs[inputA].isConnected()) {
-			// if monophonic, broadcast to number of active engines
-			if (channelsA == 1) {
-				for (int c = 0; c < activeEngines; c += 4)
-					inA[c / 4] = float_4(inputs[inputA].getVoltage());
-			}
-			else {
-				for (int c = 0; c < channelsA; c += 4)
-					inA[c / 4] = inputs[inputA].getVoltageSimd<float_4>(c);
-			}
+			for (int c = 0; c < activeEngines; c += 4)
+				inA[c / 4] = inputs[inputA].getPolyVoltageSimd<float_4>(c);
 		}
 
 		if (inputs[inputB].isConnected()) {
-			// if monophonic, broadcast to number of active engines
-			if (channelsB == 1) {
-				for (int c = 0; c < activeEngines; c += 4)
-					inB[c / 4] = float_4(inputs[inputB].getVoltage());
-			}
-			else {
-				for (int c = 0; c < channelsB; c += 4)
-					inB[c / 4] = inputs[inputB].getVoltageSimd<float_4>(c);
-			}
 			for (int c = 0; c < activeEngines; c += 4)
-				inB[c / 4] *= mult_B;
+				inB[c / 4] = inputs[inputB].getPolyVoltageSimd<float_4>(c) * mult_B;
 		}
 		else {
 			for (int c = 0; c < activeEngines; c += 4)
@@ -106,18 +90,8 @@ struct ABC : Module {
 		}
 
 		if (inputs[inputC].isConnected()) {
-			// if monophonic, broadcast to number of active engines
-			if (channelsC == 1) {
-				for (int c = 0; c < activeEngines; c += 4)
-					inC[c / 4] = float_4(inputs[inputC].getVoltage());
-			}
-			else {
-				for (int c = 0; c < channelsC; c += 4)
-					inC[c / 4] = inputs[inputC].getVoltageSimd<float_4>(c);
-			}
-
 			for (int c = 0; c < activeEngines; c += 4)
-				inC[c / 4] *= mult_C;
+				inC[c / 4] = inputs[inputC].getPolyVoltageSimd<float_4>(c) * mult_C;
 		}
 		else {
 			for (int c = 0; c < activeEngines; c += 4)
@@ -150,7 +124,7 @@ struct ABC : Module {
 		if (outputs[OUT1_OUTPUT].isConnected()) {
 			outputs[OUT1_OUTPUT].setChannels(activeEngines1);
 			for (int c = 0; c < activeEngines1; c += 4)
-				out1[c / 4].store(outputs[OUT1_OUTPUT].getVoltages(c));
+				outputs[OUT1_OUTPUT].setVoltageSimd(out1[c / 4], c);
 		}
 		else if (outputs[OUT2_OUTPUT].isConnected()) {
 
@@ -161,7 +135,7 @@ struct ABC : Module {
 
 			outputs[OUT2_OUTPUT].setChannels(activeEngines2);
 			for (int c = 0; c < activeEngines2; c += 4)
-				out2[c / 4].store(outputs[OUT2_OUTPUT].getVoltages(c));
+				outputs[OUT2_OUTPUT].setVoltageSimd(out2[c / 4], c);
 		}
 
 		// Lights

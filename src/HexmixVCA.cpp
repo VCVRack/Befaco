@@ -1,6 +1,7 @@
 #include "plugin.hpp"
 #include "Common.hpp"
 
+using simd::float_4;
 
 static float gainFunction(float x, float shape) {
 	float lin = x;
@@ -49,7 +50,7 @@ struct HexmixVCA : Module {
 	}
 
 	void process(const ProcessArgs& args) override {
-		simd::float_4 mix[4] = {};
+		float_4 mix[4] = {0.f};
 		int maxChannels = 1;
 
 		// only calculate gains/shapes every 16 samples
@@ -61,29 +62,33 @@ struct HexmixVCA : Module {
 		}
 
 		for (int row = 0; row < numRows; ++row) {
-
+			bool finalRow = (row == numRows - 1);
 			int channels = 1;
-			simd::float_4 in[4] = {};
+			float_4 in[4] = {0.f};
 			bool inputIsConnected = inputs[IN_INPUT + row].isConnected();
 			if (inputIsConnected) {
 				channels = inputs[row].getChannels();
-				maxChannels = std::max(maxChannels, channels);
 
+				// if we're in "mixer" mode, an input only counts towards the main output polyphony count if it's
+				// not taken out of the mix (i.e. patched in). the final row should count towards polyphony calc.
+				if (finalRowIsMix && (finalRow || !outputs[OUT_OUTPUT + row].isConnected())) {
+					maxChannels = std::max(maxChannels, channels);
+				}
+				
 				float cvGain = clamp(inputs[CV_INPUT + row].getNormalVoltage(10.f) / 10.f, 0.f, 1.f);
 				float gain = gainFunction(cvGain, shapes[row]) * outputLevels[row];
 
 				for (int c = 0; c < channels; c += 4) {
-					in[c / 4] = simd::float_4::load(inputs[row].getVoltages(c)) * gain;
+					in[c / 4] = inputs[row].getVoltageSimd<float_4>(c) * gain;
 				}
 			}
 			
-			bool finalRow = (row == numRows - 1);
 			if (!finalRow) {
 				if (outputs[OUT_OUTPUT + row].isConnected()) {
 					// if output is connected, we don't add to mix
 					outputs[OUT_OUTPUT + row].setChannels(channels);
 					for (int c = 0; c < channels; c += 4) {
-						in[c / 4].store(outputs[OUT_OUTPUT + row].getVoltages(c));
+						outputs[OUT_OUTPUT + row].setVoltageSimd(in[c / 4], c);
 					}
 				}
 				else if (finalRowIsMix) {
@@ -105,14 +110,14 @@ struct HexmixVCA : Module {
 						}
 
 						for (int c = 0; c < maxChannels; c += 4) {
-							mix[c / 4].store(outputs[OUT_OUTPUT + row].getVoltages(c));
+							outputs[OUT_OUTPUT + row].setVoltageSimd(mix[c / 4], c);
 						}
 					}
 					else {
 						// same as other rows
 						outputs[OUT_OUTPUT + row].setChannels(channels);
 						for (int c = 0; c < channels; c += 4) {
-							in[c / 4].store(outputs[OUT_OUTPUT + row].getVoltages(c));
+							outputs[OUT_OUTPUT + row].setVoltageSimd(in[c / 4], c);
 						}
 					}
 				}

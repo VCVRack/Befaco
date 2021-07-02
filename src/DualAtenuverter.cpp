@@ -61,10 +61,10 @@ struct DualAtenuverter : Module {
 		outputs[OUT2_OUTPUT].setChannels(channels2);
 
 		for (int c = 0; c < channels1; c += 4) {
-			out1[c / 4].store(outputs[OUT1_OUTPUT].getVoltages(c));
+			outputs[OUT1_OUTPUT].setVoltageSimd(out1[c / 4], c);
 		}
 		for (int c = 0; c < channels2; c += 4) {
-			out2[c / 4].store(outputs[OUT2_OUTPUT].getVoltages(c));
+			outputs[OUT2_OUTPUT].setVoltageSimd(out2[c / 4], c);
 		}
 
 		float light1 = outputs[OUT1_OUTPUT].getVoltageSum() / channels1;

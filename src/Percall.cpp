@@ -1,6 +1,7 @@
 #include "plugin.hpp"
 #include "Common.hpp"
 
+using simd::float_4;
 
 struct Percall : Module {
 	enum ParamIds {
@@ -28,7 +29,7 @@ struct Percall : Module {
 
 	ADEnvelope envs[4];
 
-	float gains[4] = {};
+	float gains[4] = {0.f};
 
 	float strength = 1.0f;
 	dsp::SchmittTrigger trigger[4];
@@ -76,7 +77,7 @@ struct Percall : Module {
 			}
 		}
 
-		simd::float_4 mix[4] = {};
+		float_4 mix[4] = {0.f};
 		int maxPolyphonyChannels = 1;
 
 		// Mixer channels
@@ -95,19 +96,24 @@ struct Percall : Module {
 			envs[i].process(args.sampleTime);
 
 			int polyphonyChannels = 1;
-			simd::float_4 in[4] = {};
+			float_4 in[4] = {};
 			bool inputIsConnected = inputs[CH_INPUTS + i].isConnected();
 			bool inputIsNormed = !inputIsConnected && (i % 2) && inputs[CH_INPUTS + i - 1].isConnected();
 			if ((inputIsConnected || inputIsNormed)) {
-				int channel_to_read_from = inputIsNormed ? CH_INPUTS + i - 1 : CH_INPUTS + i;
-				polyphonyChannels = inputs[channel_to_read_from].getChannels();
-				maxPolyphonyChannels = std::max(maxPolyphonyChannels, polyphonyChannels);
+				int channelToReadFrom = inputIsNormed ? CH_INPUTS + i - 1 : CH_INPUTS + i;
+				polyphonyChannels = inputs[channelToReadFrom].getChannels();
+
+				// an input only counts towards the main output polyphony count if it's not taken out of the mix
+				// (i.e. an output is patched in). the final input should always count towards polyphony count.
+				if (i == CH_INPUTS_LAST || !outputs[CH_OUTPUTS + i].isConnected()) {
+					maxPolyphonyChannels = std::max(maxPolyphonyChannels, polyphonyChannels);
+				}
 
 				// only process input audio if envelope is active
 				if (envs[i].stage != ADEnvelope::STAGE_OFF) {
 					float gain = gains[i] * envs[i].env;
 					for (int c = 0; c < polyphonyChannels; c += 4) {
-						in[c / 4] = simd::float_4::load(inputs[channel_to_read_from].getVoltages(c)) * gain;
+						in[c / 4] = inputs[channelToReadFrom].getVoltageSimd<float_4>(c) * gain;
 					}
 				}
 			}
@@ -117,7 +123,7 @@ struct Percall : Module {
 				if (outputs[CH_OUTPUTS + i].isConnected()) {
 					outputs[CH_OUTPUTS + i].setChannels(polyphonyChannels);
 					for (int c = 0; c < polyphonyChannels; c += 4) {
-						in[c / 4].store(outputs[CH_OUTPUTS + i].getVoltages(c));
+						outputs[CH_OUTPUTS + i].setVoltageSimd(in[c / 4], c);
 					}
 				}
 				else {
@@ -138,7 +144,7 @@ struct Percall : Module {
 				}
 
 				for (int c = 0; c < maxPolyphonyChannels; c += 4) {
-					mix[c / 4].store(outputs[CH_OUTPUTS + i].getVoltages(c));
+					outputs[CH_OUTPUTS + i].setVoltageSimd(mix[c / 4], c);
 				}
 			}
 

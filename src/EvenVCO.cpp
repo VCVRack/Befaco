@@ -63,8 +63,6 @@ struct EvenVCO : Module {
 
 		int channels_pitch1 = inputs[PITCH1_INPUT].getChannels();
 		int channels_pitch2 = inputs[PITCH2_INPUT].getChannels();
-		int channels_fm     = inputs[FM_INPUT].getChannels();
-		int channels_pwm	= inputs[PWM_INPUT].getChannels();
 
 		int channels = 1;
 		channels = std::max(channels, channels_pitch1);
@@ -78,39 +76,18 @@ struct EvenVCO : Module {
 			pitch[c / 4] = float_4(pitch_0);
 
 		if (inputs[PITCH1_INPUT].isConnected()) {
-			// if pitch_1 monophonic, broadcast
-			if (channels_pitch1 == 1) {
-				for (int c = 0; c < channels; c += 4)
-					pitch[c / 4] += float_4(inputs[PITCH1_INPUT].getVoltage());
-			}
-			else {
-				for (int c = 0; c < std::min(channels, channels_pitch1); c += 4)
-					pitch[c / 4] += inputs[PITCH1_INPUT].getVoltageSimd<float_4>(c);
-			}
+			for (int c = 0; c < channels; c += 4)
+				pitch[c / 4] += inputs[PITCH1_INPUT].getPolyVoltageSimd<float_4>(c);
 		}
 
 		if (inputs[PITCH2_INPUT].isConnected()) {
-			// if pitch_2 monophonic, broadcast
-			if (channels_pitch2 == 1) {
-				for (int c = 0; c < channels; c += 4)
-					pitch[c / 4] += float_4(inputs[PITCH2_INPUT].getVoltage());
-			}
-			else {
-				for (int c = 0; c < std::min(channels, channels_pitch2); c += 4)
-					pitch[c / 4] += inputs[PITCH2_INPUT].getVoltageSimd<float_4>(c);
-			}
+			for (int c = 0; c < channels; c += 4)
+				pitch[c / 4] += inputs[PITCH2_INPUT].getPolyVoltageSimd<float_4>(c);
 		}
 
-		if (inputs[FM_INPUT].isConnected()) {
-			// if FM is monophonic, broadcast
-			if (channels_fm == 1) {
-				for (int c = 0; c < channels; c += 4)
-					pitch[c / 4] += float_4(inputs[FM_INPUT].getVoltage() / 4.f);
-			}
-			else {
-				for (int c = 0; c < std::min(channels, channels_fm); c += 4)
-					pitch[c / 4] += inputs[FM_INPUT].getVoltageSimd<float_4>(c) / 4.f;
-			}
+		if (inputs[FM_INPUT].isConnected()) {			
+			for (int c = 0; c < channels; c += 4)
+				pitch[c / 4] += inputs[FM_INPUT].getPolyVoltageSimd<float_4>(c) / 4.f;
 		}
 
 		float_4 freq[4];
@@ -126,14 +103,8 @@ struct EvenVCO : Module {
 			pw[c / 4] = float_4(pw_0);
 
 		if (inputs[PWM_INPUT].isConnected()) {
-			if (channels_pwm == 1) {
-				for (int c = 0; c < channels; c += 4)
-					pw[c / 4] += float_4(inputs[PWM_INPUT].getVoltage() / 5.f);
-			}
-			else {
-				for (int c = 0; c < std::min(channels, channels_pwm); c += 4)
-					pw[c / 4] += inputs[PWM_INPUT].getVoltageSimd<float_4>(c) / 5.f;
-			}
+			for (int c = 0; c < channels; c += 4)
+				pw[c / 4] += inputs[PWM_INPUT].getPolyVoltageSimd<float_4>(c) / 5.f;
 		}
 
 		const float_4 minPw_4 = float_4(0.05f);
@@ -234,12 +205,11 @@ struct EvenVCO : Module {
 			square[c / 4] *= 5.f;
 
 			// Set outputs
-
-			triOut[c / 4].store(outputs[TRI_OUTPUT].getVoltages(c));
-			sine[c / 4].store(outputs[SINE_OUTPUT].getVoltages(c));
-			even[c / 4].store(outputs[EVEN_OUTPUT].getVoltages(c));
-			saw[c / 4].store(outputs[SAW_OUTPUT].getVoltages(c));
-			square[c / 4].store(outputs[SQUARE_OUTPUT].getVoltages(c));
+			outputs[TRI_OUTPUT].setVoltageSimd(triOut[c / 4], c);
+			outputs[SINE_OUTPUT].setVoltageSimd(sine[c / 4], c);
+			outputs[EVEN_OUTPUT].setVoltageSimd(even[c / 4], c);
+			outputs[SAW_OUTPUT].setVoltageSimd(saw[c / 4], c);
+			outputs[SQUARE_OUTPUT].setVoltageSimd(square[c / 4], c);
 		}
 	}
 };

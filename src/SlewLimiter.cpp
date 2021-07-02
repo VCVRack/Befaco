@@ -57,20 +57,10 @@ struct SlewLimiter : Module {
 			in[c / 4] = inputs[IN_INPUT].getVoltageSimd<float_4>(c);
 
 			if (inputs[RISE_INPUT].isConnected()) {
-				if (inputs[RISE_INPUT].getChannels() == 1) {
-					riseCV[c / 4] = float_4(inputs[RISE_INPUT].getVoltage());
-				}
-				else {
-					riseCV[c / 4] = inputs[RISE_INPUT].getVoltageSimd<float_4>(c);
-				}
+				riseCV[c / 4] = inputs[RISE_INPUT].getPolyVoltageSimd<float_4>(c);
 			}
 			if (inputs[FALL_INPUT].isConnected()) {
-				if (inputs[FALL_INPUT].getChannels() == 1) {
-					fallCV[c / 4] = float_4(inputs[FALL_INPUT].getVoltage());
-				}
-				else {
-					fallCV[c / 4] = inputs[FALL_INPUT].getVoltageSimd<float_4>(c);
-				}
+				fallCV[c / 4] = inputs[FALL_INPUT].getPolyVoltageSimd<float_4>(c);
 			}
 
 			riseCV[c / 4] += param_rise;

@@ -83,9 +83,9 @@ struct Mixer : Module {
 		outputs[OUT2_OUTPUT].setChannels(out_channels);
 
 		for (int c = 0; c < out_channels; c += 4) {
-			out[c / 4].store(outputs[OUT1_OUTPUT].getVoltages(c));
+			outputs[OUT1_OUTPUT].setVoltageSimd(out[c / 4], c);
 			out[c / 4] *= -1.f;
-			out[c / 4].store(outputs[OUT2_OUTPUT].getVoltages(c));
+			outputs[OUT2_OUTPUT].setVoltageSimd(out[c / 4], c);
 		}
 
 		if (out_channels == 1) {
