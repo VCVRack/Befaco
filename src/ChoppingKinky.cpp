@@ -39,9 +39,9 @@ struct ChoppingKinky : Module {
 	};
 
 	static const int WAVESHAPE_CACHE_SIZE = 256;
-	float waveshapeA[WAVESHAPE_CACHE_SIZE + 1] = {0.f};
-	float waveshapeBPositive[WAVESHAPE_CACHE_SIZE + 1] = {0.f};
-	float waveshapeBNegative[WAVESHAPE_CACHE_SIZE + 1] = {0.f};
+	float waveshapeA[WAVESHAPE_CACHE_SIZE + 1] = {};
+	float waveshapeBPositive[WAVESHAPE_CACHE_SIZE + 1] = {};
+	float waveshapeBNegative[WAVESHAPE_CACHE_SIZE + 1] = {};
 
 	dsp::SchmittTrigger trigger;
 	bool outputAToChopp = false;
@@ -349,7 +349,7 @@ struct ChoppingKinkyWidget : ModuleWidget {
 			}
 		};
 		for (int i = 0; i < 5; i++) {
-			ModeItem* modeItem = createMenuItem<ModeItem>(std::to_string(int (1 << i)) + "x");
+			ModeItem* modeItem = createMenuItem<ModeItem>(string::f("%dx", int (1 << i)));
 			modeItem->rightText = CHECKMARK(module->oversamplingIndex == i);
 			modeItem->module = module;
 			modeItem->oversamplingIndex = i;

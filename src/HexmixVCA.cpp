@@ -35,21 +35,25 @@ struct HexmixVCA : Module {
 
 	const static int numRows = 6;
 	dsp::ClockDivider cvDivider;
-	float outputLevels[numRows] = {1.f};
-	float shapes[numRows] = {0.f};
+	float outputLevels[numRows] = {};
+	float shapes[numRows] = {};
 	bool finalRowIsMix = true;
 
 	HexmixVCA() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 		for (int i = 0; i < numRows; ++i) {
-			configParam(SHAPE_PARAM + i, -1.f, 1.f, 0.f, "VCA response");
-			configParam(VOL_PARAM + i, 0.f, 1.f, 1.f, "Output level");
+			configParam(SHAPE_PARAM + i, -1.f, 1.f, 0.f, string::f("Channel %d VCA response", i));
+			configParam(VOL_PARAM + i, 0.f, 1.f, 1.f, string::f("Channel %d output level", i));
 		}
 		cvDivider.setDivision(16);
+
+		for (int row = 0; row < numRows; ++row) {
+			outputLevels[row] = 1.f;
+		}
 	}
 
 	void process(const ProcessArgs& args) override {
-		float_4 mix[4] = {0.f};
+		float_4 mix[4] = {};
 		int maxChannels = 1;
 
 		// only calculate gains/shapes every 16 samples
@@ -63,7 +67,7 @@ struct HexmixVCA : Module {
 		for (int row = 0; row < numRows; ++row) {
 			bool finalRow = (row == numRows - 1);
 			int channels = 1;
-			float_4 in[4] = {0.f};
+			float_4 in[4] = {};
 			bool inputIsConnected = inputs[IN_INPUT + row].isConnected();
 			if (inputIsConnected) {
 				channels = inputs[row].getChannels();
@@ -73,7 +77,7 @@ struct HexmixVCA : Module {
 				if (finalRowIsMix && (finalRow || !outputs[OUT_OUTPUT + row].isConnected())) {
 					maxChannels = std::max(maxChannels, channels);
 				}
-				
+
 				float cvGain = clamp(inputs[CV_INPUT + row].getNormalVoltage(10.f) / 10.f, 0.f, 1.f);
 				float gain = gainFunction(cvGain, shapes[row]) * outputLevels[row];
 
@@ -81,7 +85,7 @@ struct HexmixVCA : Module {
 					in[c / 4] = inputs[row].getVoltageSimd<float_4>(c) * gain;
 				}
 			}
-			
+
 			if (!finalRow) {
 				if (outputs[OUT_OUTPUT + row].isConnected()) {
 					// if output is connected, we don't add to mix
@@ -185,18 +189,18 @@ struct HexmixVCAWidget : ModuleWidget {
 		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(64.222, 108.536)), module, HexmixVCA::OUT_OUTPUT + 5));
 	}
 
-	struct MixMenuItem : MenuItem {
-		HexmixVCA* module;
-		void onAction(const event::Action& e) override {
-			module->finalRowIsMix ^= true;
-		}
-	};
-
 	void appendContextMenu(Menu* menu) override {
 		HexmixVCA* module = dynamic_cast<HexmixVCA*>(this->module);
 		assert(module);
 
 		menu->addChild(new MenuSeparator());
+
+		struct MixMenuItem : MenuItem {
+			HexmixVCA* module;
+			void onAction(const event::Action& e) override {
+				module->finalRowIsMix ^= true;
+			}
+		};
 
 		MixMenuItem* mixItem = createMenuItem<MixMenuItem>("Final row is mix", CHECKMARK(module->finalRowIsMix));
 		mixItem->module = module;

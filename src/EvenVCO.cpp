@@ -26,14 +26,14 @@ struct EvenVCO : Module {
 		NUM_OUTPUTS
 	};
 
-	float_4 phase[4];
-	float_4 tri[4];
+	float_4 phase[4] = {};
+	float_4 tri[4] = {};
 
 	/** The value of the last sync input */
 	float sync = 0.0;
 	/** The outputs */
 	/** Whether we are past the pulse width already */
-	bool halfPhase[PORT_MAX_CHANNELS];
+	bool halfPhase[PORT_MAX_CHANNELS] = {};
 
 	dsp::MinBlepGenerator<16, 32> triSquareMinBlep[PORT_MAX_CHANNELS];
 	dsp::MinBlepGenerator<16, 32> triMinBlep[PORT_MAX_CHANNELS];
@@ -42,20 +42,11 @@ struct EvenVCO : Module {
 	dsp::MinBlepGenerator<16, 32> sawMinBlep[PORT_MAX_CHANNELS];
 	dsp::MinBlepGenerator<16, 32> squareMinBlep[PORT_MAX_CHANNELS];
 
-	dsp::RCFilter triFilter;
-
 	EvenVCO() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
 		configParam(OCTAVE_PARAM, -5.0, 4.0, 0.0, "Octave", "'", 0.5);
 		configParam(TUNE_PARAM, -7.0, 7.0, 0.0, "Tune", " semitones");
 		configParam(PWM_PARAM, -1.0, 1.0, 0.0, "Pulse width");
-
-		for (int i = 0; i < 4; i++) {
-			phase[i] = 0.f;
-			tri[i] = 0.f;
-		}
-		for (int c = 0; c < PORT_MAX_CHANNELS; c++)
-			halfPhase[c] = false;
 	}
 
 	void process(const ProcessArgs& args) override {
@@ -70,9 +61,9 @@ struct EvenVCO : Module {
 		float pitch_0 = 1.f + std::round(params[OCTAVE_PARAM].getValue()) + params[TUNE_PARAM].getValue() / 12.f;
 
 		// Compute frequency, pitch is 1V/oct
-		float_4 pitch[4];
+		float_4 pitch[4] = {};
 		for (int c = 0; c < channels; c += 4)
-			pitch[c / 4] = float_4(pitch_0);
+			pitch[c / 4] = pitch_0;
 
 		if (inputs[PITCH1_INPUT].isConnected()) {
 			for (int c = 0; c < channels; c += 4)
@@ -89,30 +80,26 @@ struct EvenVCO : Module {
 				pitch[c / 4] += inputs[FM_INPUT].getPolyVoltageSimd<float_4>(c) / 4.f;
 		}
 
-		float_4 freq[4];
+		float_4 freq[4] = {};
 		for (int c = 0; c < channels; c += 4) {
 			freq[c / 4] = dsp::FREQ_C4 * simd::pow(2.f, pitch[c / 4]);
 			freq[c / 4] = clamp(freq[c / 4], 0.f, 20000.f);
 		}
 
-		// Pulse width
-		float pw_0 = params[PWM_PARAM].getValue();
-		float_4 pw[4];
+		// Pulse width		
+		float_4 pw[4] = {};
 		for (int c = 0; c < channels; c += 4)
-			pw[c / 4] = float_4(pw_0);
+			pw[c / 4] = params[PWM_PARAM].getValue();
 
 		if (inputs[PWM_INPUT].isConnected()) {
 			for (int c = 0; c < channels; c += 4)
 				pw[c / 4] += inputs[PWM_INPUT].getPolyVoltageSimd<float_4>(c) / 5.f;
 		}
-
-		const float_4 minPw_4 = float_4(0.05f);
-		const float_4 m_one_4 = float_4(-1.0f);
-		const float_4 one_4 = float_4(1.0f);
-		float_4 deltaPhase[4];
-		float_4 oldPhase[4];
+		
+		float_4 deltaPhase[4] = {};
+		float_4 oldPhase[4] = {};
 		for (int c = 0; c < channels; c += 4) {
-			pw[c / 4] = rescale(clamp(pw[c / 4], m_one_4, one_4), m_one_4, one_4, minPw_4, one_4 - minPw_4);
+			pw[c / 4] = rescale(clamp(pw[c / 4], -1.0f, 1.0f), -1.0f, 1.0f, 0.05f, 1.0f - 0.05f);
 
 			// Advance phase
 			deltaPhase[c / 4] = clamp(freq[c / 4] * args.sampleTime, float_4(1e-6f), float_4(0.5f));
@@ -121,7 +108,6 @@ struct EvenVCO : Module {
 		}
 
 		// the next block can't be done with SIMD instructions:
-
 		for (int c = 0; c < channels; c++) {
 
 			if (oldPhase[c / 4].s[c % 4] < 0.5 && phase[c / 4].s[c % 4] >= 0.5) {
@@ -148,19 +134,19 @@ struct EvenVCO : Module {
 			}
 		}
 
-		float_4 triSquareMinBlepOut[4];
-		float_4 doubleSawMinBlepOut[4];
-		float_4 sawMinBlepOut[4];
-		float_4 squareMinBlepOut[4];
+		float_4 triSquareMinBlepOut[4] = {};
+		float_4 doubleSawMinBlepOut[4] = {};
+		float_4 sawMinBlepOut[4] = {};
+		float_4 squareMinBlepOut[4] = {};
 
-		float_4 triSquare[4];
-		float_4 sine[4];
-		float_4 doubleSaw[4];
+		float_4 triSquare[4] = {};
+		float_4 sine[4] = {};
+		float_4 doubleSaw[4] = {};
 
-		float_4 even[4];
-		float_4 saw[4];
-		float_4 square[4];
-		float_4 triOut[4];
+		float_4 even[4] = {};
+		float_4 saw[4] = {};
+		float_4 square[4] = {};
+		float_4 triOut[4] = {};
 
 		for (int c = 0; c < channels; c++) {
 			triSquareMinBlepOut[c / 4].s[c % 4] = triSquareMinBlep[c].process();
@@ -170,7 +156,6 @@ struct EvenVCO : Module {
 		}
 
 		// Outputs
-
 		outputs[TRI_OUTPUT].setChannels(channels);
 		outputs[SINE_OUTPUT].setChannels(channels);
 		outputs[EVEN_OUTPUT].setChannels(channels);
@@ -179,7 +164,7 @@ struct EvenVCO : Module {
 
 		for (int c = 0; c < channels; c += 4) {
 
-			triSquare[c / 4] = simd::ifelse((phase[c / 4] < 0.5f * one_4), m_one_4, one_4);
+			triSquare[c / 4] = simd::ifelse((phase[c / 4] < 0.5f), -1.f, +1.f);
 			triSquare[c / 4] += triSquareMinBlepOut[c / 4];
 
 			// Integrate square for triangle
@@ -199,7 +184,7 @@ struct EvenVCO : Module {
 			saw[c / 4] += sawMinBlepOut[c / 4];
 			saw[c / 4] *= 5.f;
 
-			square[c / 4] = simd::ifelse((phase[c / 4] < pw[c / 4]),  m_one_4, one_4) ;
+			square[c / 4] = simd::ifelse((phase[c / 4] < pw[c / 4]),  -1.f, +1.f);
 			square[c / 4] += squareMinBlepOut[c / 4];
 			square[c / 4] *= 5.f;
 

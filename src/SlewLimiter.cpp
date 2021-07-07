@@ -20,22 +20,20 @@ struct SlewLimiter : Module {
 		NUM_OUTPUTS
 	};
 
-	float_4 out[4];
+	float_4 out[4] = {};
 
 	SlewLimiter() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
 		configParam(SHAPE_PARAM, 0.0, 1.0, 0.0, "Shape");
 		configParam(RISE_PARAM, 0.0, 1.0, 0.0, "Rise time");
 		configParam(FALL_PARAM, 0.0, 1.0, 0.0, "Fall time");
-
-		memset(out, 0, sizeof(out));
 	}
 
 	void process(const ProcessArgs& args) override {
 
-		float_4 in[4] = {0.f};
-		float_4 riseCV[4] = {0.f};
-		float_4 fallCV[4] = {0.f};
+		float_4 in[4] = {};
+		float_4 riseCV[4] = {};
+		float_4 fallCV[4] = {};
 
 		// this is the number of active polyphony engines, defined by the input
 		int numPolyphonyEngines = inputs[IN_INPUT].getChannels();
@@ -46,9 +44,8 @@ struct SlewLimiter : Module {
 		// Amount of extra slew per voltage difference
 		const float shapeScale = 1 / 10.f;
 
-		const float_4 shape = float_4(params[SHAPE_PARAM].getValue());
-		const float_4 param_rise = float_4(params[RISE_PARAM].getValue() * 10.f);
-		const float_4 param_fall = float_4(params[FALL_PARAM].getValue() * 10.f);
+		const float_4 param_rise = params[RISE_PARAM].getValue() * 10.f;
+		const float_4 param_fall = params[FALL_PARAM].getValue() * 10.f;
 
 		outputs[OUT_OUTPUT].setChannels(numPolyphonyEngines);
 
@@ -66,21 +63,22 @@ struct SlewLimiter : Module {
 			fallCV[c / 4] += param_fall;
 
 			float_4 delta = in[c / 4] - out[c / 4];
-			float_4 delta_gt_0 = delta > float_4::zero();
-			float_4 delta_lt_0 = delta < float_4::zero();
+			float_4 delta_gt_0 = delta > 0.f;
+			float_4 delta_lt_0 = delta < 0.f;
 
-			float_4 rateCV;
-			rateCV = ifelse(delta_gt_0, riseCV[c / 4], float_4::zero());
+			float_4 rateCV = {};
+			rateCV = ifelse(delta_gt_0, riseCV[c / 4], 0.f);
 			rateCV = ifelse(delta_lt_0, fallCV[c / 4], rateCV) * 0.1f;
 
 			float_4 pm_one = simd::sgn(delta);
 			float_4 slew = slewMax * simd::pow(float_4(slewMin / slewMax), rateCV);
 
+			const float shape = params[SHAPE_PARAM].getValue();
 			out[c / 4] += slew * simd::crossfade(pm_one, shapeScale * delta, shape) * args.sampleTime;
 			out[c / 4] = ifelse(delta_gt_0 & (out[c / 4] > in[c / 4]), in[c / 4], out[c / 4]);
 			out[c / 4] = ifelse(delta_lt_0 & (out[c / 4] < in[c / 4]), in[c / 4], out[c / 4]);
 
-			out[c / 4].store(outputs[OUT_OUTPUT].getVoltages(c));
+			outputs[OUT_OUTPUT].setVoltageSimd(out[c / 4], c);
 		}
 	}
 };

@@ -28,9 +28,8 @@ struct Percall : Module {
 
 	ADEnvelope envs[4];
 
-	float gains[4] = {0.f};
+	float gains[4] = {};
 
-	float strength = 1.0f;
 	dsp::SchmittTrigger trigger[4];
 	dsp::ClockDivider cvDivider;
 	dsp::ClockDivider lightDivider;
@@ -43,16 +42,15 @@ struct Percall : Module {
 	Percall() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 		for (int i = 0; i < 4; i++) {
-			configParam(VOL_PARAMS + i, 0.f, 1.f, 1.f, "Ch " + std::to_string(i + 1) + " level", "%", 0, 100);
-			configParam(DECAY_PARAMS + i, 0.f, 1.f, 0.f, "Ch " + std::to_string(i + 1) + " decay time");
+			configParam(VOL_PARAMS + i, 0.f, 1.f, 1.f, string::f("Channel %d level", i + 1), "%", 0, 100);
+			configParam(DECAY_PARAMS + i, 0.f, 1.f, 0.f, string::f("Channel %d decay time", i + 1));
 			envs[i].attackTime = attackTime;
 			envs[i].attackShape = 0.5f;
 			envs[i].decayShape = 2.0f;
-
 		}
-		for (int i = 0; i < 2; i++) {
-			std::string description = "Choke " + std::to_string(2 * i + 1) + " to " + std::to_string(2 * i + 2);
-			configParam(CHOKE_PARAMS + i, 0.f, 1.f, 0.f, description);
+
+		for (int i = 0; i < 2; i++) {			
+			configParam(CHOKE_PARAMS + i, 0.f, 1.f, 0.f, string::f("Choke %d to %d", 2 * i + 1, 2 * i + 2));
 		}
 
 		cvDivider.setDivision(16);
@@ -61,9 +59,9 @@ struct Percall : Module {
 
 	void process(const ProcessArgs& args) override {
 
-		strength = 1.0f;
+		float strength = 1.0f;
 		if (inputs[STRENGTH_INPUT].isConnected()) {
-			strength = sqrt(clamp(inputs[STRENGTH_INPUT].getVoltage() / 10.0f, 0.0f, 1.0f));
+			strength = std::sqrt(clamp(inputs[STRENGTH_INPUT].getVoltage() / 10.0f, 0.0f, 1.0f));
 		}
 
 		// only calculate gains/decays every 16 samples
@@ -76,7 +74,7 @@ struct Percall : Module {
 			}
 		}
 
-		float_4 mix[4] = {0.f};
+		float_4 mix[4] = {};
 		int maxPolyphonyChannels = 1;
 
 		// Mixer channels

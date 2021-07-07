@@ -49,31 +49,26 @@ struct Mixer : Module {
 		out_channels = std::max(out_channels, channels3);
 		out_channels = std::max(out_channels, channels4);
 
-		float_4 mult1 = float_4(params[CH1_PARAM].getValue());
-		float_4 mult2 = float_4(params[CH2_PARAM].getValue());
-		float_4 mult3 = float_4(params[CH3_PARAM].getValue());
-		float_4 mult4 = float_4(params[CH4_PARAM].getValue());
-
 		float_4 out[4] = {};
 
 		if (inputs[IN1_INPUT].isConnected()) {
 			for (int c = 0; c < channels1; c += 4)
-				out[c / 4] += inputs[IN1_INPUT].getVoltageSimd<float_4>(c) * mult1;
+				out[c / 4] += inputs[IN1_INPUT].getVoltageSimd<float_4>(c) * params[CH1_PARAM].getValue();
 		}
 
 		if (inputs[IN2_INPUT].isConnected()) {
 			for (int c = 0; c < channels2; c += 4)
-				out[c / 4] += inputs[IN2_INPUT].getVoltageSimd<float_4>(c) * mult2;
+				out[c / 4] += inputs[IN2_INPUT].getVoltageSimd<float_4>(c) * params[CH2_PARAM].getValue();
 		}
 
 		if (inputs[IN3_INPUT].isConnected()) {
 			for (int c = 0; c < channels3; c += 4)
-				out[c / 4] += inputs[IN3_INPUT].getVoltageSimd<float_4>(c) * mult3;
+				out[c / 4] += inputs[IN3_INPUT].getVoltageSimd<float_4>(c) * params[CH3_PARAM].getValue();
 		}
 
 		if (inputs[IN4_INPUT].isConnected()) {
 			for (int c = 0; c < channels4; c += 4)
-				out[c / 4] += inputs[IN4_INPUT].getVoltageSimd<float_4>(c) * mult4;
+				out[c / 4] += inputs[IN4_INPUT].getVoltageSimd<float_4>(c) * params[CH4_PARAM].getValue();
 		}
 
 		outputs[OUT1_OUTPUT].setChannels(out_channels);

@@ -75,8 +75,8 @@ struct Rampage : Module {
 	};
 
 
-	float_4 out[2][4];
-	float_4 gate[2][4]; // use simd __m128 logic instead of bool
+	float_4 out[2][4] = {};
+	float_4 gate[2][4] = {}; // use simd __m128 logic instead of bool
 
 	dsp::TSchmittTrigger<float_4> trigger_4[2][4];
 	PulseGenerator_4 endOfCyclePulse[2][4];
@@ -98,15 +98,12 @@ struct Rampage : Module {
 		configParam(FALL_B_PARAM, 0.0, 1.0, 0.0, "Ch 2 fall time");
 		configParam(CYCLE_B_PARAM, 0.0, 1.0, 0.0, "Ch 2 cycle");
 		configParam(BALANCE_PARAM, 0.0, 1.0, 0.5, "Balance");
-
-		std::memset(out, 0, sizeof(out));
-		std::memset(gate, 0, sizeof(gate));
 	}
 
 	void process(const ProcessArgs& args) override {
-		int channels_in[2];
-		int channels_trig[2];
-		int channels[2]; 	// the larger of in or trig (per-part)
+		int channels_in[2] = {};
+		int channels_trig[2] = {};
+		int channels[2] = {}; 	// the larger of in or trig (per-part)
 
 		// determine number of channels:
 
@@ -122,7 +119,7 @@ struct Rampage : Module {
 			outputs[FALLING_A_OUTPUT + part].setChannels(channels[part]);
 			outputs[EOC_A_OUTPUT + part].setChannels(channels[part]);
 		}
-		
+
 		// total number of active polyphony engines, accounting for both halves
 		// (channels[0] / channels[1] are the number of active engines per section)
 		const int channels_max = std::max(channels[0], channels[1]);
@@ -134,14 +131,13 @@ struct Rampage : Module {
 		// loop over two parts of Rampage:
 		for (int part = 0; part < 2; part++) {
 
-			float_4 in[4] = {0.f};
-			float_4 in_trig[4] = {0.f};
-			float_4 riseCV[4] = {0.f};
-			float_4 fallCV[4] = {0.f};
-			float_4 cycle[4] = {0.f};
+			float_4 in[4] = {};
+			float_4 in_trig[4] = {};
+			float_4 riseCV[4] = {};
+			float_4 fallCV[4] = {};
+			float_4 cycle[4] = {};
 
 			// get parameters:
-			float shape = params[SHAPE_A_PARAM + part].getValue();
 			float minTime;
 			switch ((int) params[RANGE_A_PARAM + part].getValue()) {
 				case 0:
@@ -155,10 +151,10 @@ struct Rampage : Module {
 					break;
 			}
 
-			float_4 param_rise  = float_4(params[RISE_A_PARAM  + part].getValue() * 10.0f);
-			float_4 param_fall  = float_4(params[FALL_A_PARAM  + part].getValue() * 10.0f);
-			float_4 param_trig  = float_4(params[TRIGG_A_PARAM + part].getValue() * 20.0f);
-			float_4 param_cycle = float_4(params[CYCLE_A_PARAM + part].getValue() * 10.0f);
+			float_4 param_rise  = params[RISE_A_PARAM  + part].getValue() * 10.0f;
+			float_4 param_fall  = params[FALL_A_PARAM  + part].getValue() * 10.0f;
+			float_4 param_trig  = params[TRIGG_A_PARAM + part].getValue() * 20.0f;
+			float_4 param_cycle = params[CYCLE_A_PARAM + part].getValue() * 10.0f;
 
 			for (int c = 0; c < channels[part]; c += 4) {
 				riseCV[c / 4] = param_rise;
@@ -168,7 +164,7 @@ struct Rampage : Module {
 			}
 
 			// read inputs:
-			if (inputs[IN_A_INPUT + part].isConnected()) {				
+			if (inputs[IN_A_INPUT + part].isConnected()) {
 				for (int c = 0; c < channels[part]; c += 4)
 					in[c / 4] = inputs[IN_A_INPUT + part].getPolyVoltageSimd<float_4>(c);
 			}
@@ -179,7 +175,7 @@ struct Rampage : Module {
 			}
 
 			if (inputs[EXP_CV_A_INPUT + part].isConnected()) {
-				float_4 expCV[4];				
+				float_4 expCV[4] = {};
 				for (int c = 0; c < channels[part]; c += 4)
 					expCV[c / 4] = inputs[EXP_CV_A_INPUT + part].getPolyVoltageSimd<float_4>(c);
 
@@ -190,11 +186,11 @@ struct Rampage : Module {
 			}
 
 			for (int c = 0; c < channels[part]; c += 4)
-				riseCV[c / 4] += inputs[RISE_CV_A_INPUT + part].getPolyVoltageSimd<float_4>(c);		
+				riseCV[c / 4] += inputs[RISE_CV_A_INPUT + part].getPolyVoltageSimd<float_4>(c);
 			for (int c = 0; c < channels[part]; c += 4)
 				fallCV[c / 4] += inputs[FALL_CV_A_INPUT + part].getPolyVoltageSimd<float_4>(c);
 			for (int c = 0; c < channels[part]; c += 4)
-				cycle[c / 4] += inputs[CYCLE_A_INPUT + part].getPolyVoltageSimd<float_4>(c);			
+				cycle[c / 4] += inputs[CYCLE_A_INPUT + part].getPolyVoltageSimd<float_4>(c);
 
 			// start processing:
 			for (int c = 0; c < channels[part]; c += 4) {
@@ -207,39 +203,38 @@ struct Rampage : Module {
 				float_4 delta = in[c / 4] - out[part][c / 4];
 
 				// rise / fall branching
-
-				float_4 delta_gt_0 = delta > float_4::zero();
-				float_4 delta_lt_0 = delta < float_4::zero();
+				float_4 delta_gt_0 = delta > 0.f;
+				float_4 delta_lt_0 = delta < 0.f;
 				float_4 delta_eq_0 = ~(delta_lt_0 | delta_gt_0);
 
-				float_4 rateCV = ifelse(delta_gt_0, riseCV[c / 4], float_4::zero());
+				float_4 rateCV = ifelse(delta_gt_0, riseCV[c / 4], 0.f);
 				rateCV = ifelse(delta_lt_0, fallCV[c / 4], rateCV);
-				rateCV = clamp(rateCV, float_4::zero(), float_4(10.0f));
+				rateCV = clamp(rateCV, 0.f, 10.0f);
 
 				float_4 rate = minTime * simd::pow(2.0f, rateCV);
 
+				float shape = params[SHAPE_A_PARAM + part].getValue();
 				out[part][c / 4] += shapeDelta(delta, rate, shape) * args.sampleTime;
 
-				float_4 rising  = (in[c / 4] - out[part][c / 4]) > float_4(1e-3);
-				float_4 falling = (in[c / 4] - out[part][c / 4]) < float_4(-1e-3);
+				float_4 rising  = (in[c / 4] - out[part][c / 4]) > 1e-3f;
+				float_4 falling = (in[c / 4] - out[part][c / 4]) < -1e-3f;
 				float_4 end_of_cycle = simd::andnot(falling, delta_lt_0);
 
 				endOfCyclePulse[part][c / 4].trigger(end_of_cycle, 1e-3);
 
-				gate[part][c / 4] = ifelse(simd::andnot(rising, delta_gt_0),                 float_4::zero(), gate[part][c / 4]);
-				gate[part][c / 4] = ifelse(end_of_cycle & (cycle[c / 4] >= float_4(4.0f)), float_4::mask(), gate[part][c / 4]);
-				gate[part][c / 4] = ifelse(delta_eq_0,                                       float_4::zero(), gate[part][c / 4]);
+				gate[part][c / 4] = ifelse(simd::andnot(rising, delta_gt_0), 0.f, gate[part][c / 4]);
+				gate[part][c / 4] = ifelse(end_of_cycle & (cycle[c / 4] >= 4.0f), float_4::mask(), gate[part][c / 4]);
+				gate[part][c / 4] = ifelse(delta_eq_0, 0.f, gate[part][c / 4]);
 
 				out[part][c / 4]  = ifelse(rising | falling, out[part][c / 4], in[c / 4]);
 
-				float_4 out_rising  = ifelse(rising,  float_4(10.0f), float_4::zero());
-				float_4 out_falling = ifelse(falling, float_4(10.0f), float_4::zero());
+				float_4 out_rising  = ifelse(rising, 10.0f, 0.f);
+				float_4 out_falling = ifelse(falling, 10.0f, 0.f);
 
 				float_4 pulse = endOfCyclePulse[part][c / 4].process(args.sampleTime);
-				float_4 out_EOC = ifelse(pulse, float_4(10.f), float_4::zero());
+				float_4 out_EOC = ifelse(pulse, 10.f, 0.f);
 
-				out[part][c / 4].store(outputs[OUT_A_OUTPUT + part].getVoltages(c));
-
+				outputs[OUT_A_OUTPUT + part].setVoltageSimd(out[part][c / 4], c);
 				outputs[RISING_A_OUTPUT + part].setVoltageSimd(out_rising, c);
 				outputs[FALLING_A_OUTPUT + part].setVoltageSimd(out_falling, c);
 				outputs[EOC_A_OUTPUT + part].setVoltageSimd(out_EOC, c);
@@ -285,14 +280,13 @@ struct Rampage : Module {
 			else if (balance > 0.5)
 				a *= 2.0f * (1.0 - balance);
 
-			float_4 comp    = ifelse(b > a, float_4(10.0f), float_4::zero());
+			float_4 comp = ifelse(b > a, 10.0f, 0.f);
 			float_4 out_min = simd::fmin(a, b);
 			float_4 out_max = simd::fmax(a, b);
 
-			comp.store(outputs[COMPARATOR_OUTPUT].getVoltages(c));
-			out_min.store(outputs[MIN_OUTPUT].getVoltages(c));
-			out_max.store(outputs[MAX_OUTPUT].getVoltages(c));
-
+			outputs[COMPARATOR_OUTPUT].setVoltageSimd(comp, c);
+			outputs[MIN_OUTPUT].setVoltageSimd(out_min, c);
+			outputs[MAX_OUTPUT].setVoltageSimd(out_max, c);
 		}
 		// Lights
 		if (channels_max == 1) {

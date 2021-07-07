@@ -56,9 +56,9 @@ struct ABC : Module {
 
 	int processSection(simd::float_4* out, InputIds inputA, InputIds inputB, InputIds inputC, ParamIds levelB, ParamIds levelC) {
 
-		float_4 inA[4] = {0.f};
-		float_4 inB[4] = {0.f};
-		float_4 inC[4] = {0.f};
+		float_4 inA[4] = {};
+		float_4 inB[4] = {};
+		float_4 inC[4] = {};
 
 		int channelsA = inputs[inputA].getChannels();
 		int channelsB = inputs[inputB].getChannels();
@@ -105,13 +105,13 @@ struct ABC : Module {
 	void process(const ProcessArgs& args) override {
 
 		// process upper section
-		float_4 out1[4] = {0.f};
+		float_4 out1[4] = {};
 		int activeEngines1 = 1;
 		if (outputs[OUT1_OUTPUT].isConnected() || outputs[OUT2_OUTPUT].isConnected()) {
 			activeEngines1 = processSection(out1, A1_INPUT, B1_INPUT, C1_INPUT, B1_LEVEL_PARAM, C1_LEVEL_PARAM);
 		}
 
-		float_4 out2[4] = {0.f};
+		float_4 out2[4] = {};
 		int activeEngines2 = 1;
 		// process lower section
 		if (outputs[OUT2_OUTPUT].isConnected()) {

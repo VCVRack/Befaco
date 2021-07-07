@@ -34,15 +34,18 @@ struct SpringReverb : Module {
 		NUM_LIGHTS
 	};
 
-	dsp::RealTimeConvolver *convolver = NULL;
+	dsp::RealTimeConvolver* convolver = NULL;
 	dsp::SampleRateConverter<1> inputSrc;
 	dsp::SampleRateConverter<1> outputSrc;
 	dsp::DoubleRingBuffer<dsp::Frame<1>, 16 * BLOCK_SIZE> inputBuffer;
 	dsp::DoubleRingBuffer<dsp::Frame<1>, 16 * BLOCK_SIZE> outputBuffer;
 
 	dsp::RCFilter dryFilter;
-	dsp::PeakFilter vuFilter;
-	dsp::PeakFilter lightFilter;
+
+	dsp::VuMeter2 vuFilter;
+	dsp::VuMeter2 lightFilter;
+	dsp::ClockDivider lightRefreshClock;
+
 
 	SpringReverb() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
@@ -53,16 +56,21 @@ struct SpringReverb : Module {
 
 		convolver = new dsp::RealTimeConvolver(BLOCK_SIZE);
 
-		const float *kernel = (const float *) BINARY_START(src_SpringReverbIR_pcm);
+		const float* kernel = (const float*) BINARY_START(src_SpringReverbIR_pcm);
 		size_t kernelLen = BINARY_SIZE(src_SpringReverbIR_pcm) / sizeof(float);
 		convolver->setKernel(kernel, kernelLen);
+
+		vuFilter.mode = dsp::VuMeter2::PEAK;
+		lightFilter.mode = dsp::VuMeter2::PEAK;
+
+		lightRefreshClock.setDivision(32);
 	}
 
 	~SpringReverb() {
 		delete convolver;
 	}
 
-	void process(const ProcessArgs &args) override {
+	void process(const ProcessArgs& args) override {
 		float in1 = inputs[IN1_INPUT].getVoltageSum();
 		float in2 = inputs[IN2_INPUT].getVoltageSum();
 		const float levelScale = 0.030;
@@ -92,7 +100,7 @@ struct SpringReverb : Module {
 				inputSrc.setRates(args.sampleRate, 48000);
 				int inLen = inputBuffer.size();
 				int outLen = BLOCK_SIZE;
-				inputSrc.process(inputBuffer.startData(), &inLen, (dsp::Frame<1> *) input, &outLen);
+				inputSrc.process(inputBuffer.startData(), &inLen, (dsp::Frame<1>*) input, &outLen);
 				inputBuffer.startIncr(inLen);
 			}
 
@@ -104,7 +112,7 @@ struct SpringReverb : Module {
 				outputSrc.setRates(48000, args.sampleRate);
 				int inLen = BLOCK_SIZE;
 				int outLen = outputBuffer.capacity();
-				outputSrc.process((dsp::Frame<1> *) output, &inLen, outputBuffer.endData(), &outLen);
+				outputSrc.process((dsp::Frame<1>*) output, &inLen, outputBuffer.endData(), &outLen);
 				outputBuffer.endIncr(outLen);
 			}
 		}
@@ -112,6 +120,7 @@ struct SpringReverb : Module {
 		// Set output
 		if (outputBuffer.empty())
 			return;
+
 		float wet = outputBuffer.shift().samples[0];
 		float balance = clamp(params[WET_PARAM].getValue() + inputs[MIX_CV_INPUT].getVoltage() / 10.0f, 0.0f, 1.0f);
 		float mix = crossfade(in1, wet, balance);
@@ -119,24 +128,28 @@ struct SpringReverb : Module {
 		outputs[WET_OUTPUT].setVoltage(clamp(wet, -10.0f, 10.0f));
 		outputs[MIX_OUTPUT].setVoltage(clamp(mix, -10.0f, 10.0f));
 
-		// Set lights
-		float lightRate = 5.0 * args.sampleTime;
-		vuFilter.setLambda(1.f - lightRate);
-		float vuValue = vuFilter.process(1.f, std::fabs(wet));
-		lightFilter.setLambda(1.f - lightRate);
-		float lightValue = lightFilter.process(1.f, std::fabs(dry * 50.0));
-		
-		for (int i = 0; i < 7; i++) {
-			float light = std::pow(1.413, i) * vuValue / 10.0 - 1.0;
-			lights[VU1_LIGHTS + i].value = clamp(light, 0.0f, 1.0f);
+		// process VU lights		
+		vuFilter.process(args.sampleTime, wet);
+		// process peak light		
+		lightFilter.process(args.sampleTime, dry * 50.0);
+
+		if (lightRefreshClock.process()) {
+
+			float brightnessIntervals[8] = {14.f, 14.f, 12.f, 9.f, 6.f, 0.f, -6.f, -12.f};
+
+			for (int i = 0; i < 7; i++) {
+				float brightness = vuFilter.getBrightness(brightnessIntervals[i + 1], brightnessIntervals[i]);
+				lights[VU1_LIGHTS + i].setBrightness(brightness);
+			}
+
+			lights[PEAK_LIGHT].value = lightFilter.v;
 		}
-		lights[PEAK_LIGHT].value = lightValue;
 	}
 };
 
 
 struct SpringReverbWidget : ModuleWidget {
-	SpringReverbWidget(SpringReverb *module) {
+	SpringReverbWidget(SpringReverb* module) {
 		setModule(module);
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/SpringReverb.svg")));
 
@@ -173,4 +186,4 @@ struct SpringReverbWidget : ModuleWidget {
 };
 
 
-Model *modelSpringReverb = createModel<SpringReverb, SpringReverbWidget>("SpringReverb");
+Model* modelSpringReverb = createModel<SpringReverb, SpringReverbWidget>("SpringReverb");
