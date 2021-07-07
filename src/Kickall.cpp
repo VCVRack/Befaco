@@ -44,7 +44,6 @@ struct Kickall : Module {
 
 	static const int UPSAMPLE = 8;
 	chowdsp::Oversampling<UPSAMPLE> oversampler;
-	float shaperBuf[UPSAMPLE];
 
 	Kickall() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
@@ -66,13 +65,11 @@ struct Kickall : Module {
 		onSampleRateChange();
 	}
 
-	void onSampleRateChange() override {		
+	void onSampleRateChange() override {
 		oversampler.reset(APP->engine->getSampleRate());
 	}
 
-
 	void process(const ProcessArgs& args) override {
-
 		// TODO: check values
 		if (trigger.process(inputs[TRIGG_INPUT].getVoltage() / 2.0f + params[TRIGG_BUTTON_PARAM].getValue() * 10.0)) {
 			volume.trigger();
@@ -97,8 +94,7 @@ struct Kickall : Module {
 		const float kickFrequency = std::max(10.0f, freq + bend * pitch.env);
 		const float phaseInc = clamp(args.sampleTime * kickFrequency / UPSAMPLE, 1e-6, 0.35f);
 
-
-		const float shape = clamp(inputs[SHAPE_INPUT].getVoltage() / 10.f + params[SHAPE_PARAM].getValue(), 0.0f, 1.0f) * 0.99f;		
+		const float shape = clamp(inputs[SHAPE_INPUT].getVoltage() / 10.f + params[SHAPE_PARAM].getValue(), 0.0f, 1.0f) * 0.99f;
 		const float shapeB = (1.0f - shape) / (1.0f + shape);
 		const float shapeA = (4.0f * shape) / ((1.0f - shape) * (1.0f + shape));
 

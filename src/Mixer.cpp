@@ -54,9 +54,7 @@ struct Mixer : Module {
 		float_4 mult3 = float_4(params[CH3_PARAM].getValue());
 		float_4 mult4 = float_4(params[CH4_PARAM].getValue());
 
-		float_4 out[4];
-
-		std::memset(out, 0, sizeof(out));
+		float_4 out[4] = {};
 
 		if (inputs[IN1_INPUT].isConnected()) {
 			for (int c = 0; c < channels1; c += 4)

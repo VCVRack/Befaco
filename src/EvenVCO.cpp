@@ -51,8 +51,8 @@ struct EvenVCO : Module {
 		configParam(PWM_PARAM, -1.0, 1.0, 0.0, "Pulse width");
 
 		for (int i = 0; i < 4; i++) {
-			phase[i] = float_4(0.0f);
-			tri[i] = float_4(0.0f);
+			phase[i] = 0.f;
+			tri[i] = 0.f;
 		}
 		for (int c = 0; c < PORT_MAX_CHANNELS; c++)
 			halfPhase[c] = false;
@@ -84,7 +84,7 @@ struct EvenVCO : Module {
 				pitch[c / 4] += inputs[PITCH2_INPUT].getPolyVoltageSimd<float_4>(c);
 		}
 
-		if (inputs[FM_INPUT].isConnected()) {			
+		if (inputs[FM_INPUT].isConnected()) {
 			for (int c = 0; c < channels; c += 4)
 				pitch[c / 4] += inputs[FM_INPUT].getPolyVoltageSimd<float_4>(c) / 4.f;
 		}

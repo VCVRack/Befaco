@@ -44,9 +44,9 @@ struct ChoppingKinky : Module {
 	float waveshapeBNegative[WAVESHAPE_CACHE_SIZE + 1] = {0.f};
 
 	dsp::SchmittTrigger trigger;
-	bool outputAToChopp;
+	bool outputAToChopp = false;
 	float previousA = 0.0;
-	
+
 	chowdsp::VariableOversampling<> oversampler[NUM_CHANNELS];
 	int oversamplingIndex = 2; 	// default is 2^oversamplingIndex == x4 oversampling
 
@@ -66,7 +66,7 @@ struct ChoppingKinky : Module {
 		onSampleRateChange();
 	}
 
-	void onSampleRateChange() override {		
+	void onSampleRateChange() override {
 		float sampleRate = APP->engine->getSampleRate();
 
 		blockDCFilter.setParameters(dsp::BiquadFilter::HIGHPASS, 10.3f / sampleRate, M_SQRT1_2, 1.0f);
@@ -98,7 +98,7 @@ struct ChoppingKinky : Module {
 			// TODO: check rescale?
 			trigger.process(rescale(inputs[IN_GATE_INPUT].getVoltage(), 0.1f, 2.f, 0.f, 1.f));
 			outputAToChopp = trigger.isHigh();
-		}	
+		}
 		// else zero-crossing detector on input A switches between A and B
 		else {
 			if (previousA > 0 && inA < 0) {
@@ -186,7 +186,6 @@ struct ChoppingKinky : Module {
 	}
 
 	static float wavefolderAResponse(float x) {
-
 		if (x < 0) {
 			return -wavefolderAResponse(-x);
 		}
@@ -278,14 +277,14 @@ struct ChoppingKinky : Module {
 	}
 
 	void dataFromJson(json_t* rootJ) override {
-		json_t* modeJ = json_object_get(rootJ, "filterDC");
-		if (modeJ) {
-			blockDC = json_boolean_value(modeJ);
+		json_t* filterDCJ = json_object_get(rootJ, "filterDC");
+		if (filterDCJ) {
+			blockDC = json_boolean_value(filterDCJ);
 		}
 
-		json_t* modeJOS = json_object_get(rootJ, "oversamplingIndex");
-		if (modeJOS) {
-			oversamplingIndex = json_integer_value(modeJOS);
+		json_t* oversamplingIndexJ = json_object_get(rootJ, "oversamplingIndex");
+		if (oversamplingIndexJ) {
+			oversamplingIndex = json_integer_value(oversamplingIndexJ);
 			onSampleRateChange();
 		}
 	}
@@ -323,34 +322,32 @@ struct ChoppingKinkyWidget : ModuleWidget {
 		addChild(createLightCentered<SmallLight<RedLight>>(mm2px(Vec(26.057, 51.53)), module, ChoppingKinky::LED_B_LIGHT));
 	}
 
-	struct DCMenuItem : MenuItem {
-		ChoppingKinky* module;
-		void onAction(const event::Action& e) override {
-			module->blockDC ^= true;
-		}
-	};
-
-	struct ModeItem : MenuItem {
-		ChoppingKinky* module;
-		int oversamplingIndex;
-		void onAction(const event::Action& e) override {
-			module->oversamplingIndex = oversamplingIndex;
-			module->onSampleRateChange();
-		}
-	};
-
 	void appendContextMenu(Menu* menu) override {
 		ChoppingKinky* module = dynamic_cast<ChoppingKinky*>(this->module);
 		assert(module);
 
 		menu->addChild(new MenuSeparator());
 
+		struct DCMenuItem : MenuItem {
+			ChoppingKinky* module;
+			void onAction(const event::Action& e) override {
+				module->blockDC ^= true;
+			}
+		};
 		DCMenuItem* dcItem = createMenuItem<DCMenuItem>("Block DC on Chopp", CHECKMARK(module->blockDC));
 		dcItem->module = module;
 		menu->addChild(dcItem);
 
 		menu->addChild(createMenuLabel("Oversampling mode"));
 
+		struct ModeItem : MenuItem {
+			ChoppingKinky* module;
+			int oversamplingIndex;
+			void onAction(const event::Action& e) override {
+				module->oversamplingIndex = oversamplingIndex;
+				module->onSampleRateChange();
+			}
+		};
 		for (int i = 0; i < 5; i++) {
 			ModeItem* modeItem = createMenuItem<ModeItem>(std::to_string(int (1 << i)) + "x");
 			modeItem->rightText = CHECKMARK(module->oversamplingIndex == i);

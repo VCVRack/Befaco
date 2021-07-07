@@ -35,8 +35,8 @@ struct DualAtenuverter : Module {
 	void process(const ProcessArgs& args) override {
 		using simd::float_4;
 
-		float_4 out1[4];
-		float_4 out2[4];
+		float_4 out1[4] = {};
+		float_4 out2[4] = {};
 
 		int channels1 = inputs[IN1_INPUT].getChannels();
 		channels1 = channels1 > 0 ? channels1 : 1;

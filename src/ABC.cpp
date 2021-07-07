@@ -54,8 +54,7 @@ struct ABC : Module {
 		configParam(C2_LEVEL_PARAM, -1.0, 1.0, 0.0, "C2 Level");
 	}
 
-	int processSection(simd::float_4* out, InputIds inputA, InputIds inputB, InputIds inputC,
-	                   ParamIds levelB, ParamIds levelC) {
+	int processSection(simd::float_4* out, InputIds inputA, InputIds inputB, InputIds inputC, ParamIds levelB, ParamIds levelC) {
 
 		float_4 inA[4] = {0.f};
 		float_4 inB[4] = {0.f};
@@ -139,33 +138,30 @@ struct ABC : Module {
 
 		// Lights
 
-		float light_1;
-		float light_2;
-
 		if (activeEngines1 == 1) {
-			light_1 = out1[0].s[0];
-			lights[OUT1_LIGHT + 0].setSmoothBrightness(light_1 / 5.f, args.sampleTime);
-			lights[OUT1_LIGHT + 1].setSmoothBrightness(-light_1 / 5.f, args.sampleTime);
+			float b = out1[0].s[0];
+			lights[OUT1_LIGHT + 0].setSmoothBrightness(b / 5.f, args.sampleTime);
+			lights[OUT1_LIGHT + 1].setSmoothBrightness(-b / 5.f, args.sampleTime);
 			lights[OUT1_LIGHT + 2].setBrightness(0.f);
 		}
 		else {
-			light_1 = 10.f;
+			float b = 10.f;
 			lights[OUT1_LIGHT + 0].setBrightness(0.0f);
 			lights[OUT1_LIGHT + 1].setBrightness(0.0f);
-			lights[OUT1_LIGHT + 2].setBrightness(light_1);
+			lights[OUT1_LIGHT + 2].setBrightness(b);
 		}
 
 		if (activeEngines2 == 1) {
-			light_2 = out2[0].s[0];
-			lights[OUT2_LIGHT + 0].setSmoothBrightness(light_2 / 5.f, args.sampleTime);
-			lights[OUT2_LIGHT + 1].setSmoothBrightness(-light_2 / 5.f, args.sampleTime);
+			float b = out2[0].s[0];
+			lights[OUT2_LIGHT + 0].setSmoothBrightness(b / 5.f, args.sampleTime);
+			lights[OUT2_LIGHT + 1].setSmoothBrightness(-b / 5.f, args.sampleTime);
 			lights[OUT2_LIGHT + 2].setBrightness(0.f);
 		}
 		else {
-			light_2 = 10.f;
+			float b = 10.f;
 			lights[OUT2_LIGHT + 0].setBrightness(0.0f);
 			lights[OUT2_LIGHT + 1].setBrightness(0.0f);
-			lights[OUT2_LIGHT + 2].setBrightness(light_2);
+			lights[OUT2_LIGHT + 2].setBrightness(b);
 		}
 	}
 };
