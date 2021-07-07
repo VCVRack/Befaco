@@ -6,7 +6,7 @@ using simd::float_4;
 static float_4 shapeDelta(float_4 delta, float_4 tau, float shape) {
 	float_4 lin = simd::sgn(delta) * 10.f / tau;
 	if (shape < 0.f) {
-		float_4 log = simd::sgn(delta) * float_4(40.f) / tau / (simd::fabs(delta) + float_4(1.f));
+		float_4 log = simd::sgn(delta) * 40.f / tau / (simd::fabs(delta) + 1.f);
 		return simd::crossfade(lin, log, -shape * 0.95f);
 	}
 	else {
@@ -198,7 +198,7 @@ struct Rampage : Module {
 				// process SchmittTriggers
 				float_4 trig_mask = trigger_4[part][c / 4].process(in_trig[c / 4] / 2.0);
 				gate[part][c / 4] = ifelse(trig_mask, float_4::mask(), gate[part][c / 4]);
-				in[c / 4] = ifelse(gate[part][c / 4], float_4(10.0f), in[c / 4]);
+				in[c / 4] = ifelse(gate[part][c / 4], 10.0f, in[c / 4]);
 
 				float_4 delta = in[c / 4] - out[part][c / 4];
 

@@ -71,7 +71,7 @@ struct SlewLimiter : Module {
 			rateCV = ifelse(delta_lt_0, fallCV[c / 4], rateCV) * 0.1f;
 
 			float_4 pm_one = simd::sgn(delta);
-			float_4 slew = slewMax * simd::pow(float_4(slewMin / slewMax), rateCV);
+			float_4 slew = slewMax * simd::pow(slewMin / slewMax, rateCV);
 
 			const float shape = params[SHAPE_PARAM].getValue();
 			out[c / 4] += slew * simd::crossfade(pm_one, shapeScale * delta, shape) * args.sampleTime;
