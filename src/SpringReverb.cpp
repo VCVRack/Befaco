@@ -1,7 +1,5 @@
-#include <string.h>
 #include "plugin.hpp"
-#include "pffft.h"
-#include "Common.hpp"
+#include <pffft.h>
 
 BINARY(src_SpringReverbIR_pcm);
 

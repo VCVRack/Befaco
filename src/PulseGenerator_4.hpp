@@ -1,11 +1,9 @@
 #pragma once
-
-#include "rack.hpp"
+#include <rack.hpp>
 
 
 /** When triggered, holds a high value for a specified time before going low again */
 struct PulseGenerator_4 {
-
 	simd::float_4 remaining = simd::float_4::zero();
 
 	/** Immediately disables the pulse */
@@ -29,4 +27,3 @@ struct PulseGenerator_4 {
 		remaining = ifelse(mask & (duration_4 > remaining), duration_4, remaining);
 	}
 };
-

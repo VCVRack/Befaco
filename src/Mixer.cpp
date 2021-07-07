@@ -1,5 +1,4 @@
 #include "plugin.hpp"
-#include "Common.hpp"
 
 using simd::float_4;
 

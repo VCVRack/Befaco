@@ -1,4 +1,6 @@
 #pragma once
+#include <rack.hpp>
+
 
 namespace chowdsp {
 	// code taken from https://github.com/jatinchowdhury18/ChowDSP-VCV/blob/master/src/shared/, commit 21701fb 
@@ -417,4 +419,4 @@ private:
 	BaseOversampling* oss[NumOS] = { &os0, &os1, &os2, &os3, &os4 };
 };
 
-}
+} // namespace chowdsp
