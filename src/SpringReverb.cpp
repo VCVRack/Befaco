@@ -46,6 +46,7 @@ struct SpringReverb : Module {
 	dsp::VuMeter2 lightFilter;
 	dsp::ClockDivider lightRefreshClock;
 
+	const float brightnessIntervals[8] = {17.f, 14.f, 12.f, 9.f, 6.f, 0.f, -6.f, -12.f};
 
 	SpringReverb() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
@@ -134,8 +135,6 @@ struct SpringReverb : Module {
 		lightFilter.process(args.sampleTime, dry * 50.0);
 
 		if (lightRefreshClock.process()) {
-
-			float brightnessIntervals[8] = {14.f, 14.f, 12.f, 9.f, 6.f, 0.f, -6.f, -12.f};
 
 			for (int i = 0; i < 7; i++) {
 				float brightness = vuFilter.getBrightness(brightnessIntervals[i + 1], brightnessIntervals[i]);

@@ -102,7 +102,7 @@ struct EvenVCO : Module {
 			pw[c / 4] = rescale(clamp(pw[c / 4], -1.0f, 1.0f), -1.0f, 1.0f, 0.05f, 1.0f - 0.05f);
 
 			// Advance phase
-			deltaPhase[c / 4] = clamp(freq[c / 4] * args.sampleTime, float_4(1e-6f), float_4(0.5f));
+			deltaPhase[c / 4] = clamp(freq[c / 4] * args.sampleTime, 1e-6f, 0.5f);
 			oldPhase[c / 4] = phase[c / 4];
 			phase[c / 4] += deltaPhase[c / 4];
 		}

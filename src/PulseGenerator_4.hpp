@@ -16,7 +16,7 @@ struct PulseGenerator_4 {
 
 		simd::float_4 mask = (remaining > 0.f);
 
-		remaining -= ifelse(mask, simd::float_4(deltaTime), 0.f);
+		remaining -= ifelse(mask, deltaTime, 0.f);
 		return ifelse(mask, simd::float_4::mask(), 0.f);
 	}
 

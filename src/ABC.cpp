@@ -93,7 +93,7 @@ struct ABC : Module {
 		}
 		else {
 			for (int c = 0; c < activeEngines; c += 4)
-				inC[c / 4] = float_4(10.f * mult_C);
+				inC[c / 4] = 10.f * mult_C;
 		}
 
 		for (int c = 0; c < activeEngines; c += 4)
