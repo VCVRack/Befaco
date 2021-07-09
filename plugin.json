@@ -1,6 +1,6 @@
 {
   "slug": "Befaco",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "license": "GPL-3.0-or-later",
   "name": "Befaco",
   "author": "VCV",
@@ -16,7 +16,8 @@
       "modularGridUrl": "https://www.modulargrid.net/e/befaco-even-vco-",
       "tags": [
         "VCO",
-        "Hardware clone"
+        "Hardware clone",
+        "Polyphonic"
       ]
     },
     {
@@ -31,7 +32,8 @@
         "Slew Limiter",
         "Envelope Follower",
         "Dual",
-        "Hardware clone"
+        "Hardware clone",
+        "Polyphonic"
       ]
     },
     {
@@ -44,7 +46,8 @@
         "Ring Modulator",
         "Attenuator",
         "Dual",
-        "Hardware clone"
+        "Hardware clone",
+        "Polyphonic"
       ]
     },
     {
@@ -64,7 +67,8 @@
       "modularGridUrl": "https://www.modulargrid.net/e/befaco-mixer-",
       "tags": [
         "Mixer",
-        "Hardware clone"
+        "Hardware clone",
+        "Polyphonic"
       ]
     },
     {
@@ -75,7 +79,8 @@
       "tags": [
         "Slew Limiter",
         "Envelope Follower",
-        "Hardware clone"
+        "Hardware clone",
+        "Polyphonic"
       ]
     },
     {
@@ -86,7 +91,55 @@
       "tags": [
         "Attenuator",
         "Dual",
+        "Hardware clone",
+        "Polyphonic"
+      ]
+    },
+    {
+      "slug": "Percall",
+      "name": "Percall",
+      "description": "Percussive Envelope Generator",
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-percall",
+      "tags": [
+        "Envelope generator",
+        "Mixer",
+        "Polyphonic",
         "Hardware clone"
+      ]
+    },
+    {
+      "slug": "HexmixVCA",
+      "name": "HexmixVCA",
+      "description": "Six channel VCA with response curve range from logarithmic to linear and to exponential",
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-hexmix-vca",
+      "tags": [
+        "Mixer",
+        "Hardware clone",
+        "Polyphonic",
+        "VCA"
+      ]
+    },
+    {
+      "slug": "ChoppingKinky",
+      "name": "ChoppingKinky",
+      "description": "Voltage controllable, dual channel wavefolder",
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-chopping-kinky",
+      "tags": [
+        "Dual",
+        "Hardware clone",
+        "Voltage-controlled amplifier",
+        "Waveshaper"
+      ]
+    },
+    {
+      "slug": "Kickall",
+      "name": "Kickall",
+      "description": "Bassdrum module, with pitch and volume envelopes",
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-kickall",
+      "tags": [
+        "Drum",
+        "Hardware clone",
+        "Synth voice"
       ]
     }
   ]
