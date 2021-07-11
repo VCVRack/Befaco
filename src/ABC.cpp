@@ -3,7 +3,7 @@
 using simd::float_4;
 
 template <typename T>
-static T clip4(T x) {
+static T clip(T x) {
 	// Pade approximant of x/(1 + x^12)^(1/12)
 	const T limit = 1.16691853009184f;
 	x = clamp(x * 0.1f, -limit, limit);
@@ -54,115 +54,66 @@ struct ABC : Module {
 		configParam(C2_LEVEL_PARAM, -1.0, 1.0, 0.0, "C2 Level");
 	}
 
-	int processSection(simd::float_4* out, InputIds inputA, InputIds inputB, InputIds inputC, ParamIds levelB, ParamIds levelC) {
+	void processSection(const ProcessArgs& args, int& lastChannels, float_4* lastOut, ParamIds levelB, ParamIds levelC, InputIds inputA, InputIds inputB, InputIds inputC, OutputIds output, LightIds outLight) {
+		// Compute polyphony channels
+		int channels = std::max(lastChannels, inputs[inputA].getChannels());
+		channels = std::max(channels, inputs[inputB].getChannels());
+		channels = std::max(channels, inputs[inputC].getChannels());
+		lastChannels = channels;
 
-		float_4 inA[4] = {};
-		float_4 inB[4] = {};
-		float_4 inC[4] = {};
+		// Get param levels
+		float gainB = 2.f * exponentialBipolar80Pade_5_4(params[levelB].getValue());
+		float gainC = exponentialBipolar80Pade_5_4(params[levelC].getValue());
 
-		int channelsA = inputs[inputA].getChannels();
-		int channelsB = inputs[inputB].getChannels();
-		int channelsC = inputs[inputC].getChannels();
+		for (int c = 0; c < channels; c += 4) {
+			// Get inputs
+			float_4 inA = inputs[inputA].getPolyVoltageSimd<float_4>(c);
+			float_4 inB = inputs[inputB].getNormalPolyVoltageSimd<float_4>(5.f, c) * gainB;
+			float_4 inC = inputs[inputC].getNormalPolyVoltageSimd<float_4>(10.f, c) * gainC;
 
-		// this sets the number of active engines (according to polyphony standard)
-		// NOTE: A*B + C has the number of active engines set by any one of the three inputs
-		int activeEngines = std::max(1, channelsA);
-		activeEngines = std::max(activeEngines, channelsB);
-		activeEngines = std::max(activeEngines, channelsC);
-
-		float mult_B = (2.f / 5.f) * exponentialBipolar80Pade_5_4(params[levelB].getValue());
-		float mult_C = exponentialBipolar80Pade_5_4(params[levelC].getValue());
-
-		if (inputs[inputA].isConnected()) {
-			for (int c = 0; c < activeEngines; c += 4)
-				inA[c / 4] = inputs[inputA].getPolyVoltageSimd<float_4>(c);
+			// Compute and set output
+			float_4 out = inA * inB / 5.f + inC;
+			lastOut[c / 4] += out;
+			if (outputs[output].isConnected()) {
+				outputs[output].setChannels(channels);
+				outputs[output].setVoltageSimd(clip(lastOut[c / 4]), c);
+			}
 		}
 
-		if (inputs[inputB].isConnected()) {
-			for (int c = 0; c < activeEngines; c += 4)
-				inB[c / 4] = inputs[inputB].getPolyVoltageSimd<float_4>(c) * mult_B;
-		}
-		else {
-			for (int c = 0; c < activeEngines; c += 4)
-				inB[c / 4] = 5.f * mult_B;
-		}
-
-		if (inputs[inputC].isConnected()) {
-			for (int c = 0; c < activeEngines; c += 4)
-				inC[c / 4] = inputs[inputC].getPolyVoltageSimd<float_4>(c) * mult_C;
+		// Set lights
+		if (channels == 1) {
+			float b = lastOut[0][0];
+			lights[outLight + 0].setSmoothBrightness(b / 5.f, args.sampleTime);
+			lights[outLight + 1].setSmoothBrightness(-b / 5.f, args.sampleTime);
+			lights[outLight + 2].setBrightness(0.f);
 		}
 		else {
-			for (int c = 0; c < activeEngines; c += 4)
-				inC[c / 4] = 10.f * mult_C;
+			// RMS of output
+			float b = 0.f;
+			for (int c = 0; c < channels; c++)
+				b += std::pow(lastOut[c / 4][c % 4], 2);
+			b = std::sqrt(b);
+			lights[outLight + 0].setBrightness(0.0f);
+			lights[outLight + 1].setBrightness(0.0f);
+			lights[outLight + 2].setBrightness(b);
 		}
-
-		for (int c = 0; c < activeEngines; c += 4)
-			out[c / 4] = clip4(inA[c / 4] * inB[c / 4] + inC[c / 4]);
-
-		return activeEngines;
 	}
 
 	void process(const ProcessArgs& args) override {
+		int channels = 1;
+		float_4 out[4] = {};
 
-		// process upper section
-		float_4 out1[4] = {};
-		int activeEngines1 = 1;
-		if (outputs[OUT1_OUTPUT].isConnected() || outputs[OUT2_OUTPUT].isConnected()) {
-			activeEngines1 = processSection(out1, A1_INPUT, B1_INPUT, C1_INPUT, B1_LEVEL_PARAM, C1_LEVEL_PARAM);
-		}
+		// Section A
+		processSection(args, channels, out, B1_LEVEL_PARAM, C1_LEVEL_PARAM, A1_INPUT, B1_INPUT, C1_INPUT, OUT1_OUTPUT, OUT1_LIGHT);
 
-		float_4 out2[4] = {};
-		int activeEngines2 = 1;
-		// process lower section
-		if (outputs[OUT2_OUTPUT].isConnected()) {
-			activeEngines2 = processSection(out2, A2_INPUT, B2_INPUT, C2_INPUT, B2_LEVEL_PARAM, C2_LEVEL_PARAM);
-		}
-
-		// Set outputs
+		// Break summing if output A is patched
 		if (outputs[OUT1_OUTPUT].isConnected()) {
-			outputs[OUT1_OUTPUT].setChannels(activeEngines1);
-			for (int c = 0; c < activeEngines1; c += 4)
-				outputs[OUT1_OUTPUT].setVoltageSimd(out1[c / 4], c);
-		}
-		else if (outputs[OUT2_OUTPUT].isConnected()) {
-
-			for (int c = 0; c < activeEngines1; c += 4)
-				out2[c / 4] += out1[c / 4];
-
-			activeEngines2 = std::max(activeEngines1, activeEngines2);
-
-			outputs[OUT2_OUTPUT].setChannels(activeEngines2);
-			for (int c = 0; c < activeEngines2; c += 4)
-				outputs[OUT2_OUTPUT].setVoltageSimd(out2[c / 4], c);
+			channels = 1;
+			std::memset(out, 0, sizeof(out));
 		}
 
-		// Lights
-
-		if (activeEngines1 == 1) {
-			float b = out1[0].s[0];
-			lights[OUT1_LIGHT + 0].setSmoothBrightness(b / 5.f, args.sampleTime);
-			lights[OUT1_LIGHT + 1].setSmoothBrightness(-b / 5.f, args.sampleTime);
-			lights[OUT1_LIGHT + 2].setBrightness(0.f);
-		}
-		else {
-			float b = 10.f;
-			lights[OUT1_LIGHT + 0].setBrightness(0.0f);
-			lights[OUT1_LIGHT + 1].setBrightness(0.0f);
-			lights[OUT1_LIGHT + 2].setBrightness(b);
-		}
-
-		if (activeEngines2 == 1) {
-			float b = out2[0].s[0];
-			lights[OUT2_LIGHT + 0].setSmoothBrightness(b / 5.f, args.sampleTime);
-			lights[OUT2_LIGHT + 1].setSmoothBrightness(-b / 5.f, args.sampleTime);
-			lights[OUT2_LIGHT + 2].setBrightness(0.f);
-		}
-		else {
-			float b = 10.f;
-			lights[OUT2_LIGHT + 0].setBrightness(0.0f);
-			lights[OUT2_LIGHT + 1].setBrightness(0.0f);
-			lights[OUT2_LIGHT + 2].setBrightness(b);
-		}
+		// Section B
+		processSection(args, channels, out, B2_LEVEL_PARAM, C2_LEVEL_PARAM, A2_INPUT, B2_INPUT, C2_INPUT, OUT2_OUTPUT, OUT2_LIGHT);
 	}
 };
 
