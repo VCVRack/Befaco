@@ -1,6 +1,6 @@
 {
   "slug": "Befaco",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "license": "GPL-3.0-or-later",
   "name": "Befaco",
   "author": "VCV",
@@ -8,6 +8,7 @@
   "pluginUrl": "https://vcvrack.com/Befaco",
   "authorUrl": "https://vcvrack.com/",
   "sourceUrl": "https://github.com/VCVRack/Befaco",
+  "changelogUrl": "https://github.com/VCVRack/Befaco/blob/v1/CHANGELOG.md",
   "modules": [
     {
       "slug": "EvenVCO",
