@@ -1,0 +1,89 @@
+name: Build VCV Rack Plugin
+on: [push, pull_request]
+
+env:
+  rack-sdk-version: 1.1.6
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      matrix:
+        config:
+        - {
+            name: Linux,
+            os: ubuntu-18.04,
+            prepare-os: sudo apt install -y libglu-dev
+          }
+        - {
+            name: MacOS,
+            os: macos-latest,
+            prepare-os: ""
+          }
+        - {
+            name: Windows,
+            os: windows-latest,
+            prepare-os: export CC=gcc
+          }
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Get Rack-SDK
+        run: |
+          pushd $HOME
+          curl -o Rack-SDK.zip https://vcvrack.com/downloads/Rack-SDK-${{ env.rack-sdk-version }}.zip
+          unzip Rack-SDK.zip
+      - name: Patch plugin.mk, use 7zip on Windows
+        if: runner.os == 'Windows'
+        run: |
+          sed -i 's/zip -q -9 -r/7z a -tzip -mx=9/' $HOME/Rack-SDK/plugin.mk
+      - name: Patch Makefile to use old 
+        if: runner.os == 'Linux'
+        run: |
+          echo "FLAGS += -include src/force_link_glibc_2.23.h" >> Makefile
+      - name: Build plugin
+        run: |
+          ${{ matrix.config.prepare-os }}
+          export RACK_DIR=$HOME/Rack-SDK
+          make -j dep
+          make -j dist
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          path: dist
+          name: ${{ matrix.config.name }}
+
+  publish:
+    name: Publish plugin
+    runs-on: ubuntu-18.04
+    needs: build
+    steps:
+      - uses: actions/checkout@v2
+      - uses: FranzDiebold/github-env-vars-action@v1.2.1
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            ${{ env.GITHUB_REPOSITORY_NAME }} VCV Rack Plugin ${{ env.GITHUB_REF_NAME }}
+          draft: false
+          prerelease: true
+      - uses: actions/download-artifact@v2
+        with:
+          path: _artifacts
+      - name: Upload release assets
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: _artifacts/**/*.zip
+          tag: ${{ github.ref }}
+          file_glob: true
