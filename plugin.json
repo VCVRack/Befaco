@@ -151,6 +151,18 @@
         "Hardware clone",
         "Synth voice"
       ]
+    },
+    {
+      "slug": "SamplingModulator",
+      "name": "Sampling Modulator",
+      "description": "Multi-function module that lies somewhere between a VCO, a Sample & Hold, and an 8 step trigger sequencer",
+      "manualUrl": "https://www.befaco.org/sampling-modulator/",
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-sampling-modulator-",      
+      "tags": [
+        "Sample and hold",
+        "Oscillator",
+        "Clock generator"
+      ]
     }
   ]
 }
