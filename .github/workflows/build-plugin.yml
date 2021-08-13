@@ -43,10 +43,10 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           sed -i 's/zip -q -9 -r/7z a -tzip -mx=9/' $HOME/Rack-SDK/plugin.mk
-      - name: Patch Makefile to use old 
+      - name: Patch Makefile to use old glibc versions
         if: runner.os == 'Linux'
         run: |
-          echo "FLAGS += -include src/force_link_glibc_2.23.h" >> Makefile
+          echo "FLAGS += -include force_link_glibc_2.23.h" >> Makefile
       - name: Build plugin
         run: |
           ${{ matrix.config.prepare-os }}
@@ -64,26 +64,14 @@ jobs:
     runs-on: ubuntu-18.04
     needs: build
     steps:
-      - uses: actions/checkout@v2
-      - uses: FranzDiebold/github-env-vars-action@v1.2.1
-      - name: Create Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: |
-            ${{ env.GITHUB_REPOSITORY_NAME }} VCV Rack Plugin ${{ env.GITHUB_REF_NAME }}
-          draft: false
-          prerelease: true
       - uses: actions/download-artifact@v2
         with:
           path: _artifacts
-      - name: Upload release assets
-        uses: svenstaro/upload-release-action@v2
+      - uses: "marvinpinto/action-automatic-releases@latest"
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: _artifacts/**/*.zip
-          tag: ${{ github.ref }}
-          file_glob: true
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
+          prerelease: true
+          title: "Development Build"
+          files: |          
+            _artifacts/**/*.zip

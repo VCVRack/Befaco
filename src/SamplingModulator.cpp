@@ -73,18 +73,16 @@ struct SamplingModulator : Module {
 		}
 	};
 
-
 	int numEffectiveSteps = numSteps;
 	int currentStep = 0;
 	StepState stepStates[numSteps];
-	float triggerTime = 0;
-	bool triggerActive = false;
+
 	dsp::SchmittTrigger holdDetector;
 	dsp::SchmittTrigger clock;
 	dsp::MinBlepGenerator<16, 32> squareMinBlep;
 	dsp::MinBlepGenerator<16, 32> triggMinBlep;
 	dsp::MinBlepGenerator<16, 32> holdMinBlep;
-	bool applyMinBlep = true;
+	bool removeDC = true;
 
 	float stepPhase = 0.f;
 	float heldValue = 0.f;
@@ -104,25 +102,33 @@ struct SamplingModulator : Module {
 
 	void process(const ProcessArgs& args) override {
 		bool advanceStep = false;
-		holdDetector.process(rescale(inputs[HOLD_INPUT].getVoltage(), 0.1f, 2.f, 0.f, 1.f));
 
 		if (params[INT_EXT_PARAM].getValue() == CLOCK_EXTERNAL) {
 			// if external mode, the SYNC/EXT. CLOCK input acts as a clock
 			advanceStep = clock.process(rescale(inputs[SYNC_INPUT].getVoltage(), 0.1f, 2.f, 0.f, 1.f));
-		} else {
-			// if internal mode, the SYNC/EXT. CLOCK input acts as a sync
-			if (clock.process(rescale(inputs[SYNC_INPUT].getVoltage(), 0.1f, 2.f, 0.f, 1.f))) {				
-				currentStep = 0;
+		}
+		else {
+			// if internal mode, the SYNC/EXT. CLOCK input acts as oscillator sync, resetting the phase
+			if (clock.process(rescale(inputs[SYNC_INPUT].getVoltage(), 0.1f, 2.f, 0.f, 1.f))) {
+				advanceStep = true;
 				stepPhase = 0.f;
 				halfPhase = false;
-			}			
+			}
+		}
+
+		if (holdDetector.process(rescale(inputs[HOLD_INPUT].getVoltage(), 0.1f, 2.f, 0.f, 1.f))) {
+			float oldHeldValue = heldValue;
+			heldValue = inputs[IN_INPUT].getVoltage();
+			holdMinBlep.insertDiscontinuity(0, heldValue - oldHeldValue);
 		}
 
 		for (int i = 0; i < numSteps; i++) {
 			stepStates[i] = (StepState) params[STEP_PARAM + i].getValue();
 		}
+		int numActiveSteps = 0;
 		numEffectiveSteps = 8;
 		for (int i = 0; i < numSteps; i++) {
+			numActiveSteps += (stepStates[i] == STATE_ON);
 			if (stepStates[i] == STATE_RESET) {
 				numEffectiveSteps = i;
 				break;
@@ -130,7 +136,8 @@ struct SamplingModulator : Module {
 		}
 
 		const float pitch = 16.f * params[RATE_PARAM].getValue() + params[FINE_PARAM].getValue() + inputs[VOCT_INPUT].getVoltage();
-		const float frequency = 0.1 * simd::pow(2.f, pitch);
+		const float minDialFrequency = 1.0f;
+		const float frequency = minDialFrequency * simd::pow(2.f, pitch);
 
 		float oldPhase = stepPhase;
 		float deltaPhase = clamp(args.sampleTime * frequency, 1e-6f, 0.5f);
@@ -139,6 +146,10 @@ struct SamplingModulator : Module {
 		if (!halfPhase && stepPhase >= 0.5) {
 			float crossing  = -(stepPhase - 0.5) / deltaPhase;
 			squareMinBlep.insertDiscontinuity(crossing, -2.f);
+			if (stepStates[currentStep] == STATE_ON) {
+				triggMinBlep.insertDiscontinuity(crossing, -2.f);
+			}
+
 			halfPhase = true;
 		}
 
@@ -154,44 +165,41 @@ struct SamplingModulator : Module {
 			}
 		}
 
-		if (triggerActive) {
-			triggerTime -= args.sampleTime;
-			if (triggerTime < 0) {
-				triggMinBlep.insertDiscontinuity(triggerTime, -2.f);
-				triggerTime = 0.;
-				triggerActive = false;
-			}
-		}
-
 		if (advanceStep) {
-			// TODO: what does reset on first step do?
 			currentStep = (currentStep + 1) % std::max(1, numEffectiveSteps);
 
 			if (stepStates[currentStep] == STATE_ON) {
-
-				float oldHeldValue = heldValue;
-				heldValue = inputs[IN_INPUT].getVoltage();;
-				triggerTime = 1e-3;
-				triggerActive = true;
-
-				float crossing = -(oldPhase + deltaPhase - 1.0) / deltaPhase;
-				// TODO: i guess should only be on if clock is internal?
+				const float crossing = -(oldPhase + deltaPhase - 1.0) / deltaPhase;
 				triggMinBlep.insertDiscontinuity(crossing, +2.f);
-				holdMinBlep.insertDiscontinuity(crossing, heldValue - oldHeldValue);
+
+				if (!holdDetector.isHigh()) {
+					float oldHeldValue = heldValue;
+					heldValue = inputs[IN_INPUT].getVoltage();
+					holdMinBlep.insertDiscontinuity(crossing, heldValue - oldHeldValue);
+				}
 			}
 		}
 
-		float output = heldValue + holdMinBlep.process() * applyMinBlep;
+		float output = heldValue + holdMinBlep.process();
 		outputs[OUT_OUTPUT].setVoltage(output);
 
-		// TODO: could calculate DC offset correction based on number of active bits
-		float triggerOut = triggerActive ? +1.f : -1.f;
-		triggerOut += triggMinBlep.process() * applyMinBlep;
-		outputs[TRIGG_OUTPUT].setVoltage(5.f * triggerOut);
+		float square = (stepPhase < 0.5) ? 2.f : 0.f;
+		square += squareMinBlep.process();
 
-		float square = (stepPhase < 0.5) ? 1.f : -1.f;
-		square += squareMinBlep.process() * applyMinBlep;
+
+		float trigger = (stepPhase < 0.5 && stepStates[currentStep] == STATE_ON) ? 2.f : 0.f;
+		trigger += triggMinBlep.process();
+
+		if (removeDC) {
+			trigger -= 1.0f;
+			square -= 1.0f;
+			if (numEffectiveSteps > 0) {
+				trigger += (float)(numEffectiveSteps - numActiveSteps) / (numEffectiveSteps);
+			}
+		}
+
 		outputs[CLOCK_OUTPUT].setVoltage(5.f * square);
+		outputs[TRIGG_OUTPUT].setVoltage(5.f * trigger);
 
 		for (int i = 0; i < numSteps; i++) {
 			lights[STEP_LIGHT + i].setBrightness(currentStep == i);
@@ -241,10 +249,10 @@ struct SamplingModulatorWidget : ModuleWidget {
 		addChild(createLightCentered<SmallLight<RedLight>>(mm2px(Vec(23.722, 94.617)), module, SamplingModulator::STEP_LIGHT + 7));
 	}
 
-	struct MinBLEPMenuItem : MenuItem {
+	struct DCMenuItem : MenuItem {
 		SamplingModulator* module;
 		void onAction(const event::Action& e) override {
-			module->applyMinBlep ^= true;
+			module->removeDC ^= true;
 		}
 	};
 
@@ -254,11 +262,10 @@ struct SamplingModulatorWidget : ModuleWidget {
 
 		menu->addChild(new MenuSeparator());
 
-		MinBLEPMenuItem* minBlepItem = createMenuItem<MinBLEPMenuItem>("Apply minBlep", CHECKMARK(module->applyMinBlep));
-		minBlepItem->module = module;
-		menu->addChild(minBlepItem);
+		DCMenuItem* dcItem = createMenuItem<DCMenuItem>("Remove DC Offset", CHECKMARK(module->removeDC));
+		dcItem->module = module;
+		menu->addChild(dcItem);
 	}
-
 };
 
 
