@@ -18,6 +18,7 @@ extern Model *modelHexmixVCA;
 extern Model *modelChoppingKinky;
 extern Model *modelKickall;
 extern Model *modelSamplingModulator;
+extern Model *modelMorphader;
 
 
 struct Knurlie : SvgScrew {
@@ -44,11 +45,27 @@ struct BefacoTinyKnobWhite : app::SvgKnob {
 	}
 };
 
-struct BefacoTinyKnobGrey : app::SvgKnob {
-	BefacoTinyKnobGrey() {
+struct BefacoTinyKnobDarkGrey : app::SvgKnob {
+	BefacoTinyKnobDarkGrey() {
 		minAngle = -0.8 * M_PI;
 		maxAngle = 0.8 * M_PI;
-		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoTinyKnobGrey.svg")));
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoTinyKnobDarkGrey.svg")));
+	}
+};
+
+struct BefacoTinyKnobLightGrey : app::SvgKnob {
+	BefacoTinyKnobLightGrey() {
+		minAngle = -0.8 * M_PI;
+		maxAngle = 0.8 * M_PI;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoTinyKnobLightGrey.svg")));
+	}
+};
+
+struct BefacoTinyKnobBlack : app::SvgKnob {
+	BefacoTinyKnobBlack() {
+		minAngle = -0.8 * M_PI;
+		maxAngle = 0.8 * M_PI;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoTinyKnobBlack.svg")));
 	}
 };
 
@@ -67,6 +84,26 @@ struct BefacoOutputPort : app::SvgPort {
 struct BefacoInputPort : app::SvgPort {
 	BefacoInputPort() {
 		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoInputPort.svg")));
+	}
+};
+
+struct CKSSNarrow : app::SvgSwitch {
+	CKSSNarrow() {
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/SwitchNarrow_0.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/SwitchNarrow_1.svg")));
+	}
+};
+
+struct Crossfader : app::SvgSlider {
+	Crossfader() {
+		setBackgroundSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/CrossfaderBackground.svg")));
+		setHandleSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/CrossfaderHandle.svg")));
+		minHandlePos = mm2px(Vec(4.5f, -0.8f));
+		maxHandlePos = mm2px(Vec(34.5, -0.8f));
+		horizontal = true;
+		math::Vec margin = math::Vec(15, 5);
+		background->box.pos = margin;
+		box.size = background->box.size.plus(margin.mult(2));
 	}
 };
 

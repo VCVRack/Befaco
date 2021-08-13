@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="11.247mm"
+   height="7.415mm"
+   viewBox="0 0 11.247 7.415"
+   version="1.1"
+   id="svg3778"
+   inkscape:version="1.0.2-2 (e86c870879, 2021-01-15)"
+   sodipodi:docname="CrossfaderHandle.svg">
+  <defs
+     id="defs3772" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="7.9195959"
+     inkscape:cx="73.979315"
+     inkscape:cy="61.676685"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     inkscape:document-rotation="0"
+     showgrid="false"
+     inkscape:window-width="2560"
+     inkscape:window-height="1361"
+     inkscape:window-x="-9"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata3775">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <g
+       style="display:inline"
+       transform="matrix(0.9989706,0,0,1.1317921,-30.621884,-314.11007)"
+       id="g67123">
+      <g
+         style="display:inline"
+         id="g67111"
+         transform="matrix(0,-0.26458333,0.26458333,0,-22.851599,302.31088)">
+        <g
+           inkscape:export-ydpi="300"
+           inkscape:export-xdpi="300"
+           inkscape:export-filename="/home/diego/Escritorio/Miniaturas_modulos_web/Slew_limiter.png"
+           transform="translate(-110.33749,-283.5198)"
+           id="g67109"
+           inkscape:label="Layer 1"
+           style="display:inline">
+          <g
+             id="g67107"
+             style="display:inline"
+             transform="translate(219.29845,-487.66016)" />
+        </g>
+      </g>
+      <g
+         transform="matrix(0,-0.26458333,0.26458333,0,-147.75502,337.10612)"
+         style="display:inline"
+         id="g67121"
+         inkscape:label="Capa 1">
+        <g
+           style="display:inline"
+           id="g67119"
+           transform="matrix(1.5157369,0,0,-1.8423541,411.1976,1075.6321)">
+          <rect
+             transform="matrix(0.8,0,0,-0.8,0,363.96845)"
+             y="183.06221"
+             x="-173.42"
+             height="28.076494"
+             width="19.524609"
+             id="rect67113"
+             style="fill:#292929;fill-opacity:1;fill-rule:nonzero;stroke:#767171;stroke-width:0.795136;stroke-linecap:square;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+          <rect
+             transform="scale(1,-1)"
+             y="-212.17532"
+             x="-136.838"
+             height="11.539498"
+             width="11.688397"
+             id="rect67115"
+             style="fill:#6b6b6b;fill-opacity:1;fill-rule:nonzero;stroke:none" />
+          <rect
+             transform="scale(1,-1)"
+             y="-206.99741"
+             x="-139.07549"
+             height="1.6550338"
+             width="16.336033"
+             id="rect67117"
+             style="fill:#cccccc;fill-opacity:1;fill-rule:nonzero;stroke:none" />
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

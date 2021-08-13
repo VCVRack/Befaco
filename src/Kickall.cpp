@@ -123,7 +123,7 @@ struct KickallWidget : ModuleWidget {
 		addChild(createWidget<Knurlie>(Vec(RACK_GRID_WIDTH, 0)));
 		addChild(createWidget<Knurlie>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-		addParam(createParamCentered<BefacoTinyKnobGrey>(mm2px(Vec(8.472, 28.97)), module, Kickall::TUNE_PARAM));
+		addParam(createParamCentered<BefacoTinyKnobDarkGrey>(mm2px(Vec(8.472, 28.97)), module, Kickall::TUNE_PARAM));
 		addParam(createParamCentered<BefacoPush>(mm2px(Vec(22.409, 29.159)), module, Kickall::TRIGG_BUTTON_PARAM));
 		addParam(createParamCentered<Davies1900hLargeGreyKnob>(mm2px(Vec(15.526, 49.292)), module, Kickall::SHAPE_PARAM));
 		addParam(createParam<BefacoSlidePot>(mm2px(Vec(19.667, 63.897)), module, Kickall::DECAY_PARAM));

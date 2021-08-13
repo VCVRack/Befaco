@@ -111,7 +111,8 @@
         "Envelope generator",
         "Mixer",
         "Polyphonic",
-        "Hardware clone"
+        "Hardware clone",
+        "Quad"
       ]
     },
     {
@@ -157,11 +158,26 @@
       "name": "Sampling Modulator",
       "description": "Multi-function module that lies somewhere between a VCO, a Sample & Hold, and an 8 step trigger sequencer",
       "manualUrl": "https://www.befaco.org/sampling-modulator/",
-      "modularGridUrl": "https://www.modulargrid.net/e/befaco-sampling-modulator-",      
-      "tags": [
-        "Sample and hold",
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-sampling-modulator-",
+      "tags": [ 
+        "Clock generator",
+        "Hardware clone",
         "Oscillator",
-        "Clock generator"
+        "Sample and hold"
+      ]
+    },
+    {
+      "slug": "Morphader",
+      "name": "Morphader",
+      "description": "Multichannel CV/Audio crossfader",
+      "manualUrl": "https://www.befaco.org/morphader-2/",
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-morphader",
+      "tags": [
+        "Controller",
+        "Hardware clone",
+        "Mixer",
+        "Polyphonic",
+        "Quad"
       ]
     }
   ]
