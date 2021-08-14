@@ -4,21 +4,21 @@
 using namespace rack;
 
 
-extern Plugin *pluginInstance;
+extern Plugin* pluginInstance;
 
-extern Model *modelEvenVCO;
-extern Model *modelRampage;
-extern Model *modelABC;
-extern Model *modelSpringReverb;
-extern Model *modelMixer;
-extern Model *modelSlewLimiter;
-extern Model *modelDualAtenuverter;
-extern Model *modelPercall;
-extern Model *modelHexmixVCA;
-extern Model *modelChoppingKinky;
-extern Model *modelKickall;
-extern Model *modelSamplingModulator;
-extern Model *modelMorphader;
+extern Model* modelEvenVCO;
+extern Model* modelRampage;
+extern Model* modelABC;
+extern Model* modelSpringReverb;
+extern Model* modelMixer;
+extern Model* modelSlewLimiter;
+extern Model* modelDualAtenuverter;
+extern Model* modelPercall;
+extern Model* modelHexmixVCA;
+extern Model* modelChoppingKinky;
+extern Model* modelKickall;
+extern Model* modelSamplingModulator;
+extern Model* modelMorphader;
 
 
 struct Knurlie : SvgScrew {
@@ -121,6 +121,11 @@ T tanh_pade(T x) {
 	return 12.f * x * q / (36.f * x2 + q * q);
 }
 
+template <typename T>
+T exponentialBipolar80Pade_5_4(T x) {
+	return (T(0.109568) * x + T(0.281588) * simd::pow(x, 3) + T(0.133841) * simd::pow(x, 5))
+	       / (T(1.) - T(0.630374) * simd::pow(x, 2) + T(0.166271) * simd::pow(x, 4));
+}
 
 struct ADEnvelope {
 	enum Stage {

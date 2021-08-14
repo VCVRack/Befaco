@@ -10,8 +10,8 @@ inline T equalSumCrossfade(T a, T b, const float p) {
 // equal power crossfade, -1 <= p <= 1
 template <typename T>
 inline T equalPowerCrossfade(T a, T b, const float p) {
-	// TODO: investigate more efficient representation (avoid exp)
-	return std::min(std::exp(4.f * p), 1.f) * b + std::min(std::exp(4.f * -p), 1.f) * a;
+	//return std::min(std::exp(4.f * p), 1.f) * b + std::min(std::exp(4.f * -p), 1.f) * a;
+	return std::min(exponentialBipolar80Pade_5_4(p + 1), 1.f) * b + std::min(exponentialBipolar80Pade_5_4(1 - p), 1.f) * a;
 }
 
 // TExponentialSlewLimiter doesn't appear to work correctly (tried for -1 -> +1, and 0 -> 1)
@@ -95,13 +95,6 @@ struct Morphader : Module {
 		}
 	};
 
-	struct FaderLagParam : ParamQuantity {
-		std::string getDisplayValueString() override {
-			const float slewTime = 2.f / (slewMax * std::pow(slewMin / slewMax, getValue()));
-			return string::f("%.3gs", slewTime);
-		}
-	};
-
 	Morphader() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 
@@ -117,7 +110,7 @@ struct Morphader : Module {
 			configParam<AudioCVModeParam>(MODE + i, AUDIO_MODE, CV_MODE, AUDIO_MODE, "Mode " + std::to_string(i + 1));
 		}
 
-		configParam<FaderLagParam>(FADER_LAG_PARAM, 0.f, 1.f, 0.f, "Fader lag");
+		configParam(FADER_LAG_PARAM, 2.0f / slewMax, 2.0f / slewMin, 2.0f / slewMax, "Fader lag", "s");
 		configParam(FADER_PARAM, -1.f, 1.f, 0.f, "Fader");
 	}
 
@@ -126,14 +119,14 @@ struct Morphader : Module {
 
 		simd::float_4 channelCrossfades = {0.f};
 
-		slewLimiter.setSlew(slewMax * std::pow(slewMin / slewMax, params[FADER_LAG_PARAM].getValue()));
+		slewLimiter.setSlew(2.0f / params[FADER_LAG_PARAM].getValue());
 		const float masterCrossfadeValue = slewLimiter.process(deltaTime, params[FADER_PARAM].getValue());
 
 		for (int i = 0; i < NUM_MIXER_CHANNELS; i++) {
 
 			if (i == 0) {
 				// CV will be added to master for channel 1, and if not connected, the normalled value of 5.0V will correspond to the midpoint
-				const float crossfadeCV = clamp(inputs[CV_INPUT + i].getNormalVoltage(5.f), 0.f, 10.f);
+				const float crossfadeCV = clamp(inputs[CV_INPUT + i].getVoltage(), 0.f, 10.f);
 				channelCrossfades[i] = params[CV_PARAM].getValue() * rescale(crossfadeCV, 0.f, 10.f, 0.f, +2.f) + masterCrossfadeValue;
 			}
 			else {
@@ -142,16 +135,18 @@ struct Morphader : Module {
 					const float crossfadeCV = clamp(inputs[CV_INPUT + i].getVoltage(), 0.f, 10.f);
 					channelCrossfades[i] = rescale(crossfadeCV, 0.f, 10.f, -1.f, +1.f);
 				}
-				// if channel 1 is plugged in, use that
+				// if channel 1 is plugged in, but this channel isn't, channel 1 is normalled - in
+				// this scenario, however the CV is summed with the crossfader
 				else if (inputs[CV_INPUT + 0].isConnected()) {
-					// TODO: is this right, or is is channelCrossfades[i] (i.e. with master fader)?
 					const float crossfadeCV = clamp(inputs[CV_INPUT + 0].getVoltage(), 0.f, 10.f);
-					channelCrossfades[i] = params[CV_PARAM].getValue() * rescale(crossfadeCV, 0.f, 10.f, -1.f, +1.f);
+					channelCrossfades[i] = params[CV_PARAM].getValue() * rescale(crossfadeCV, 0.f, 10.f, 0.f, +2.f) + masterCrossfadeValue;
 				}
 				else {
 					channelCrossfades[i] = masterCrossfadeValue;
 				}
 			}
+
+			channelCrossfades[i] = clamp(channelCrossfades[i], -1.f, +1.f);
 		}
 
 		return channelCrossfades;
@@ -183,7 +178,9 @@ struct Morphader : Module {
 						break;
 					}
 					case AUDIO_MODE: {
-						out[c / 4] = equalPowerCrossfade(inA, inB, channelCrossfades[i]);
+						// in audio mode, close to the centre point it is possible to get large voltages
+						// (e.g. if A and B are both 10V const), so clip
+						out[c / 4] = clamp(equalPowerCrossfade(inA, inB, channelCrossfades[i]), -12.f, +12.f);
 						break;
 					}
 					default: assert(false);
