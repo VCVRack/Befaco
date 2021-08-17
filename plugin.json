@@ -179,6 +179,17 @@
         "Polyphonic",
         "Quad"
       ]
+    },
+    {
+      "slug": "ADSR",
+      "name": "ADSR",
+      "description": "ADSR envelope generator with gate output on each stage, plus variable shape",
+      "manualUrl": "https://www.befaco.org/vc-adsr/",
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-vc-adsr",
+      "tags": [
+          "Envelope generator",
+          "Hardware clone"
+      ]
     }
   ]
 }

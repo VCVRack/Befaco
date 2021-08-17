@@ -19,6 +19,7 @@ extern Model* modelChoppingKinky;
 extern Model* modelKickall;
 extern Model* modelSamplingModulator;
 extern Model* modelMorphader;
+extern Model* modelADSR;
 
 
 struct Knurlie : SvgScrew {
