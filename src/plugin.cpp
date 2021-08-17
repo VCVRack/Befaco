@@ -20,4 +20,5 @@ void init(rack::Plugin *p) {
 	p->addModel(modelSamplingModulator);
 	p->addModel(modelMorphader);
 	p->addModel(modelADSR);
+	p->addModel(modelSTMix);
 }

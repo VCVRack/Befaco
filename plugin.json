@@ -159,7 +159,7 @@
       "description": "Multi-function module that lies somewhere between a VCO, a Sample & Hold, and an 8 step trigger sequencer",
       "manualUrl": "https://www.befaco.org/sampling-modulator/",
       "modularGridUrl": "https://www.modulargrid.net/e/befaco-sampling-modulator-",
-      "tags": [ 
+      "tags": [
         "Clock generator",
         "Hardware clone",
         "Oscillator",
@@ -187,8 +187,20 @@
       "manualUrl": "https://www.befaco.org/vc-adsr/",
       "modularGridUrl": "https://www.modulargrid.net/e/befaco-vc-adsr",
       "tags": [
-          "Envelope generator",
-          "Hardware clone"
+        "Envelope generator",
+        "Hardware clone"
+      ]
+    },
+    {
+      "slug": "STMix",
+      "name": "STMix",
+      "description": "A compact 4 channel stereo mixer with an auxiliary input",
+      "manualUrl": "https://www.befaco.org/stmix/",
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-stmix-",
+      "tags": [
+        "Hardware clone", 
+        "Mixer", 
+        "Stereo"
       ]
     }
   ]

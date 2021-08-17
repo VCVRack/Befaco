@@ -217,7 +217,6 @@ struct ADSR : Module {
 
 	static constexpr float minStageTime = 0.003f;  // in seconds
 	static constexpr float maxStageTime = 10.f;  // in seconds
-	static constexpr float scaleFactor = std::log2(maxStageTime / minStageTime);
 
 	// given a value from the slider and/or cv (rescaled to range 0 to 1), transform into the appropriate time in seconds
 	static float convertCVToTimeInSeconds(float cv) {
