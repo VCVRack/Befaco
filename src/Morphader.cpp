@@ -179,8 +179,9 @@ struct Morphader : Module {
 					}
 					case AUDIO_MODE: {
 						// in audio mode, close to the centre point it is possible to get large voltages
-						// (e.g. if A and B are both 10V const), so clip
-						out[c / 4] = clamp(equalPowerCrossfade(inA, inB, channelCrossfades[i]), -12.f, +12.f);
+						// (e.g. if A and B are both 10V const). however according to the standard, it is 
+						// better not to clip this https://vcvrack.com/manual/VoltageStandards#Output-Saturation
+						out[c / 4] = equalPowerCrossfade(inA, inB, channelCrossfades[i]);
 						break;
 					}
 					default: assert(false);

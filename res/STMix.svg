@@ -25,9 +25,9 @@
      inkscape:pageshadow="2"
      inkscape:zoom="3.959798"
      inkscape:cx="95.397589"
-     inkscape:cy="410.81889"
+     inkscape:cy="380.51432"
      inkscape:document-units="mm"
-     inkscape:current-layer="components"
+     inkscape:current-layer="background"
      inkscape:document-rotation="0"
      showgrid="false"
      inkscape:window-width="2560"
@@ -96,7 +96,7 @@
        inkscape:export-filename="/home/diego/Escritorio/tirar kick all"
        inkscape:label="Layer 1"
        id="g73679"
-       transform="matrix(0.22493746,0,0,0.22493746,-41.377444,5.1830576)"
+       transform="matrix(0.22493746,0,0,0.22493746,-39.998259,5.1830576)"
        style="display:inline">
       <g
          id="g73681"
@@ -107,7 +107,7 @@
            style="fill:#ffffff">
           <polygon
              id="polygon73685"
-             points="606.316,298.069 640.94,298.069 640.94,259.056 537.067,259.056 537.067,362.929 640.94,362.929 640.94,328.304 606.315,328.304 571.691,328.304 571.691,305.222 571.691,289.29 606.315,289.29 "
+             points="640.94,259.056 537.067,259.056 537.067,362.929 640.94,362.929 640.94,328.304 606.315,328.304 571.691,328.304 571.691,305.222 571.691,289.29 606.315,289.29 606.316,298.069 640.94,298.069 "
              style="fill:#ffffff"
              transform="scale(1.0666667)" />
           <path
@@ -127,12 +127,12 @@
              style="fill:#ffffff;stroke-width:1.06667" />
           <polygon
              id="polygon73693"
-             points="272.366,311.113 294.698,289.29 294.698,259.056 190.825,259.056 190.825,289.29 253.516,289.29 231.128,310.993 254.394,332.696 190.825,332.696 190.825,362.929 294.698,362.929 294.698,332.696 "
+             points="294.698,259.056 190.825,259.056 190.825,289.29 253.516,289.29 231.128,310.993 254.394,332.696 190.825,332.696 190.825,362.929 294.698,362.929 294.698,332.696 272.366,311.113 294.698,289.29 "
              style="fill:#ffffff"
              transform="scale(1.0666667)" />
           <polygon
              id="polygon73695"
-             points="312.344,289.41 333.836,311.113 312.344,332.865 312.344,363.049 355.542,363.289 355.542,332.559 375.968,311.113 355.542,289.273 405.684,289.41 436.556,259.176 312.344,259.176 "
+             points="312.344,332.865 312.344,363.049 355.542,363.289 355.542,332.559 375.968,311.113 355.542,289.273 405.684,289.41 436.556,259.176 312.344,259.176 312.344,289.41 333.836,311.113 "
              style="fill:#ffffff"
              transform="scale(1.0666667)" />
         </g>
@@ -548,7 +548,7 @@
      inkscape:groupmode="layer"
      id="components"
      inkscape:label="components"
-     style="display:inline">
+     style="display:none">
     <g
        inkscape:export-ydpi="300"
        inkscape:export-xdpi="300"
