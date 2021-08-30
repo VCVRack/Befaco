@@ -1,5 +1,7 @@
 #include "plugin.hpp"
 
+using simd::float_4;
+
 // an implementation of a performable, 3-stage switch, i.e. where
 // the state triggers after being dragged a certain distance
 struct BefacoSwitchMomentary : SVGSwitch {
@@ -239,7 +241,7 @@ struct Muxlicer : Module {
 	int possibleQuadraticGates[5] = {-1, 1, 2, 4, 8};
 	bool quadraticGatesOnly = false;
 
-	PlayState playState = STATE_STOPPED;	
+	PlayState playState = STATE_STOPPED;
 	dsp::BooleanTrigger playStateTrigger;
 
 	uint32_t runIndex; 	// which step are we on (0 to 7)
@@ -252,7 +254,7 @@ struct Muxlicer : Module {
 	float internalClockLength = 0.25f;
 
 	float tapTime = 99999;	// used to track the time between clock pulses (or taps?)
-	dsp::SchmittTrigger inputClockTrigger;	// to detect incoming clock pulses 
+	dsp::SchmittTrigger inputClockTrigger;	// to detect incoming clock pulses
 	dsp::SchmittTrigger mainClockTrigger;	// to detect rising edges from the divided/multiplied version of the clock signal
 	dsp::SchmittTrigger resetTrigger; 		// to detect the reset signal
 	dsp::PulseGenerator endOfCyclePulse; 	// fire a signal at the end of cycle
@@ -292,11 +294,12 @@ struct Muxlicer : Module {
 		const bool usingExternalClock = inputs[CLOCK_INPUT].isConnected();
 
 		bool externalClockPulseReceived = false;
-		// a clock pulse does two things: sets the internal clock (based on timing between two pulses), and
-		// also synchronises the clock
+		// a clock pulse does two things: 1) sets the internal clock (based on timing between two pulses), which
+		// would continue were the clock input to be removed, and 2) synchronises/drive the clock (if clock input present)
 		if (usingExternalClock && inputClockTrigger.process(rescale(inputs[CLOCK_INPUT].getVoltage(), 0.1f, 2.f, 0.f, 1.f))) {
 			externalClockPulseReceived = true;
 		}
+		// this can also be sent by tap tempo
 		else if (!usingExternalClock && tapTempoTrigger.process(params[TAP_TEMPO_PARAM].getValue())) {
 			externalClockPulseReceived = true;
 		}
@@ -310,15 +313,15 @@ struct Muxlicer : Module {
 
 		processPlayResetSwitch();
 
-		// TODO: work out CV scaling/conversion for ADDRESS_INPUT
 		const float address = params[ADDRESS_PARAM].getValue() + inputs[ADDRESS_INPUT].getVoltage();
 		const bool isSequenceAdvancing = address < 0.f;
 
 		// even if we have an external clock, use its pulses to time/sync the internal clock
 		// so that it will remain running after CLOCK_INPUT is disconnected
 		if (externalClockPulseReceived) {
-			// TODO: only want 2.f for tap for tempo, not all external clock
-			if (tapTime < 2.f) {
+			// track length between received clock pulses (using external clock) or taps
+			// of the tap-tempo button (if sufficiently short)
+			if (usingExternalClock || tapTime < 2.f) {
 				internalClockLength = tapTime;
 			}
 			tapTime = 0;
@@ -341,7 +344,7 @@ struct Muxlicer : Module {
 		const bool clockPulseReceived = usingExternalClock ? externalClockPulseReceived : internalClockPulseReceived;
 		// apply the main clock div/mult logic to whatever clock source we're using - this outputs a gate sequence
 		// so we must use a Schmitt Trigger on the divided/mult'd signal in order to detect when to advance the sequence
-		const bool dividedMultedClockPulseReceived = mainClockTrigger.process(mainClockMultDiv.process(args.sampleTime, clockPulseReceived));
+		const bool dividedMultipliedClockPulseReceived = mainClockTrigger.process(mainClockMultDiv.process(args.sampleTime, clockPulseReceived));
 
 		// reset _doesn't_ reset/sync the clock, it just moves the sequence index marker back to the start
 		if (reset) {
@@ -349,10 +352,7 @@ struct Muxlicer : Module {
 			reset = false;
 		}
 
-		// end of cycle trigger trigger
-		outputs[EOC_OUTPUT].setVoltage(0.f);
-
-		if (dividedMultedClockPulseReceived) {
+		if (dividedMultipliedClockPulseReceived) {
 
 			if (isSequenceAdvancing) {
 				runIndex++;
@@ -402,27 +402,50 @@ struct Muxlicer : Module {
 
 
 		if (modeCOMIO == COM_1_IN_8_OUT) {
-			// Mux outputs (all zero, except active step, if playing)
-			for (int i = 0; i < 8; i++) {
-				outputs[MUX_OUTPUTS + i].setVoltage(0.f);
+			const int numActiveEngines = std::max(inputs[ALL_INPUT].getChannels(), inputs[COM_INPUT].getChannels());
+			const float stepVolume = params[LEVEL_PARAMS + addressIndex].getValue();
+
+			for (int c = 0; c < numActiveEngines; c += 4) {
+				// Mux outputs (all zero, except active step, if playing)
+				for (int i = 0; i < 8; i++) {
+					outputs[MUX_OUTPUTS + i].setVoltageSimd<float_4>(0.f, c);
+				}
+
+				if (playState != STATE_STOPPED) {
+					const float_4 com_input = inputs[COM_INPUT].getPolyVoltageSimd<float_4>(c);
+					outputs[MUX_OUTPUTS + addressIndex].setVoltageSimd(stepVolume * com_input, c);
+				}
 			}
 
-			if (playState != STATE_STOPPED) {
-				const float com_input = inputs[COM_INPUT].getVoltage();
-				const float stepVolume = params[LEVEL_PARAMS + addressIndex].getValue();
-				outputs[MUX_OUTPUTS + addressIndex].setVoltage(stepVolume * com_input);
+			for (int i = 0; i < 8; i++) {
+				outputs[MUX_OUTPUTS + i].setChannels(numActiveEngines);
 			}
 		}
 		else if (modeCOMIO == COM_8_IN_1_OUT && playState != STATE_STOPPED) {
-			const float allInValue = inputs[ALL_INPUT].getNormalVoltage(allInNormalVoltage);
+			// we need at least one active engine, even if nothing is connected
+			// as we want the voltage that is normalled to All In to be processed
+			int numActiveEngines = std::max(1, inputs[ALL_INPUT].getChannels());
+			for (int i = 0; i < 8; i++) {
+				numActiveEngines = std::max(numActiveEngines, inputs[MUX_INPUTS + i].getChannels());
+			}
+
 			const float stepVolume = params[LEVEL_PARAMS + addressIndex].getValue();
-			float stepValue = inputs[MUX_INPUTS + addressIndex].getNormalVoltage(allInValue) * stepVolume;
-			outputs[COM_OUTPUT].setVoltage(stepValue);
+			for (int c = 0; c < numActiveEngines; c += 4) {
+				const float_4 allInValue = inputs[ALL_INPUT].getNormalPolyVoltageSimd<float_4>((float_4) allInNormalVoltage, c);
+				const float_4 stepValue = inputs[MUX_INPUTS + addressIndex].getNormalPolyVoltageSimd<float_4>(allInValue, c) * stepVolume;
+				if (c == 0) {
+					DEBUG(string::f("%f %f %d", allInValue[0], stepValue[0], addressIndex).c_str());
+				}
+				outputs[COM_OUTPUT].setVoltageSimd(stepValue, c);
+			}
+			outputs[COM_OUTPUT].setChannels(numActiveEngines);
 		}
 
 		const bool isOutputClockHigh = outputClockMultDiv.process(args.sampleTime, clockPulseReceived);
 		outputs[CLOCK_OUTPUT].setVoltage(isOutputClockHigh ? 10.f : 0.f);
 		lights[CLOCK_LIGHT].setBrightness(isOutputClockHigh ? 1.f : 0.f);
+
+		// end of cycle trigger trigger
 		outputs[EOC_OUTPUT].setVoltage(endOfCyclePulse.process(args.sampleTime) ? 10.f : 0.f);
 
 		if (rightExpander.module && rightExpander.module->model == modelMex) {
@@ -475,26 +498,33 @@ struct Muxlicer : Module {
 		}
 	}
 
+
+	// determines how many gates to yield per step
 	int getGateMode() {
 
-		float gate;
+		int gate;
 
 		if (inputs[GATE_MODE_INPUT].isConnected()) {
-			float gateCV = clamp(inputs[GATE_MODE_INPUT].getVoltage(), 0.f, 5.f) / 5.f;
+			// with gate acting as attenuator, hardware reacts in 1V increments,
+			// where x V -> (x + 1) V yields (x - 1) gates in that time
+			float gateCV = clamp(inputs[GATE_MODE_INPUT].getVoltage(), 0.f, 10.f);
 			float knobAttenuation = rescale(params[GATE_MODE_PARAM].getValue(), -1.f, 8.f, 0.f, 1.f);
-			// todo: check against hardware
-			gate = rescale(gateCV * knobAttenuation, 0.f, 1.f, -1.0f, 8.f);
+
+			gate = int (floor(gateCV * knobAttenuation)) - 1;
 		}
 		else {
-			gate = params[GATE_MODE_PARAM].getValue();
+			gate = (int) roundf(params[GATE_MODE_PARAM].getValue());
 		}
+
+		// should be respected, but make sure
+		gate = clamp(gate, -1, 8);
 
 		if (quadraticGatesOnly) {
 			int quadraticGateIndex = int(floor(rescale(gate, -1.f, 8.f, 0.f, 4.99f)));
-			return possibleQuadraticGates[quadraticGateIndex];
+			return possibleQuadraticGates[clamp(quadraticGateIndex, 0, 4)];
 		}
 		else {
-			return clamp((int) roundf(gate), -1, 8);
+			return gate;
 		}
 	}
 
