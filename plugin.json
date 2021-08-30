@@ -203,6 +203,28 @@
         "Stereo",
         "Polyphonic"
       ]
+    },
+    {
+      "slug": "Muxlicer",
+      "name": "Muxlicer",
+      "description": "VC adressable sequential switch and sequencer",
+      "manualUrl": "https://www.befaco.org/muxlicer-2/",
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-muxlicer",      
+      "tags": [
+        "Clock generator",
+        "Hardware clone",
+        "Sequencer",
+        "Switch"
+      ]
+    },
+    {
+      "slug": "Mex",
+      "name": "Mex",
+      "description": "Gate Expander for Befaco Muxlicer",
+      "tags": [
+        "Expander",
+        "Hardware clone"
+      ]
     }
   ]
 }

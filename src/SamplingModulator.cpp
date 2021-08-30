@@ -77,6 +77,7 @@ struct SamplingModulator : Module {
 	int currentStep = 0;
 	StepState stepStates[numSteps];
 
+	dsp::PulseGenerator triggerGenerator;
 	dsp::SchmittTrigger holdDetector;
 	dsp::SchmittTrigger clock;
 	dsp::MinBlepGenerator<16, 32> squareMinBlep;
@@ -171,7 +172,7 @@ struct SamplingModulator : Module {
 			if (stepStates[currentStep] == STATE_ON) {
 				const float crossing = -(oldPhase + deltaPhase - 1.0) / deltaPhase;
 				triggMinBlep.insertDiscontinuity(crossing, +2.f);
-
+				triggerGenerator.trigger();
 				if (!holdDetector.isHigh()) {
 					float oldHeldValue = heldValue;
 					heldValue = inputs[IN_INPUT].getVoltage();
@@ -186,7 +187,6 @@ struct SamplingModulator : Module {
 		float square = (stepPhase < 0.5) ? 2.f : 0.f;
 		square += squareMinBlep.process();
 
-
 		float trigger = (stepPhase < 0.5 && stepStates[currentStep] == STATE_ON) ? 2.f : 0.f;
 		trigger += triggMinBlep.process();
 
@@ -199,7 +199,12 @@ struct SamplingModulator : Module {
 		}
 
 		outputs[CLOCK_OUTPUT].setVoltage(5.f * square);
-		outputs[TRIGG_OUTPUT].setVoltage(5.f * trigger);
+		if (params[INT_EXT_PARAM].getValue() == CLOCK_INTERNAL) {
+			outputs[TRIGG_OUTPUT].setVoltage(5.f * trigger);
+		}
+		else {			
+			outputs[TRIGG_OUTPUT].setVoltage(10.f * triggerGenerator.process(args.sampleTime));
+		}
 
 		for (int i = 0; i < numSteps; i++) {
 			lights[STEP_LIGHT + i].setBrightness(currentStep == i);

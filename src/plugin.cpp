@@ -21,4 +21,6 @@ void init(rack::Plugin *p) {
 	p->addModel(modelMorphader);
 	p->addModel(modelADSR);
 	p->addModel(modelSTMix);
+	p->addModel(modelMuxlicer);
+	p->addModel(modelMex);
 }

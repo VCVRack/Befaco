@@ -21,6 +21,8 @@ extern Model* modelSamplingModulator;
 extern Model* modelMorphader;
 extern Model* modelADSR;
 extern Model* modelSTMix;
+extern Model* modelMuxlicer;
+extern Model* modelMex;
 
 struct Knurlie : SvgScrew {
 	Knurlie() {
@@ -108,6 +110,30 @@ struct Crossfader : app::SvgSlider {
 	}
 };
 
+struct BefacoButton : app::SvgSwitch {
+	BefacoButton() {
+		momentary = true;
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoButton_0.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoButton_1.svg")));
+	}
+};
+
+struct BefacoSwitchHorizontal : app::SvgSwitch {
+	BefacoSwitchHorizontal() {		
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoSwitchHoriz_0.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoSwitchHoriz_1.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoSwitchHoriz_2.svg")));
+	}
+};
+
+struct BefacoTinyKnobSnap : BefacoTinyKnob {
+	BefacoTinyKnobSnap() {
+		snap = true;
+		minAngle = -0.80 * M_PI;
+		maxAngle = 0.80 * M_PI;
+	}
+};
+
 template <typename T>
 T sin2pi_pade_05_5_4(T x) {
 	x -= 0.5f;
@@ -176,3 +202,11 @@ struct ADEnvelope {
 private:
 	float envLinear = 0.f;
 };
+
+struct MexMessage { 
+	int addressIndex = 0;
+	bool isPlaying = false;
+	float allGates = 0.f;
+	float outputClock = 0.f;
+};
+
