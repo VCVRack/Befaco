@@ -432,10 +432,7 @@ struct Muxlicer : Module {
 			const float stepVolume = params[LEVEL_PARAMS + addressIndex].getValue();
 			for (int c = 0; c < numActiveEngines; c += 4) {
 				const float_4 allInValue = inputs[ALL_INPUT].getNormalPolyVoltageSimd<float_4>((float_4) allInNormalVoltage, c);
-				const float_4 stepValue = inputs[MUX_INPUTS + addressIndex].getNormalPolyVoltageSimd<float_4>(allInValue, c) * stepVolume;
-				if (c == 0) {
-					DEBUG(string::f("%f %f %d", allInValue[0], stepValue[0], addressIndex).c_str());
-				}
+				const float_4 stepValue = inputs[MUX_INPUTS + addressIndex].getNormalPolyVoltageSimd<float_4>(allInValue, c) * stepVolume;				
 				outputs[COM_OUTPUT].setVoltageSimd(stepValue, c);
 			}
 			outputs[COM_OUTPUT].setChannels(numActiveEngines);

@@ -25,6 +25,7 @@ struct Mex : Module {
 	};
 
 	MexMessage leftMessages[2] = {};
+	dsp::SchmittTrigger gateInTrigger;
 
 	Mex() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
@@ -57,7 +58,17 @@ struct Mex : Module {
 					gate = message->allGates;
 				}
 				else if (state == GATE_IN_MODE) {
-					gate = inputs[GATE_IN_INPUT].getNormalVoltage(message->outputClock);
+					// gate in will convert non-gate signals to gates (via schmitt trigger)
+					// if input is present
+					if (inputs[GATE_IN_INPUT].isConnected()) {
+						gateInTrigger.process(inputs[GATE_IN_INPUT].getVoltage());
+						gate = 10.f * gateInTrigger.isHigh();
+					}
+					// otherwise the main Muxlicer output clock (including divisions/multiplications)
+					// is normalled in
+					else {
+						gate = message->outputClock;
+					}					
 				}
 
 				lights[currentStep].setBrightness(gate);
