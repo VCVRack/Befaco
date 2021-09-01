@@ -48,11 +48,11 @@ struct STMix : Module {
 
 		for (int i = 0; i < numMixerChannels + 1; ++i) {
 
+			const float gain = (i < numMixerChannels) ? exponentialBipolar80Pade_5_4(params[GAIN_PARAM + i].getValue()) : 1.f;
+
 			for (int c = 0; c < numActivePolyphonyEngines; c += 4) {
 				const float_4 in_left = inputs[LEFT_INPUT + i].getNormalPolyVoltageSimd<float_4>(0.f, c);
 				const float_4 in_right = inputs[RIGHT_INPUT + i].getNormalPolyVoltageSimd<float_4>(in_left, c);
-
-				const float gain = (i < numMixerChannels) ? params[GAIN_PARAM + i].getValue() : 1.f;
 
 				out_left[c / 4] += in_left * gain;
 				out_right[c / 4] += in_right * gain;
