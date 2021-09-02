@@ -178,6 +178,14 @@ struct MultDivClock {
 	}
 };
 
+static std::vector<int> getClockOptions() {
+	return std::vector<int> {-16, -8, -4, -3, -2, 1, 2, 3, 4, 8, 16};
+}
+
+std::string getClockOptionString(const int clockOption) {
+	return (clockOption < 0) ? ("x 1/" + std::to_string(-clockOption)) : ("x " + std::to_string(clockOption));
+}
+
 struct Muxlicer : Module {
 	enum ParamIds {
 		PLAY_PARAM,
@@ -247,6 +255,7 @@ struct Muxlicer : Module {
 	uint32_t runIndex; 	// which step are we on (0 to 7)
 	uint32_t addressIndex = 0;
 	bool reset = false;
+	bool tapped = false;
 
 	// used to track the clock (e.g. if external clock is not connected). NOTE: this clock
 	// is defined _prior_ to any clock division/multiplication logic
@@ -257,24 +266,39 @@ struct Muxlicer : Module {
 	dsp::SchmittTrigger inputClockTrigger;	// to detect incoming clock pulses
 	dsp::SchmittTrigger mainClockTrigger;	// to detect rising edges from the divided/multiplied version of the clock signal
 	dsp::SchmittTrigger resetTrigger; 		// to detect the reset signal
+	dsp::PulseGenerator resetTimer; 		// leave a grace period before advancing the step
 	dsp::PulseGenerator endOfCyclePulse; 	// fire a signal at the end of cycle
 	dsp::BooleanTrigger tapTempoTrigger;	// to only trigger tap tempo when push is first detected
-
 	MultDivClock mainClockMultDiv;			// to produce a divided/multiplied version of the (internal or external) clock signal
 	MultDivClock outputClockMultDiv;		// to produce a divided/multiplied version of the output clock signal
 	MultiGateClock multiClock;				// to easily produce a divided version of the main clock (where division can be changed at any point)
+	bool usingExternalClock = false; 		// is there a clock plugged into clock in (external) or not (internal)
 
 	const static int SEQUENCE_LENGTH = 8;
-	ModeCOMIO modeCOMIO = COM_1_IN_8_OUT;	// are we in 1-in-8-out mode, or 8-in-1-out mode
+	ModeCOMIO modeCOMIO = COM_8_IN_1_OUT;	// are we in 1-in-8-out mode, or 8-in-1-out mode
 	int allInNormalVoltage = 10;			// what voltage is normalled into the "All In" input, selectable via context menu
 	Module* rightModule;					// for the expander
+
+	struct TapTempoKnobParamQuantity : ParamQuantity {
+		std::string getDisplayValueString() override {
+			if (module != nullptr) {
+				const std::vector<int> clockOptions = getClockOptions();
+				const int clockOptionIndex = clamp(int(ParamQuantity::getValue()), 0, clockOptions.size());
+				return getClockOptionString(clockOptions[clockOptionIndex]);
+			}
+			else {
+				return "";
+			}
+		}
+	};
 
 	Muxlicer() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 		configParam(Muxlicer::PLAY_PARAM, STATE_PLAY_ONCE, STATE_PLAY, STATE_STOPPED, "Play switch");
 		configParam(Muxlicer::ADDRESS_PARAM, -1.f, 7.f, -1.f, "Address");
 		configParam(Muxlicer::GATE_MODE_PARAM, -1.f, 8.f, 0.f, "Gate mode");
-		configParam(Muxlicer::TAP_TEMPO_PARAM, 0.f, 1.f, 0.f, "Tap tempo");
+		const int numClockOptions = getClockOptions().size();
+		configParam<TapTempoKnobParamQuantity>(Muxlicer::TAP_TEMPO_PARAM, 0, numClockOptions - 1, numClockOptions / 2, "Main clock mult/div");
 
 		for (int i = 0; i < SEQUENCE_LENGTH; ++i) {
 			configParam(Muxlicer::LEVEL_PARAMS + i, 0.0, 1.0, 1.0, string::f("Slider %d", i));
@@ -291,7 +315,7 @@ struct Muxlicer : Module {
 
 	void process(const ProcessArgs& args) override {
 
-		const bool usingExternalClock = inputs[CLOCK_INPUT].isConnected();
+		usingExternalClock = inputs[CLOCK_INPUT].isConnected();
 
 		bool externalClockPulseReceived = false;
 		// a clock pulse does two things: 1) sets the internal clock (based on timing between two pulses), which
@@ -300,9 +324,14 @@ struct Muxlicer : Module {
 			externalClockPulseReceived = true;
 		}
 		// this can also be sent by tap tempo
-		else if (!usingExternalClock && tapTempoTrigger.process(params[TAP_TEMPO_PARAM].getValue())) {
+		else if (!usingExternalClock && tapTempoTrigger.process(tapped)) {
 			externalClockPulseReceived = true;
+			tapped = false;
 		}
+
+		const std::vector<int> clockOptions = getClockOptions();
+		const int clockOptionFromDial = clockOptions[int(params[TAP_TEMPO_PARAM].getValue())];
+		mainClockMultDiv.multDiv = clockOptionFromDial;
 
 		if (resetTrigger.process(rescale(inputs[RESET_INPUT].getVoltage(), 0.1f, 2.f, 0.f, 1.f))) {
 			reset = true;
@@ -350,11 +379,13 @@ struct Muxlicer : Module {
 		if (reset) {
 			runIndex = 0;
 			reset = false;
+			resetTimer.trigger();
 		}
+		// see https://vcvrack.com/manual/VoltageStandards#Timing
+		const bool resetGracePeriodActive = resetTimer.process(args.sampleTime);
 
 		if (dividedMultipliedClockPulseReceived) {
-
-			if (isSequenceAdvancing) {
+			if (isSequenceAdvancing && !resetGracePeriodActive) {
 				runIndex++;
 				if (runIndex >= 8) {
 					// both play modes will reset to step 0 and fire an EOC trigger
@@ -432,7 +463,7 @@ struct Muxlicer : Module {
 			const float stepVolume = params[LEVEL_PARAMS + addressIndex].getValue();
 			for (int c = 0; c < numActiveEngines; c += 4) {
 				const float_4 allInValue = inputs[ALL_INPUT].getNormalPolyVoltageSimd<float_4>((float_4) allInNormalVoltage, c);
-				const float_4 stepValue = inputs[MUX_INPUTS + addressIndex].getNormalPolyVoltageSimd<float_4>(allInValue, c) * stepVolume;				
+				const float_4 stepValue = inputs[MUX_INPUTS + addressIndex].getNormalPolyVoltageSimd<float_4>(allInValue, c) * stepVolume;
 				outputs[COM_OUTPUT].setVoltageSimd(stepValue, c);
 			}
 			outputs[COM_OUTPUT].setChannels(numActiveEngines);
@@ -560,6 +591,7 @@ struct Muxlicer : Module {
 };
 
 
+
 struct MuxlicerWidget : ModuleWidget {
 	MuxlicerWidget(Muxlicer* module) {
 
@@ -574,7 +606,8 @@ struct MuxlicerWidget : ModuleWidget {
 		addParam(createParam<BefacoSwitchMomentary>(mm2px(Vec(35.72963, 10.008)), module, Muxlicer::PLAY_PARAM));
 		addParam(createParam<BefacoTinyKnobSnap>(mm2px(Vec(3.84112, 10.90256)), module, Muxlicer::ADDRESS_PARAM));
 		addParam(createParam<BefacoTinyKnobWhite>(mm2px(Vec(67.83258, 10.86635)), module, Muxlicer::GATE_MODE_PARAM));
-		addParam(createParam<BefacoButton>(mm2px(Vec(28.12238, 24.62151)), module, Muxlicer::TAP_TEMPO_PARAM));
+		addParam(createParam<BefacoTinyKnobSnap>(mm2px(Vec(28.12238, 24.62151)), module, Muxlicer::TAP_TEMPO_PARAM));
+
 		addParam(createParam<BefacoSlidePot>(mm2px(Vec(2.32728, 40.67102)), module, Muxlicer::LEVEL_PARAMS + 0));
 		addParam(createParam<BefacoSlidePot>(mm2px(Vec(12.45595, 40.67102)), module, Muxlicer::LEVEL_PARAMS + 1));
 		addParam(createParam<BefacoSlidePot>(mm2px(Vec(22.58462, 40.67102)), module, Muxlicer::LEVEL_PARAMS + 2));
@@ -622,7 +655,7 @@ struct MuxlicerWidget : ModuleWidget {
 		addOutput(createOutput<BefacoOutputPort>(mm2px(Vec(71.82537, 109.29256)), module, Muxlicer::MUX_OUTPUTS + 7));
 		addOutput(createOutput<BefacoOutputPort>(mm2px(Vec(36.3142, 98.07911)), module, Muxlicer::COM_OUTPUT));
 
-		updatePortVisibilityForIOMode(Muxlicer::COM_1_IN_8_OUT);
+		updatePortVisibilityForIOMode(Muxlicer::COM_8_IN_1_OUT);
 
 		addChild(createLight<SmallLight<RedLight>>(mm2px(Vec(71.28361, 28.02644)), module, Muxlicer::CLOCK_LIGHT));
 		addChild(createLight<SmallLight<RedLight>>(mm2px(Vec(3.99336, 81.86801)), module, Muxlicer::GATE_LIGHTS + 0));
@@ -643,8 +676,8 @@ struct MuxlicerWidget : ModuleWidget {
 		}
 		else {
 			// module can be null, e.g. if populating the module browser with screenshots,
-			// in which case just assume the default (1 in, 8 out)
-			updatePortVisibilityForIOMode(Muxlicer::COM_1_IN_8_OUT);
+			// in which case just assume the default (8 in, 1 out)
+			updatePortVisibilityForIOMode(Muxlicer::COM_8_IN_1_OUT);
 		}
 
 		ModuleWidget::draw(args);
@@ -696,9 +729,7 @@ struct MuxlicerWidget : ModuleWidget {
 		}
 	};
 
-	static std::vector<int> getClockOptions() {
-		return std::vector<int> {-16, -8, -4, -3, -2, 1, 2, 3, 4, 8, 16};
-	}
+
 
 	struct OutputClockScalingItem : MenuItem {
 		Muxlicer* module;
@@ -714,8 +745,8 @@ struct MuxlicerWidget : ModuleWidget {
 		Menu* createChildMenu() override {
 			Menu* menu = new Menu;
 
-			for (auto clockOption : getClockOptions()) {
-				std::string optionString = (clockOption < 0) ? ("x 1/" + std::to_string(-clockOption)) : ("x " + std::to_string(clockOption));
+			for (int clockOption : getClockOptions()) {
+				std::string optionString = getClockOptionString(clockOption);
 				OutputClockScalingChildItem* clockItem = createMenuItem<OutputClockScalingChildItem>(optionString,
 				    CHECKMARK(module->outputClockMultDiv.multDiv == clockOption));
 				clockItem->clockOutMulDiv = clockOption;
@@ -732,22 +763,28 @@ struct MuxlicerWidget : ModuleWidget {
 
 		struct MainClockScalingChildItem : MenuItem {
 			Muxlicer* module;
-			int clockOutMulDiv;
+			int mainClockMulDiv, mainClockMulDivIndex;
+
 			void onAction(const event::Action& e) override {
-				module->mainClockMultDiv.multDiv = clockOutMulDiv;
+				module->mainClockMultDiv.multDiv = mainClockMulDiv;
+				module->params[Muxlicer::TAP_TEMPO_PARAM].setValue(mainClockMulDivIndex);
 			}
 		};
 
 		Menu* createChildMenu() override {
 			Menu* menu = new Menu;
 
-			for (auto clockOption : getClockOptions()) {
-				std::string optionString = (clockOption < 0) ? ("x 1/" + std::to_string(-clockOption)) : ("x " + std::to_string(clockOption));
+			int i = 0;
+			for (int clockOption : getClockOptions()) {
+				std::string optionString = getClockOptionString(clockOption);
 				MainClockScalingChildItem* clockItem = createMenuItem<MainClockScalingChildItem>(optionString,
 				                                       CHECKMARK(module->mainClockMultDiv.multDiv == clockOption));
-				clockItem->clockOutMulDiv = clockOption;
+
+				clockItem->mainClockMulDiv = clockOption;
+				clockItem->mainClockMulDivIndex = i;
 				clockItem->module = module;
 				menu->addChild(clockItem);
+				++i;
 			}
 
 			return menu;
@@ -761,12 +798,31 @@ struct MuxlicerWidget : ModuleWidget {
 		}
 	};
 
+	struct TapTempoItem : MenuItem {
+		Muxlicer* module;
+		void onAction(const event::Action& e) override {
+			module->tapped = true;
+			e.consume(NULL);
+		}
+	};
+
 	void appendContextMenu(Menu* menu) override {
 		Muxlicer* module = dynamic_cast<Muxlicer*>(this->module);
 		assert(module);
 
 		menu->addChild(new MenuSeparator());
 		menu->addChild(createMenuLabel<MenuLabel>("Clock Multiplication/Division"));
+
+		if (module->usingExternalClock) {
+			menu->addChild(createMenuLabel<MenuLabel>("Using external clock"));
+
+		}
+		else {
+			TapTempoItem* tapTempoItem = createMenuItem<TapTempoItem>("Tap to set internal tempo...");
+			tapTempoItem->module = module;
+			menu->addChild(tapTempoItem);
+		}
+
 
 		MainClockScalingItem* mainClockScaleItem = createMenuItem<MainClockScalingItem>("Input clock", "▸");
 		mainClockScaleItem->module = module;
