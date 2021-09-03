@@ -178,11 +178,9 @@ struct MultDivClock {
 	}
 };
 
-static std::vector<int> getClockOptions() {
-	return std::vector<int> {-16, -8, -4, -3, -2, 1, 2, 3, 4, 8, 16};
-}
+static const std::vector<int> clockOptions = {-16, -8, -4, -3, -2, 1, 2, 3, 4, 8, 16};
 
-std::string getClockOptionString(const int clockOption) {
+inline std::string getClockOptionString(const int clockOption) {
 	return (clockOption < 0) ? ("x 1/" + std::to_string(-clockOption)) : ("x " + std::to_string(clockOption));
 }
 
@@ -282,7 +280,7 @@ struct Muxlicer : Module {
 	struct TapTempoKnobParamQuantity : ParamQuantity {
 		std::string getDisplayValueString() override {
 			if (module != nullptr) {
-				const std::vector<int> clockOptions = getClockOptions();
+				
 				const int clockOptionIndex = clamp(int(ParamQuantity::getValue()), 0, clockOptions.size());
 				return getClockOptionString(clockOptions[clockOptionIndex]);
 			}
@@ -297,7 +295,7 @@ struct Muxlicer : Module {
 		configParam(Muxlicer::PLAY_PARAM, STATE_PLAY_ONCE, STATE_PLAY, STATE_STOPPED, "Play switch");
 		configParam(Muxlicer::ADDRESS_PARAM, -1.f, 7.f, -1.f, "Address");
 		configParam(Muxlicer::GATE_MODE_PARAM, -1.f, 8.f, 0.f, "Gate mode");
-		const int numClockOptions = getClockOptions().size();
+		const int numClockOptions = clockOptions.size();
 		configParam<TapTempoKnobParamQuantity>(Muxlicer::TAP_TEMPO_PARAM, 0, numClockOptions - 1, numClockOptions / 2, "Main clock mult/div");
 
 		for (int i = 0; i < SEQUENCE_LENGTH; ++i) {
@@ -328,8 +326,7 @@ struct Muxlicer : Module {
 			externalClockPulseReceived = true;
 			tapped = false;
 		}
-
-		const std::vector<int> clockOptions = getClockOptions();
+		
 		const int clockOptionFromDial = clockOptions[int(params[TAP_TEMPO_PARAM].getValue())];
 		mainClockMultDiv.multDiv = clockOptionFromDial;
 
@@ -745,7 +742,7 @@ struct MuxlicerWidget : ModuleWidget {
 		Menu* createChildMenu() override {
 			Menu* menu = new Menu;
 
-			for (int clockOption : getClockOptions()) {
+			for (int clockOption : clockOptions) {
 				std::string optionString = getClockOptionString(clockOption);
 				OutputClockScalingChildItem* clockItem = createMenuItem<OutputClockScalingChildItem>(optionString,
 				    CHECKMARK(module->outputClockMultDiv.multDiv == clockOption));
@@ -775,7 +772,7 @@ struct MuxlicerWidget : ModuleWidget {
 			Menu* menu = new Menu;
 
 			int i = 0;
-			for (int clockOption : getClockOptions()) {
+			for (int clockOption : clockOptions) {
 				std::string optionString = getClockOptionString(clockOption);
 				MainClockScalingChildItem* clockItem = createMenuItem<MainClockScalingChildItem>(optionString,
 				                                       CHECKMARK(module->mainClockMultDiv.multDiv == clockOption));
