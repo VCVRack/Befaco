@@ -51,8 +51,8 @@ struct STMix : Module {
 			const float gain = (i < numMixerChannels) ? exponentialBipolar80Pade_5_4(params[GAIN_PARAM + i].getValue()) : 1.f;
 
 			for (int c = 0; c < numActivePolyphonyEngines; c += 4) {
-				const float_4 in_left = inputs[LEFT_INPUT + i].getNormalPolyVoltageSimd<float_4>(0.f, c);
-				const float_4 in_right = inputs[RIGHT_INPUT + i].getNormalPolyVoltageSimd<float_4>(in_left, c);
+				const float_4 in_left = inputs[LEFT_INPUT + i].getNormalVoltageSimd<float_4>(0.f, c);
+				const float_4 in_right = inputs[RIGHT_INPUT + i].getNormalVoltageSimd<float_4>(in_left, c);
 
 				out_left[c / 4] += in_left * gain;
 				out_right[c / 4] += in_right * gain;
@@ -105,9 +105,9 @@ struct STMixWidget : ModuleWidget {
 		addChild(createWidget<Knurlie>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
 		addParam(createParamCentered<Davies1900hWhiteKnob>(mm2px(Vec(21.0, 18.141)), module, STMix::GAIN_PARAM + 0));
-		addParam(createParamCentered<Davies1900hWhiteKnob>(mm2px(Vec(21.0, 41.451)), module, STMix::GAIN_PARAM + 1));
-		addParam(createParamCentered<Davies1900hWhiteKnob>(mm2px(Vec(21.0, 64.318)), module, STMix::GAIN_PARAM + 2));
-		addParam(createParamCentered<Davies1900hWhiteKnob>(mm2px(Vec(21.0, 87.124)), module, STMix::GAIN_PARAM + 3));
+		addParam(createParamCentered<Davies1900hLightGreyKnob>(mm2px(Vec(21.0, 41.451)), module, STMix::GAIN_PARAM + 1));
+		addParam(createParamCentered<Davies1900hDarkGreyKnob>(mm2px(Vec(21.0, 64.318)), module, STMix::GAIN_PARAM + 2));
+		addParam(createParamCentered<Davies1900hDarkBlackAlt>(mm2px(Vec(21.0, 87.124)), module, STMix::GAIN_PARAM + 3));
 
 		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(6.3, 13.108)), module, STMix::LEFT_INPUT + 0));
 		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(6.3, 36.175)), module, STMix::LEFT_INPUT + 1));

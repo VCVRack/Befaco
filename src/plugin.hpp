@@ -78,6 +78,25 @@ struct Davies1900hLargeGreyKnob : Davies1900hKnob {
 	}
 };
 
+struct Davies1900hLightGreyKnob : Davies1900hWhiteKnob {
+	Davies1900hLightGreyKnob() {
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Davies1900hLightGrey.svg")));
+	}
+};
+
+struct Davies1900hDarkGreyKnob : Davies1900hWhiteKnob {
+	Davies1900hDarkGreyKnob() {
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Davies1900hDarkGrey.svg")));
+	}
+};
+
+// library black Davies1900h doesn't work well on black backgrounds
+struct Davies1900hDarkBlackAlt : Davies1900hWhiteKnob {
+	Davies1900hDarkBlackAlt() {
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Davies1900hBlack.svg")));
+	}
+};
+
 struct BefacoOutputPort : app::SvgPort {
 	BefacoOutputPort() {
 		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoOutputPort.svg")));
