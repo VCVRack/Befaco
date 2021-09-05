@@ -113,8 +113,8 @@ struct MultDivClock {
 
 	float dividedProgressSeconds = 0.f;
 
-	// returns the gated clock signal
-	float process(float deltaTime, bool clockPulseReceived) {
+	// returns the gated clock signal, returns true when high
+	bool process(float deltaTime, bool clockPulseReceived) {
 
 		if (clockPulseReceived) {
 			// update our record of the incoming clock spacing
@@ -124,7 +124,7 @@ struct MultDivClock {
 			secondsSinceLastClock = 0.0f;
 		}
 
-		float out = 0.f;
+		bool out = false;
 		if (secondsSinceLastClock >= 0.0f) {
 			secondsSinceLastClock += deltaTime;
 
@@ -159,7 +159,7 @@ struct MultDivClock {
 				float multipliedProgressSeconds = dividedProgressSeconds / multipliedSeconds;
 				multipliedProgressSeconds -= (float)(int)multipliedProgressSeconds;
 				multipliedProgressSeconds *= multipliedSeconds;
-				out += (float)(multipliedProgressSeconds <= gateSeconds);
+				out = (multipliedProgressSeconds <= gateSeconds);
 			}
 		}
 		return out;
@@ -178,7 +178,10 @@ struct MultDivClock {
 	}
 };
 
-static const std::vector<int> clockOptions = {-16, -8, -4, -3, -2, 1, 2, 3, 4, 8, 16};
+static const std::vector<int> clockOptionsQuadratic = {-16, -8, -4, -2, 1, 2, 4, 8, 16};
+static const std::vector<int> clockOptionsAll = {-16, -15, -14, -13, -12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, 1,
+                                                 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
+                                                };
 
 inline std::string getClockOptionString(const int clockOption) {
 	return (clockOption < 0) ? ("x 1/" + std::to_string(-clockOption)) : ("x " + std::to_string(clockOption));
@@ -189,7 +192,7 @@ struct Muxlicer : Module {
 		PLAY_PARAM,
 		ADDRESS_PARAM,
 		GATE_MODE_PARAM,
-		TAP_TEMPO_PARAM,
+		DIV_MULT_PARAM,
 		ENUMS(LEVEL_PARAMS, 8),
 		NUM_PARAMS
 	};
@@ -244,8 +247,9 @@ struct Muxlicer : Module {
 	    7      seven gates     	    |       x
 	    8      eight gates     	    |       ✔
 	*/
-	int possibleQuadraticGates[5] = {-1, 1, 2, 4, 8};
+	const int possibleQuadraticGates[5] = {-1, 1, 2, 4, 8};
 	bool quadraticGatesOnly = false;
+	bool outputClockFollowsPlayMode = false;
 
 	PlayState playState = STATE_STOPPED;
 	dsp::BooleanTrigger playStateTrigger;
@@ -262,7 +266,7 @@ struct Muxlicer : Module {
 
 	float tapTime = 99999;	// used to track the time between clock pulses (or taps?)
 	dsp::SchmittTrigger inputClockTrigger;	// to detect incoming clock pulses
-	dsp::SchmittTrigger mainClockTrigger;	// to detect rising edges from the divided/multiplied version of the clock signal
+	dsp::BooleanTrigger mainClockTrigger;	// to detect when divided/multiplied version of the clock signal has rising edge
 	dsp::SchmittTrigger resetTrigger; 		// to detect the reset signal
 	dsp::PulseGenerator resetTimer; 		// leave a grace period before advancing the step
 	dsp::PulseGenerator endOfCyclePulse; 	// fire a signal at the end of cycle
@@ -277,12 +281,11 @@ struct Muxlicer : Module {
 	int allInNormalVoltage = 10;			// what voltage is normalled into the "All In" input, selectable via context menu
 	Module* rightModule;					// for the expander
 
-	struct TapTempoKnobParamQuantity : ParamQuantity {
+	struct DivMultKnobParamQuantity : ParamQuantity {
 		std::string getDisplayValueString() override {
-			if (module != nullptr) {
-				
-				const int clockOptionIndex = clamp(int(ParamQuantity::getValue()), 0, clockOptions.size());
-				return getClockOptionString(clockOptions[clockOptionIndex]);
+			Muxlicer* moduleMuxlicer = reinterpret_cast<Muxlicer*>(module);
+			if (moduleMuxlicer != nullptr) {
+				return getClockOptionString(moduleMuxlicer->getClockOptionFromParam());
 			}
 			else {
 				return "";
@@ -290,13 +293,71 @@ struct Muxlicer : Module {
 		}
 	};
 
+	struct GateModeParamQuantity : ParamQuantity {
+		std::string getDisplayValueString() override {
+			Muxlicer* moduleMuxlicer = reinterpret_cast<Muxlicer*>(module);
+
+			if (moduleMuxlicer != nullptr) {
+				bool attenuatorMode = moduleMuxlicer->inputs[GATE_MODE_INPUT].isConnected();
+				if (attenuatorMode) {
+					return ParamQuantity::getDisplayValueString();
+				}
+				else {
+					const int gate = moduleMuxlicer->getGateMode();
+					if (gate < 0) {
+						return "No gate";
+					}
+					else if (gate == 0) {
+						return "1/2 gate";
+					}
+					else {
+						return string::f("%d gate(s)", gate);
+					}
+				}
+			}
+			else {
+				return ParamQuantity::getDisplayValueString();
+			}
+		}
+	};
+
+	// given param (in range 0 to 1), return the clock option from an array of choices
+	int getClockOptionFromParam() {
+		if (quadraticGatesOnly) {
+			const int clockOptionIndex = round(params[Muxlicer::DIV_MULT_PARAM].getValue() * (clockOptionsQuadratic.size() - 1));
+			return clockOptionsQuadratic[clockOptionIndex];
+		}
+		else {
+			const int clockOptionIndex = round(params[Muxlicer::DIV_MULT_PARAM].getValue() * (clockOptionsAll.size() - 1));
+			return clockOptionsAll[clockOptionIndex];
+		}
+	}
+
+	// given a the mult/div setting for the main clock, find the index of this from an array of valid choices,
+	// and convert to a value between 0 and 1 (update the DIV_MULT_PARAM param)
+	void updateParamFromMainClockMultDiv() {
+
+		auto const& arrayToSearch = quadraticGatesOnly ? clockOptionsQuadratic : clockOptionsAll;
+		auto const it = std::find(arrayToSearch.begin(), arrayToSearch.end(), mainClockMultDiv.multDiv);
+
+		// try to find the index in the array of valid clock mults/divs
+		if (it != arrayToSearch.end()) {
+			int index = it - arrayToSearch.begin();
+			float paramIndex = (float) index / (arrayToSearch.size() - 1);
+			params[Muxlicer::DIV_MULT_PARAM].setValue(paramIndex);
+		}
+		// if not, default to 0.5 (which should correspond to x1, no mult/div)
+		else {
+			params[Muxlicer::DIV_MULT_PARAM].setValue(0.5);
+		}
+	}
+
 	Muxlicer() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 		configParam(Muxlicer::PLAY_PARAM, STATE_PLAY_ONCE, STATE_PLAY, STATE_STOPPED, "Play switch");
 		configParam(Muxlicer::ADDRESS_PARAM, -1.f, 7.f, -1.f, "Address");
-		configParam(Muxlicer::GATE_MODE_PARAM, -1.f, 8.f, 0.f, "Gate mode");
-		const int numClockOptions = clockOptions.size();
-		configParam<TapTempoKnobParamQuantity>(Muxlicer::TAP_TEMPO_PARAM, 0, numClockOptions - 1, numClockOptions / 2, "Main clock mult/div");
+		configParam<GateModeParamQuantity>(Muxlicer::GATE_MODE_PARAM, -1.f, 8.f, 1.f, "Gate mode");
+		configParam<DivMultKnobParamQuantity>(Muxlicer::DIV_MULT_PARAM, 0, 1, 0.5, "Main clock mult/div");
 
 		for (int i = 0; i < SEQUENCE_LENGTH; ++i) {
 			configParam(Muxlicer::LEVEL_PARAMS + i, 0.0, 1.0, 1.0, string::f("Slider %d", i));
@@ -317,7 +378,7 @@ struct Muxlicer : Module {
 
 		bool externalClockPulseReceived = false;
 		// a clock pulse does two things: 1) sets the internal clock (based on timing between two pulses), which
-		// would continue were the clock input to be removed, and 2) synchronises/drive the clock (if clock input present)
+		// would continue were the clock input to be removed, and 2) synchronises/drives the clock (if clock input present)
 		if (usingExternalClock && inputClockTrigger.process(rescale(inputs[CLOCK_INPUT].getVoltage(), 0.1f, 2.f, 0.f, 1.f))) {
 			externalClockPulseReceived = true;
 		}
@@ -326,9 +387,8 @@ struct Muxlicer : Module {
 			externalClockPulseReceived = true;
 			tapped = false;
 		}
-		
-		const int clockOptionFromDial = clockOptions[int(params[TAP_TEMPO_PARAM].getValue())];
-		mainClockMultDiv.multDiv = clockOptionFromDial;
+
+		mainClockMultDiv.multDiv = getClockOptionFromParam();
 
 		if (resetTrigger.process(rescale(inputs[RESET_INPUT].getVoltage(), 0.1f, 2.f, 0.f, 1.f))) {
 			reset = true;
@@ -343,10 +403,10 @@ struct Muxlicer : Module {
 		const bool isSequenceAdvancing = address < 0.f;
 
 		// even if we have an external clock, use its pulses to time/sync the internal clock
-		// so that it will remain running after CLOCK_INPUT is disconnected
+		// so that it will remain running even after CLOCK_INPUT is disconnected
 		if (externalClockPulseReceived) {
 			// track length between received clock pulses (using external clock) or taps
-			// of the tap-tempo button (if sufficiently short)
+			// of the tap-tempo menu item (if sufficiently short)
 			if (usingExternalClock || tapTime < 2.f) {
 				internalClockLength = tapTime;
 			}
@@ -368,8 +428,8 @@ struct Muxlicer : Module {
 		//
 		// choose which clock source we are to use
 		const bool clockPulseReceived = usingExternalClock ? externalClockPulseReceived : internalClockPulseReceived;
-		// apply the main clock div/mult logic to whatever clock source we're using - this outputs a gate sequence
-		// so we must use a Schmitt Trigger on the divided/mult'd signal in order to detect when to advance the sequence
+		// apply the main clock div/mult logic to whatever clock source we're using - mainClockMultDiv outputs a gate sequence
+		// so we must use a BooleanTrigger on the divided/mult'd signal in order to detect rising edge / when to advance the sequence
 		const bool dividedMultipliedClockPulseReceived = mainClockTrigger.process(mainClockMultDiv.process(args.sampleTime, clockPulseReceived));
 
 		// reset _doesn't_ reset/sync the clock, it just moves the sequence index marker back to the start
@@ -384,7 +444,7 @@ struct Muxlicer : Module {
 		if (dividedMultipliedClockPulseReceived) {
 			if (isSequenceAdvancing && !resetGracePeriodActive) {
 				runIndex++;
-				if (runIndex >= 8) {
+				if (runIndex >= SEQUENCE_LENGTH) {
 					// both play modes will reset to step 0 and fire an EOC trigger
 					runIndex = 0;
 					endOfCyclePulse.trigger(1e-3);
@@ -395,7 +455,6 @@ struct Muxlicer : Module {
 					}
 				}
 			}
-
 			multiClock.reset(mainClockMultDiv.getEffectiveClockLength());
 
 			for (int i = 0; i < 8; i++) {
@@ -407,7 +466,7 @@ struct Muxlicer : Module {
 			addressIndex = runIndex;
 		}
 		else {
-			addressIndex = clamp((int) roundf(address), 0, 8 - 1);
+			addressIndex = clamp((int) roundf(address), 0, SEQUENCE_LENGTH - 1);
 		}
 
 		// Gates
@@ -427,7 +486,6 @@ struct Muxlicer : Module {
 			lights[GATE_LIGHTS + addressIndex].setBrightness(gateValue / 10.f);
 			outputs[ALL_GATES_OUTPUT].setVoltage(gateValue);
 		}
-
 
 		if (modeCOMIO == COM_1_IN_8_OUT) {
 			const int numActiveEngines = std::max(inputs[ALL_INPUT].getChannels(), inputs[COM_INPUT].getChannels());
@@ -466,7 +524,9 @@ struct Muxlicer : Module {
 			outputs[COM_OUTPUT].setChannels(numActiveEngines);
 		}
 
-		const bool isOutputClockHigh = outputClockMultDiv.process(args.sampleTime, clockPulseReceived);
+		// there is an option to stop output clock when play stops
+		const bool playStateMask = !outputClockFollowsPlayMode || (playState != STATE_STOPPED);
+		const bool isOutputClockHigh = outputClockMultDiv.process(args.sampleTime, clockPulseReceived) && playStateMask;
 		outputs[CLOCK_OUTPUT].setVoltage(isOutputClockHigh ? 10.f : 0.f);
 		lights[CLOCK_LIGHT].setBrightness(isOutputClockHigh ? 1.f : 0.f);
 
@@ -561,6 +621,7 @@ struct Muxlicer : Module {
 		json_object_set_new(rootJ, "mainClockMultDiv", json_integer(mainClockMultDiv.multDiv));
 		json_object_set_new(rootJ, "outputClockMultDiv", json_integer(outputClockMultDiv.multDiv));
 		json_object_set_new(rootJ, "playState", json_integer(playState));
+		json_object_set_new(rootJ, "outputClockFollowsPlayMode", json_boolean(outputClockFollowsPlayMode));
 
 		return rootJ;
 	}
@@ -583,6 +644,11 @@ struct Muxlicer : Module {
 
 		json_t* playStateJ = json_object_get(rootJ, "playState");
 		playState = (PlayState) json_integer_value(playStateJ);
+
+		json_t* outputClockFollowsPlayModeJ = json_object_get(rootJ, "outputClockFollowsPlayMode");
+		outputClockFollowsPlayMode = json_boolean_value(outputClockFollowsPlayModeJ);
+
+		updateParamFromMainClockMultDiv();
 	}
 
 };
@@ -601,9 +667,9 @@ struct MuxlicerWidget : ModuleWidget {
 		addChild(createWidget<Knurlie>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
 		addParam(createParam<BefacoSwitchMomentary>(mm2px(Vec(35.72963, 10.008)), module, Muxlicer::PLAY_PARAM));
-		addParam(createParam<BefacoTinyKnobSnap>(mm2px(Vec(3.84112, 10.90256)), module, Muxlicer::ADDRESS_PARAM));
-		addParam(createParam<BefacoTinyKnobWhite>(mm2px(Vec(67.83258, 10.86635)), module, Muxlicer::GATE_MODE_PARAM));
-		addParam(createParam<BefacoTinyKnobSnap>(mm2px(Vec(28.12238, 24.62151)), module, Muxlicer::TAP_TEMPO_PARAM));
+		addParam(createParam<BefacoTinyKnobDarkGrey>(mm2px(Vec(3.84112, 10.90256)), module, Muxlicer::ADDRESS_PARAM));
+		addParam(createParam<BefacoTinyKnobDarkGrey>(mm2px(Vec(67.83258, 10.86635)), module, Muxlicer::GATE_MODE_PARAM));
+		addParam(createParam<BefacoTinyKnob>(mm2px(Vec(28.12238, 24.62151)), module, Muxlicer::DIV_MULT_PARAM));
 
 		addParam(createParam<BefacoSlidePot>(mm2px(Vec(2.32728, 40.67102)), module, Muxlicer::LEVEL_PARAMS + 0));
 		addParam(createParam<BefacoSlidePot>(mm2px(Vec(12.45595, 40.67102)), module, Muxlicer::LEVEL_PARAMS + 1));
@@ -726,8 +792,6 @@ struct MuxlicerWidget : ModuleWidget {
 		}
 	};
 
-
-
 	struct OutputClockScalingItem : MenuItem {
 		Muxlicer* module;
 
@@ -742,7 +806,7 @@ struct MuxlicerWidget : ModuleWidget {
 		Menu* createChildMenu() override {
 			Menu* menu = new Menu;
 
-			for (int clockOption : clockOptions) {
+			for (int clockOption : module->quadraticGatesOnly ? clockOptionsQuadratic : clockOptionsAll) {
 				std::string optionString = getClockOptionString(clockOption);
 				OutputClockScalingChildItem* clockItem = createMenuItem<OutputClockScalingChildItem>(optionString,
 				    CHECKMARK(module->outputClockMultDiv.multDiv == clockOption));
@@ -764,7 +828,7 @@ struct MuxlicerWidget : ModuleWidget {
 
 			void onAction(const event::Action& e) override {
 				module->mainClockMultDiv.multDiv = mainClockMulDiv;
-				module->params[Muxlicer::TAP_TEMPO_PARAM].setValue(mainClockMulDivIndex);
+				module->updateParamFromMainClockMultDiv();
 			}
 		};
 
@@ -772,7 +836,8 @@ struct MuxlicerWidget : ModuleWidget {
 			Menu* menu = new Menu;
 
 			int i = 0;
-			for (int clockOption : clockOptions) {
+
+			for (int clockOption : module->quadraticGatesOnly ? clockOptionsQuadratic : clockOptionsAll) {
 				std::string optionString = getClockOptionString(clockOption);
 				MainClockScalingChildItem* clockItem = createMenuItem<MainClockScalingChildItem>(optionString,
 				                                       CHECKMARK(module->mainClockMultDiv.multDiv == clockOption));
@@ -792,6 +857,15 @@ struct MuxlicerWidget : ModuleWidget {
 		Muxlicer* module;
 		void onAction(const event::Action& e) override {
 			module->quadraticGatesOnly ^= true;
+			module->updateParamFromMainClockMultDiv();
+		}
+	};
+
+	struct OutputClockStopStartItem : MenuItem {
+		Muxlicer* module;
+		void onAction(const event::Action& e) override {
+			module->outputClockFollowsPlayMode ^= true;
+			module->updateParamFromMainClockMultDiv();
 		}
 	};
 
@@ -829,15 +903,20 @@ struct MuxlicerWidget : ModuleWidget {
 		outputClockScaleItem->module = module;
 		menu->addChild(outputClockScaleItem);
 
+		QuadraticGatesMenuItem* quadraticGatesItem = createMenuItem<QuadraticGatesMenuItem>("Quadratic only mode", CHECKMARK(module->quadraticGatesOnly));
+		quadraticGatesItem->module = module;
+		menu->addChild(quadraticGatesItem);
+
 		menu->addChild(new MenuSeparator());
 
 		OutputRangeItem* outputRangeItem = createMenuItem<OutputRangeItem>("All In Normalled Value", "▸");
 		outputRangeItem->module = module;
 		menu->addChild(outputRangeItem);
 
-		QuadraticGatesMenuItem* quadraticGatesItem = createMenuItem<QuadraticGatesMenuItem>("Gate Mode: quadratic only", CHECKMARK(module->quadraticGatesOnly));
-		quadraticGatesItem->module = module;
-		menu->addChild(quadraticGatesItem);
+		OutputClockStopStartItem* outputClockStopStartItem =
+		  createMenuItem<OutputClockStopStartItem>("Output clock follows play/stop", CHECKMARK(module->quadraticGatesOnly));
+		outputClockStopStartItem->module = module;
+		menu->addChild(outputClockStopStartItem);
 
 		menu->addChild(new MenuSeparator());
 		menu->addChild(createMenuLabel<MenuLabel>("Input/Output mode"));
