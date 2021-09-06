@@ -1,3 +1,4 @@
+#pragma once
 #include "plugin.hpp"
 
 using simd::float_4;
@@ -78,21 +79,21 @@ struct MultiGateClock {
 		return false;
 	}
 
-	float getGate(int gateMode) {
+	bool getGate(int gateMode) {
 
 		if (gateMode == 0) {
 			// always on (special case)
-			return 10.f;
+			return true;
 		}
 		else if (gateMode < 0 || remaining <= 0) {
 			// disabled (or elapsed)
-			return 0.f;
+			return false;
 		}
 
 		const float multiGateOnLength = fullPulseLength / ((gateMode > 0) ? (2.f * gateMode) : 1.0f);
 		const bool isOddPulse = int(floor(remaining / multiGateOnLength)) % 2;
 
-		return isOddPulse ? 10.f : 0.f;
+		return isOddPulse;
 	}
 };
 
@@ -281,6 +282,11 @@ struct Muxlicer : Module {
 	int allInNormalVoltage = 10;			// what voltage is normalled into the "All In" input, selectable via context menu
 	Module* rightModule;					// for the expander
 
+	// these are class variables, rather than scoped to process(...), to allow expanders to read
+	// all gate output and clock output
+	bool isAllGatesOutHigh = false;
+	bool isOutputClockHigh = false;
+
 	struct DivMultKnobParamQuantity : ParamQuantity {
 		std::string getDisplayValueString() override {
 			Muxlicer* moduleMuxlicer = reinterpret_cast<Muxlicer*>(module);
@@ -360,7 +366,7 @@ struct Muxlicer : Module {
 		configParam<DivMultKnobParamQuantity>(Muxlicer::DIV_MULT_PARAM, 0, 1, 0.5, "Main clock mult/div");
 
 		for (int i = 0; i < SEQUENCE_LENGTH; ++i) {
-			configParam(Muxlicer::LEVEL_PARAMS + i, 0.0, 1.0, 1.0, string::f("Slider %d", i));
+			configParam(Muxlicer::LEVEL_PARAMS + i, 0.0, 1.0, 1.0, string::f("Gain %d", i + 1));
 		}
 
 		onReset();
@@ -400,7 +406,7 @@ struct Muxlicer : Module {
 		processPlayResetSwitch();
 
 		const float address = params[ADDRESS_PARAM].getValue() + inputs[ADDRESS_INPUT].getVoltage();
-		const bool isSequenceAdvancing = address < 0.f;
+		const bool isAddressInRunMode = address < 0.f;
 
 		// even if we have an external clock, use its pulses to time/sync the internal clock
 		// so that it will remain running even after CLOCK_INPUT is disconnected
@@ -442,7 +448,7 @@ struct Muxlicer : Module {
 		const bool resetGracePeriodActive = resetTimer.process(args.sampleTime);
 
 		if (dividedMultipliedClockPulseReceived) {
-			if (isSequenceAdvancing && !resetGracePeriodActive) {
+			if (isAddressInRunMode && !resetGracePeriodActive) {
 				runIndex++;
 				if (runIndex >= SEQUENCE_LENGTH) {
 					// both play modes will reset to step 0 and fire an EOC trigger
@@ -457,16 +463,16 @@ struct Muxlicer : Module {
 			}
 			multiClock.reset(mainClockMultDiv.getEffectiveClockLength());
 
+			if (isAddressInRunMode) {
+				addressIndex = runIndex;
+			}
+			else {
+				addressIndex = clamp((int) roundf(address), 0, SEQUENCE_LENGTH - 1);
+			}
+
 			for (int i = 0; i < 8; i++) {
 				outputs[GATE_OUTPUTS + i].setVoltage(0.f);
 			}
-		}
-
-		if (isSequenceAdvancing) {
-			addressIndex = runIndex;
-		}
-		else {
-			addressIndex = clamp((int) roundf(address), 0, SEQUENCE_LENGTH - 1);
 		}
 
 		// Gates
@@ -479,13 +485,12 @@ struct Muxlicer : Module {
 		multiClock.process(args.sampleTime);
 		const int gateMode = getGateMode();
 
-		if (playState != STATE_STOPPED) {
-			// current gate output _and_ "All Gates" output get the gate pattern from multiClock
-			float gateValue = multiClock.getGate(gateMode);
-			outputs[GATE_OUTPUTS + addressIndex].setVoltage(gateValue);
-			lights[GATE_LIGHTS + addressIndex].setBrightness(gateValue / 10.f);
-			outputs[ALL_GATES_OUTPUT].setVoltage(gateValue);
-		}
+		// current gate output _and_ "All Gates" output both get the gate pattern from multiClock
+		// NOTE: isAllGatesOutHigh can also be read by expanders		
+		isAllGatesOutHigh = multiClock.getGate(gateMode) && (playState != STATE_STOPPED);
+		outputs[GATE_OUTPUTS + addressIndex].setVoltage(isAllGatesOutHigh * 10.f);
+		lights[GATE_LIGHTS + addressIndex].setBrightness(isAllGatesOutHigh * 1.f);
+		outputs[ALL_GATES_OUTPUT].setVoltage(isAllGatesOutHigh * 10.f);
 
 		if (modeCOMIO == COM_1_IN_8_OUT) {
 			const int numActiveEngines = std::max(inputs[ALL_INPUT].getChannels(), inputs[COM_INPUT].getChannels());
@@ -526,26 +531,14 @@ struct Muxlicer : Module {
 
 		// there is an option to stop output clock when play stops
 		const bool playStateMask = !outputClockFollowsPlayMode || (playState != STATE_STOPPED);
-		const bool isOutputClockHigh = outputClockMultDiv.process(args.sampleTime, clockPulseReceived) && playStateMask;
-		outputs[CLOCK_OUTPUT].setVoltage(isOutputClockHigh ? 10.f : 0.f);
-		lights[CLOCK_LIGHT].setBrightness(isOutputClockHigh ? 1.f : 0.f);
+		// NOTE: outputClockOut can also be read by expanders
+		isOutputClockHigh = outputClockMultDiv.process(args.sampleTime, clockPulseReceived) && playStateMask;			
+		outputs[CLOCK_OUTPUT].setVoltage(isOutputClockHigh * 10.f);
+		lights[CLOCK_LIGHT].setBrightness(isOutputClockHigh * 1.f);
 
 		// end of cycle trigger trigger
 		outputs[EOC_OUTPUT].setVoltage(endOfCyclePulse.process(args.sampleTime) ? 10.f : 0.f);
 
-		if (rightExpander.module && rightExpander.module->model == modelMex) {
-			// Get message from right expander
-			MexMessage* message = (MexMessage*) rightExpander.module->leftExpander.producerMessage;
-
-			// Write message
-			message->addressIndex = addressIndex;
-			message->allGates = multiClock.getGate(gateMode);
-			message->outputClock = isOutputClockHigh ? 10.f : 0.f;
-			message->isPlaying = (playState != STATE_STOPPED);
-
-			// Flip messages at the end of the timestep
-			rightExpander.module->leftExpander.messageFlipRequested = true;
-		}
 	}
 
 	void processPlayResetSwitch() {

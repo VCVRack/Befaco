@@ -1,3 +1,4 @@
+#pragma once
 #include <rack.hpp>
 
 
@@ -138,7 +139,7 @@ struct BefacoButton : app::SvgSwitch {
 };
 
 struct BefacoSwitchHorizontal : app::SvgSwitch {
-	BefacoSwitchHorizontal() {		
+	BefacoSwitchHorizontal() {
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoSwitchHoriz_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoSwitchHoriz_1.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoSwitchHoriz_2.svg")));
@@ -221,11 +222,3 @@ struct ADEnvelope {
 private:
 	float envLinear = 0.f;
 };
-
-struct MexMessage { 
-	int addressIndex = 0;
-	bool isPlaying = false;
-	float allGates = 0.f;
-	float outputClock = 0.f;
-};
-
