@@ -214,6 +214,7 @@ struct Muxlicer : Module {
 		ENUMS(GATE_OUTPUTS, 8),
 		ENUMS(MUX_OUTPUTS, 8),
 		COM_OUTPUT,
+		ALL_OUTPUT,
 		NUM_OUTPUTS
 	};
 	enum LightIds {
@@ -257,7 +258,7 @@ struct Muxlicer : Module {
 
 	uint32_t runIndex; 	// which step are we on (0 to 7)
 	uint32_t addressIndex = 0;
-	bool reset = false;
+	bool playHeadHasReset = false;
 	bool tapped = false;
 
 	// used to track the clock (e.g. if external clock is not connected). NOTE: this clock
@@ -376,6 +377,10 @@ struct Muxlicer : Module {
 		internalClockLength = 0.250f;
 		internalClockProgress = 0;
 		runIndex = 0;
+		mainClockMultDiv.multDiv = 1;
+		outputClockMultDiv.multDiv = 1;
+		quadraticGatesOnly = false;
+		playState = STATE_STOPPED;
 	}
 
 	void process(const ProcessArgs& args) override {
@@ -396,14 +401,7 @@ struct Muxlicer : Module {
 
 		mainClockMultDiv.multDiv = getClockOptionFromParam();
 
-		if (resetTrigger.process(rescale(inputs[RESET_INPUT].getVoltage(), 0.1f, 2.f, 0.f, 1.f))) {
-			reset = true;
-			if (playState == STATE_STOPPED) {
-				playState = STATE_PLAY_ONCE;
-			}
-		}
-
-		processPlayResetSwitch();
+		processPlayResetLogic();
 
 		const float address = params[ADDRESS_PARAM].getValue() + inputs[ADDRESS_INPUT].getVoltage();
 		const bool isAddressInRunMode = address < 0.f;
@@ -438,26 +436,32 @@ struct Muxlicer : Module {
 		// so we must use a BooleanTrigger on the divided/mult'd signal in order to detect rising edge / when to advance the sequence
 		const bool dividedMultipliedClockPulseReceived = mainClockTrigger.process(mainClockMultDiv.process(args.sampleTime, clockPulseReceived));
 
-		// reset _doesn't_ reset/sync the clock, it just moves the sequence index marker back to the start
-		if (reset) {
-			runIndex = 0;
-			reset = false;
-			resetTimer.trigger();
-		}
 		// see https://vcvrack.com/manual/VoltageStandards#Timing
 		const bool resetGracePeriodActive = resetTimer.process(args.sampleTime);
 
 		if (dividedMultipliedClockPulseReceived) {
-			if (isAddressInRunMode && !resetGracePeriodActive) {
+			if (isAddressInRunMode && !resetGracePeriodActive && playState != STATE_STOPPED) {
 				runIndex++;
 				if (runIndex >= SEQUENCE_LENGTH) {
-					// both play modes will reset to step 0 and fire an EOC trigger
-					runIndex = 0;
-					endOfCyclePulse.trigger(1e-3);
 
-					// additionally stop if in one shot mode
-					if (playState == STATE_PLAY_ONCE) {
-						playState = STATE_STOPPED;
+					// the sequence resets by placing the play head at the final step (so that the next clock pulse
+					// ticks over onto the first step) - so if we are on the final step _because_ we've reset,
+					// then don't fire EOC
+					if (playHeadHasReset) {
+						playHeadHasReset = false;
+						runIndex = 0;
+					}
+					// otherwise we've naturally arrived at the last step so do fire EOC etc
+					else {
+						endOfCyclePulse.trigger(1e-3);
+
+						// stop on this step if in one shot mode
+						if (playState == STATE_PLAY_ONCE) {
+							playState = STATE_STOPPED;
+						}
+						else {
+							runIndex = 0;
+						}
 					}
 				}
 			}
@@ -486,7 +490,7 @@ struct Muxlicer : Module {
 		const int gateMode = getGateMode();
 
 		// current gate output _and_ "All Gates" output both get the gate pattern from multiClock
-		// NOTE: isAllGatesOutHigh can also be read by expanders		
+		// NOTE: isAllGatesOutHigh can also be read by expanders
 		isAllGatesOutHigh = multiClock.getGate(gateMode) && (playState != STATE_STOPPED);
 		outputs[GATE_OUTPUTS + addressIndex].setVoltage(isAllGatesOutHigh * 10.f);
 		lights[GATE_LIGHTS + addressIndex].setBrightness(isAllGatesOutHigh * 1.f);
@@ -502,17 +506,22 @@ struct Muxlicer : Module {
 					outputs[MUX_OUTPUTS + i].setVoltageSimd<float_4>(0.f, c);
 				}
 
-				if (playState != STATE_STOPPED) {
-					const float_4 com_input = inputs[COM_INPUT].getPolyVoltageSimd<float_4>(c);
+				const float_4 com_input = inputs[COM_INPUT].getPolyVoltageSimd<float_4>(c);
+				if (outputs[MUX_OUTPUTS + addressIndex].isConnected()) {
 					outputs[MUX_OUTPUTS + addressIndex].setVoltageSimd(stepVolume * com_input, c);
+					outputs[ALL_OUTPUT].setVoltageSimd<float_4>(0.f, c);
+				}
+				else if (outputs[ALL_OUTPUT].isConnected()) {
+					outputs[ALL_OUTPUT].setVoltageSimd(stepVolume * com_input, c);
 				}
 			}
 
 			for (int i = 0; i < 8; i++) {
 				outputs[MUX_OUTPUTS + i].setChannels(numActiveEngines);
 			}
+			outputs[ALL_OUTPUT].setChannels(numActiveEngines);
 		}
-		else if (modeCOMIO == COM_8_IN_1_OUT && playState != STATE_STOPPED) {
+		else if (modeCOMIO == COM_8_IN_1_OUT) {
 			// we need at least one active engine, even if nothing is connected
 			// as we want the voltage that is normalled to All In to be processed
 			int numActiveEngines = std::max(1, inputs[ALL_INPUT].getChannels());
@@ -532,7 +541,7 @@ struct Muxlicer : Module {
 		// there is an option to stop output clock when play stops
 		const bool playStateMask = !outputClockFollowsPlayMode || (playState != STATE_STOPPED);
 		// NOTE: outputClockOut can also be read by expanders
-		isOutputClockHigh = outputClockMultDiv.process(args.sampleTime, clockPulseReceived) && playStateMask;			
+		isOutputClockHigh = outputClockMultDiv.process(args.sampleTime, clockPulseReceived) && playStateMask;
 		outputs[CLOCK_OUTPUT].setVoltage(isOutputClockHigh * 10.f);
 		lights[CLOCK_LIGHT].setBrightness(isOutputClockHigh * 1.f);
 
@@ -541,7 +550,18 @@ struct Muxlicer : Module {
 
 	}
 
-	void processPlayResetSwitch() {
+	void processPlayResetLogic() {
+
+		const bool resetPulseInReceived = resetTrigger.process(rescale(inputs[RESET_INPUT].getVoltage(), 0.1f, 2.f, 0.f, 1.f));
+		if (resetPulseInReceived) {
+			playHeadHasReset = true;
+			runIndex = 8;
+
+			if (playState == STATE_STOPPED) {
+				playState = STATE_PLAY_ONCE;
+			}
+			resetTimer.trigger();
+		}
 
 		// if the play switch has effectively been activated for the first time,
 		// i.e. it's not just still being held
@@ -555,8 +575,8 @@ struct Muxlicer : Module {
 				}
 				else if (params[PLAY_PARAM].getValue() == STATE_PLAY_ONCE) {
 					playState = STATE_PLAY_ONCE;
-					runIndex = 0;
-					reset = true;
+					runIndex = 8;
+					playHeadHasReset = true;
 				}
 			}
 			// otherwise we are in play mode (and we've not just held onto the play switch),
@@ -569,8 +589,8 @@ struct Muxlicer : Module {
 				}
 				// bottom will reset
 				else if (params[PLAY_PARAM].getValue() == STATE_PLAY_ONCE) {
-					reset = true;
-					runIndex = 0;
+					playHeadHasReset = true;
+					runIndex = 8;
 				}
 			}
 		}
@@ -710,6 +730,7 @@ struct MuxlicerWidget : ModuleWidget {
 		addOutput(createOutput<BefacoOutputPort>(mm2px(Vec(61.69671, 109.29256)), module, Muxlicer::MUX_OUTPUTS + 6));
 		addOutput(createOutput<BefacoOutputPort>(mm2px(Vec(71.82537, 109.29256)), module, Muxlicer::MUX_OUTPUTS + 7));
 		addOutput(createOutput<BefacoOutputPort>(mm2px(Vec(36.3142, 98.07911)), module, Muxlicer::COM_OUTPUT));
+		addOutput(createOutput<BefacoOutputPort>(mm2px(Vec(16.11766, 98.09121)), module, Muxlicer::ALL_OUTPUT));
 
 		updatePortVisibilityForIOMode(Muxlicer::COM_8_IN_1_OUT);
 
@@ -902,9 +923,14 @@ struct MuxlicerWidget : ModuleWidget {
 
 		menu->addChild(new MenuSeparator());
 
-		OutputRangeItem* outputRangeItem = createMenuItem<OutputRangeItem>("All In Normalled Value", "▸");
-		outputRangeItem->module = module;
-		menu->addChild(outputRangeItem);
+		if (module->modeCOMIO == Muxlicer::COM_8_IN_1_OUT) {
+			OutputRangeItem* outputRangeItem = createMenuItem<OutputRangeItem>("All In Normalled Value", "▸");
+			outputRangeItem->module = module;
+			menu->addChild(outputRangeItem);
+		} 
+		else {
+			menu->addChild(createMenuLabel<MenuLabel>("All In Normalled Value (disabled)"));
+		}
 
 		OutputClockStopStartItem* outputClockStopStartItem =
 		  createMenuItem<OutputClockStopStartItem>("Output clock follows play/stop", CHECKMARK(module->quadraticGatesOnly));
@@ -932,11 +958,13 @@ struct MuxlicerWidget : ModuleWidget {
 			APP->scene->rack->clearCablesOnPort(outputs[i]);
 		}
 		APP->scene->rack->clearCablesOnPort(inputs[Muxlicer::COM_INPUT]);
+		APP->scene->rack->clearCablesOnPort(inputs[Muxlicer::ALL_INPUT]);
 
 		for (int i = Muxlicer::MUX_INPUTS; i <= Muxlicer::MUX_INPUTS_LAST; ++i) {
 			APP->scene->rack->clearCablesOnPort(inputs[i]);
 		}
 		APP->scene->rack->clearCablesOnPort(outputs[Muxlicer::COM_OUTPUT]);
+		APP->scene->rack->clearCablesOnPort(outputs[Muxlicer::ALL_OUTPUT]);
 	}
 
 	// set ports visibility, either for 1 input -> 8 outputs or 8 inputs -> 1 output
@@ -948,11 +976,13 @@ struct MuxlicerWidget : ModuleWidget {
 			outputs[i]->visible = visibleToggle;
 		}
 		inputs[Muxlicer::COM_INPUT]->visible = visibleToggle;
+		outputs[Muxlicer::ALL_OUTPUT]->visible = visibleToggle;
 
 		for (int i = Muxlicer::MUX_INPUTS; i <= Muxlicer::MUX_INPUTS_LAST; ++i) {
 			inputs[i]->visible = !visibleToggle;
 		}
 		outputs[Muxlicer::COM_OUTPUT]->visible = !visibleToggle;
+		inputs[Muxlicer::ALL_INPUT]->visible = !visibleToggle;
 	}
 
 
