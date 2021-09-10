@@ -186,6 +186,7 @@ struct EvenVCO : Module {
 
 			square[c / 4] = simd::ifelse((phase[c / 4] < pw[c / 4]),  -1.f, +1.f);
 			square[c / 4] += squareMinBlepOut[c / 4];
+			square[c / 4] += 2.f * (pw[c / 4] - 0.5); 	// DC offset correction
 			square[c / 4] *= 5.f;
 
 			// Set outputs
