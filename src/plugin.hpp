@@ -130,14 +130,6 @@ struct Crossfader : app::SvgSlider {
 	}
 };
 
-struct BefacoButton : app::SvgSwitch {
-	BefacoButton() {
-		momentary = true;
-		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoButton_0.svg")));
-		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoButton_1.svg")));
-	}
-};
-
 struct BefacoSwitchHorizontal : app::SvgSwitch {
 	BefacoSwitchHorizontal() {
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoSwitchHoriz_0.svg")));
@@ -146,13 +138,6 @@ struct BefacoSwitchHorizontal : app::SvgSwitch {
 	}
 };
 
-struct BefacoTinyKnobSnap : BefacoTinyKnob {
-	BefacoTinyKnobSnap() {
-		snap = true;
-		minAngle = -0.80 * M_PI;
-		maxAngle = 0.80 * M_PI;
-	}
-};
 
 template <typename T>
 T sin2pi_pade_05_5_4(T x) {
