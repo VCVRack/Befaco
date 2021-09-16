@@ -232,6 +232,17 @@ struct SamplingModulator : Module {
 			lights[STEP_LIGHT + i].setBrightness(currentStep == i);
 		}
 	}
+
+	void dataFromJson(json_t* rootJ) override {
+		json_t* modeJ = json_object_get(rootJ, "removeDC");
+		removeDC = json_boolean_value(modeJ);
+	}
+
+	json_t* dataToJson() override {
+		json_t* rootJ = json_object();
+		json_object_set_new(rootJ, "removeDC", json_boolean(removeDC));
+		return rootJ;
+	}
 };
 
 

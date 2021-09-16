@@ -90,13 +90,13 @@ struct ChoppingKinky : Module {
 		gainB += inputs[VCA_CV_B_INPUT].getVoltage() / 10.f;
 		gainB = std::max(gainB, 0.f);
 
-		const float inA = inputs[IN_A_INPUT].getVoltage();
-		const float inB = inputs[IN_B_INPUT].getNormalVoltage(inputs[IN_A_INPUT].getVoltage());
+		const float inA = inputs[IN_A_INPUT].getVoltageSum();
+		const float inB = inputs[IN_B_INPUT].getNormalVoltage(inputs[IN_A_INPUT].getVoltageSum());
 
 		// if the CHOPP gate is wired in, do chop logic
 		if (inputs[IN_GATE_INPUT].isConnected()) {
 			// TODO: check rescale?
-			trigger.process(rescale(inputs[IN_GATE_INPUT].getVoltage(), 0.1f, 2.f, 0.f, 1.f));
+			trigger.process(rescale(inputs[IN_GATE_INPUT].getVoltageSum(), 0.1f, 2.f, 0.f, 1.f));
 			outputAToChopp = trigger.isHigh();
 		}
 		// else zero-crossing detector on input A switches between A and B

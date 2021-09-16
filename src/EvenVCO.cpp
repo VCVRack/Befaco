@@ -34,6 +34,7 @@ struct EvenVCO : Module {
 	/** The outputs */
 	/** Whether we are past the pulse width already */
 	bool halfPhase[PORT_MAX_CHANNELS] = {};
+	bool removeDCFromPulse = false;
 
 	dsp::MinBlepGenerator<16, 32> triSquareMinBlep[PORT_MAX_CHANNELS];
 	dsp::MinBlepGenerator<16, 32> triMinBlep[PORT_MAX_CHANNELS];
@@ -86,7 +87,7 @@ struct EvenVCO : Module {
 			freq[c / 4] = clamp(freq[c / 4], 0.f, 20000.f);
 		}
 
-		// Pulse width		
+		// Pulse width
 		float_4 pw[4] = {};
 		for (int c = 0; c < channels; c += 4)
 			pw[c / 4] = params[PWM_PARAM].getValue();
@@ -95,7 +96,7 @@ struct EvenVCO : Module {
 			for (int c = 0; c < channels; c += 4)
 				pw[c / 4] += inputs[PWM_INPUT].getPolyVoltageSimd<float_4>(c) / 5.f;
 		}
-		
+
 		float_4 deltaPhase[4] = {};
 		float_4 oldPhase[4] = {};
 		for (int c = 0; c < channels; c += 4) {
@@ -186,7 +187,7 @@ struct EvenVCO : Module {
 
 			square[c / 4] = simd::ifelse((phase[c / 4] < pw[c / 4]),  -1.f, +1.f);
 			square[c / 4] += squareMinBlepOut[c / 4];
-			square[c / 4] += 2.f * (pw[c / 4] - 0.5); 	// DC offset correction
+			square[c / 4] += 2.f * removeDCFromPulse * (pw[c / 4] - 0.5); 	// DC offset correction
 			square[c / 4] *= 5.f;
 
 			// Set outputs
@@ -196,6 +197,17 @@ struct EvenVCO : Module {
 			outputs[SAW_OUTPUT].setVoltageSimd(saw[c / 4], c);
 			outputs[SQUARE_OUTPUT].setVoltageSimd(square[c / 4], c);
 		}
+	}
+
+	void dataFromJson(json_t* rootJ) override {
+		json_t* modeJ = json_object_get(rootJ, "removeDCFromPulse");
+		removeDCFromPulse = json_boolean_value(modeJ);
+	}
+
+	json_t* dataToJson() override {
+		json_t* rootJ = json_object();
+		json_object_set_new(rootJ, "removeDCFromPulse", json_integer(removeDCFromPulse));
+		return rootJ;
 	}
 };
 
@@ -226,6 +238,23 @@ struct EvenVCOWidget : ModuleWidget {
 		addOutput(createOutput<BefacoOutputPort>(Vec(48, 306), module, EvenVCO::EVEN_OUTPUT));
 		addOutput(createOutput<BefacoOutputPort>(Vec(10, 327), module, EvenVCO::SAW_OUTPUT));
 		addOutput(createOutput<BefacoOutputPort>(Vec(87, 327), module, EvenVCO::SQUARE_OUTPUT));
+	}
+
+	void appendContextMenu(Menu* menu) override {
+		EvenVCO* module = dynamic_cast<EvenVCO*>(this->module);
+		assert(module);
+
+		menu->addChild(new MenuSeparator());
+
+		struct DCMenuItem : MenuItem {
+			EvenVCO* module;
+			void onAction(const event::Action& e) override {
+				module->removeDCFromPulse ^= true;
+			}
+		};
+		DCMenuItem* dcItem = createMenuItem<DCMenuItem>("Remove DC from Square Out", CHECKMARK(module->removeDCFromPulse));
+		dcItem->module = module;
+		menu->addChild(dcItem);
 	}
 };
 

@@ -1,7 +1,7 @@
 #include "plugin.hpp"
 
 
-struct ADSREnvelope {
+struct BefacoADSREnvelope {
 
 	enum Stage {
 		STAGE_OFF,
@@ -19,10 +19,10 @@ struct ADSREnvelope {
 	float attackShape = 1.0, decayShape = 1.0, releaseShape = 1.0;
 	float sustainLevel;
 
-	ADSREnvelope() { };
+	BefacoADSREnvelope() { };
 
 	void retrigger() {
-		stage = ADSREnvelope::STAGE_ATTACK;
+		stage = STAGE_ATTACK;
 		// get the linear value of the envelope
 		timeInCurrentStage = attackTime * std::pow(env, 1.0f / attackShape);
 	}
@@ -161,7 +161,6 @@ struct ADSREnvelope {
 
 	void process(const float& sampleTime, const bool& gateHeld, const bool& triggerMode) {
 
-
 		if (triggerMode) {
 			processTransitionsTriggerMode(gateHeld);
 		}
@@ -170,7 +169,6 @@ struct ADSREnvelope {
 		}
 
 		evolveEnvelope(sampleTime);
-
 	}
 };
 
@@ -209,8 +207,12 @@ struct ADSR : Module {
 		LED_RELEASE_LIGHT,
 		NUM_LIGHTS
 	};
+	enum EnvelopeMode {
+		GATE_MODE,
+		TRIGGER_MODE
+	};
 
-	ADSREnvelope envelope;
+	BefacoADSREnvelope envelope;
 	dsp::SchmittTrigger gateTrigger;
 	dsp::ClockDivider cvDivider;
 	float shape;
@@ -228,7 +230,7 @@ struct ADSR : Module {
 	// given a time in seconds, transform into the appropriate CV/slider value (in range 0, 1)
 	static float convertTimeInSecondsToCV(float timeInSecs) {
 		// according to hardware, slider appears to respond roughly as a quartic
-		return std::pow((timeInSecs - minStageTime) / (maxStageTime - minStageTime), 0.25f);		
+		return std::pow((timeInSecs - minStageTime) / (maxStageTime - minStageTime), 0.25f);
 	}
 
 	struct StageTimeParam : ParamQuantity {
@@ -241,9 +243,19 @@ struct ADSR : Module {
 		}
 	};
 
+	struct TriggerGateParamQuantity : ParamQuantity {
+		std::string getDisplayValueString() override {
+			switch ((EnvelopeMode) getValue()) {
+				case ADSR::GATE_MODE: return "Gate";
+				case ADSR::TRIGGER_MODE: return "Trigger";
+				default: assert(false);
+			}
+		}
+	};
+
 	ADSR() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
-		configParam(TRIGG_GATE_TOGGLE_PARAM, 0.f, 1.f, 0.f, "Use triggers or gates");
+		configParam<TriggerGateParamQuantity>(TRIGG_GATE_TOGGLE_PARAM, GATE_MODE, TRIGGER_MODE, GATE_MODE, "Mode");
 		configParam(MANUAL_TRIGGER_PARAM, 0.f, 1.f, 0.f, "Trigger envelope");
 		configParam(SHAPE_PARAM, 0.f, 1.f, 0.f, "Envelope shape");
 
@@ -257,7 +269,6 @@ struct ADSR : Module {
 
 	void process(const ProcessArgs& args) override {
 
-		bool triggered = gateTrigger.process(rescale(params[MANUAL_TRIGGER_PARAM].getValue() * 10.f + inputs[TRIGGER_INPUT].getVoltage(), 0.1f, 2.f, 0.f, 1.f));
 
 		if (cvDivider.process()) {
 			shape = params[SHAPE_PARAM].getValue();
@@ -278,9 +289,10 @@ struct ADSR : Module {
 			envelope.releaseTime = convertCVToTimeInSeconds(releaseCV);
 		}
 
-		bool gateOn = gateTrigger.isHigh() || params[MANUAL_TRIGGER_PARAM].getValue();
+		const bool triggered = gateTrigger.process(rescale(params[MANUAL_TRIGGER_PARAM].getValue() * 10.f + inputs[TRIGGER_INPUT].getVoltage(), 0.1f, 2.f, 0.f, 1.f));
+		const bool gateOn = gateTrigger.isHigh() || params[MANUAL_TRIGGER_PARAM].getValue();
+		const bool triggerMode = params[TRIGG_GATE_TOGGLE_PARAM].getValue() == 1;
 
-		bool triggerMode = params[TRIGG_GATE_TOGGLE_PARAM].getValue() == 1;
 		if (triggerMode) {
 			if (triggered) {
 				envelope.retrigger();
@@ -291,15 +303,15 @@ struct ADSR : Module {
 
 		outputs[OUT_OUTPUT].setVoltage(envelope.env * 10.f);
 
-		outputs[STAGE_ATTACK_OUTPUT].setVoltage(10.f * (envelope.stage == ADSREnvelope::STAGE_ATTACK));
-		outputs[STAGE_DECAY_OUTPUT].setVoltage(10.f * (envelope.stage == ADSREnvelope::STAGE_DECAY));
-		outputs[STAGE_SUSTAIN_OUTPUT].setVoltage(10.f * (envelope.stage == ADSREnvelope::STAGE_SUSTAIN));
-		outputs[STAGE_RELEASE_OUTPUT].setVoltage(10.f * (envelope.stage == ADSREnvelope::STAGE_RELEASE));
+		outputs[STAGE_ATTACK_OUTPUT].setVoltage(10.f * (envelope.stage == BefacoADSREnvelope::STAGE_ATTACK));
+		outputs[STAGE_DECAY_OUTPUT].setVoltage(10.f * (envelope.stage == BefacoADSREnvelope::STAGE_DECAY));
+		outputs[STAGE_SUSTAIN_OUTPUT].setVoltage(10.f * (envelope.stage == BefacoADSREnvelope::STAGE_SUSTAIN));
+		outputs[STAGE_RELEASE_OUTPUT].setVoltage(10.f * (envelope.stage == BefacoADSREnvelope::STAGE_RELEASE));
 
-		lights[LED_ATTACK_LIGHT].setBrightness((envelope.stage == ADSREnvelope::STAGE_ATTACK));
-		lights[LED_DECAY_LIGHT].setBrightness((envelope.stage == ADSREnvelope::STAGE_DECAY));
-		lights[LED_SUSTAIN_LIGHT].setBrightness((envelope.stage == ADSREnvelope::STAGE_SUSTAIN));
-		lights[LED_RELEASE_LIGHT].setBrightness((envelope.stage == ADSREnvelope::STAGE_RELEASE));
+		lights[LED_ATTACK_LIGHT].setBrightness((envelope.stage == BefacoADSREnvelope::STAGE_ATTACK));
+		lights[LED_DECAY_LIGHT].setBrightness((envelope.stage == BefacoADSREnvelope::STAGE_DECAY));
+		lights[LED_SUSTAIN_LIGHT].setBrightness((envelope.stage == BefacoADSREnvelope::STAGE_SUSTAIN));
+		lights[LED_RELEASE_LIGHT].setBrightness((envelope.stage == BefacoADSREnvelope::STAGE_RELEASE));
 		lights[LED_LIGHT].setBrightness((float) gateOn);
 	}
 };

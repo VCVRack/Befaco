@@ -14,8 +14,45 @@ inline T equalPowerCrossfade(T a, T b, const float p) {
 	return std::min(exponentialBipolar80Pade_5_4(p + 1), 1.f) * b + std::min(exponentialBipolar80Pade_5_4(1 - p), 1.f) * a;
 }
 
-// TExponentialSlewLimiter doesn't appear to work correctly (tried for -1 -> +1, and 0 -> 1)
-// TODO: confirm, or explain better how it doesn't work
+// TExponentialSlewLimiter doesn't appear to work as is required for this application.
+// I think it is due to the absence of the logic that stops the output rising / falling too quickly,
+// i.e. faster than the original signal? I think the following modification would yield the
+// expected behaviour (see 2 lines in process).
+/*
+template <typename T = float>
+struct TExponentialSlewLimiter {
+	T out = 0.f;
+	T riseLambda = 0.f;
+	T fallLambda = 0.f;
+
+	void reset() {
+		out = 0.f;
+	}
+
+	void setRiseFall(T riseLambda, T fallLambda) {
+		this->riseLambda = riseLambda;
+		this->fallLambda = fallLambda;
+	}
+	T process(T deltaTime, T in) {
+		// MODIFICATION:
+		T rising = in > out;
+		T lambda = simd::ifelse(rising, riseLambda, fallLambda);
+		T y = out + (in - out) * lambda * deltaTime;
+		// If the change from the old out to the new out is too small for floats, set `in` directly.
+		out = simd::ifelse(out == y, in, y);
+
+		// MODIFICATION:
+		out = simd::ifelse(rising, simd::ifelse(out > in, in, y), simd::ifelse(out < in, in, y));
+		return out;
+	}
+	DEPRECATED T process(T in) {
+		return process(1.f, in);
+	}
+};
+*/
+
+// For now, I provide this implementation (essentialy the same as SlewLimiter.cpp), but ideally I
+// would replace with updated library function
 struct ExpLogSlewLimiter {
 
 	float out = 0.f;
@@ -36,7 +73,7 @@ struct ExpLogSlewLimiter {
 			}
 		}
 		else if (in < out) {
-			out -= slew * (out - in) * deltaTime;
+			out += slew * (in - out) * deltaTime;
 			if (out < in) {
 				out = in;
 			}
@@ -117,9 +154,9 @@ struct Morphader : Module {
 	// determine the cross-fade between -1 (A) and +1 (B) for each of the 4 channels
 	simd::float_4 determineChannelCrossfades(const float deltaTime) {
 
-		simd::float_4 channelCrossfades = {0.f};
-
-		slewLimiter.setSlew(2.0f / params[FADER_LAG_PARAM].getValue());
+		simd::float_4 channelCrossfades = {};
+		const float slewLambda = 2.0f / params[FADER_LAG_PARAM].getValue();
+		slewLimiter.setSlew(slewLambda);
 		const float masterCrossfadeValue = slewLimiter.process(deltaTime, params[FADER_PARAM].getValue());
 
 		for (int i = 0; i < NUM_MIXER_CHANNELS; i++) {
@@ -162,7 +199,7 @@ struct Morphader : Module {
 
 			const int channels = std::max(std::max(inputs[A_INPUT + i].getChannels(), inputs[B_INPUT + i].getChannels()), 1);
 			// keep track of the max number of channels for the mix output, noting that if channels are taken out of the mix
-			// (i.e. they're connected) they shouldn't contribute to the polyphony calculation
+			// (i.e. they're connected) they shouldn't contribute to the mix polyphony calculation
 			if (!outputs[OUT + i].isConnected()) {
 				maxChannels = std::max(maxChannels, channels);
 			}
@@ -179,7 +216,7 @@ struct Morphader : Module {
 					}
 					case AUDIO_MODE: {
 						// in audio mode, close to the centre point it is possible to get large voltages
-						// (e.g. if A and B are both 10V const). however according to the standard, it is 
+						// (e.g. if A and B are both 10V const). however according to the standard, it is
 						// better not to clip this https://vcvrack.com/manual/VoltageStandards#Output-Saturation
 						out[c / 4] = equalPowerCrossfade(inA, inB, channelCrossfades[i]);
 						break;
