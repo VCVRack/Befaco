@@ -221,27 +221,9 @@ struct ADSR : Module {
 	static constexpr float maxStageTime = 10.f;  // in seconds
 
 	// given a value from the slider and/or cv (rescaled to range 0 to 1), transform into the appropriate time in seconds
-	static float convertCVToTimeInSeconds(float cv) {
-		float cv2 = cv * cv;
-		// according to hardware, slider appears to respond roughly as a quartic
-		return minStageTime + (maxStageTime - minStageTime) * cv2 * cv2;
+	static float convertCVToTimeInSeconds(float cv) {		
+		return minStageTime * std::pow(maxStageTime / minStageTime, cv);
 	}
-
-	// given a time in seconds, transform into the appropriate CV/slider value (in range 0, 1)
-	static float convertTimeInSecondsToCV(float timeInSecs) {
-		// according to hardware, slider appears to respond roughly as a quartic
-		return std::pow((timeInSecs - minStageTime) / (maxStageTime - minStageTime), 0.25f);
-	}
-
-	struct StageTimeParam : ParamQuantity {
-		std::string getDisplayValueString() override {
-			return string::f("%.3f", convertCVToTimeInSeconds(getValue()));
-		}
-
-		void setDisplayValue(float v) override {
-			ParamQuantity::setDisplayValue(convertTimeInSecondsToCV(v));
-		}
-	};
 
 	struct TriggerGateParamQuantity : ParamQuantity {
 		std::string getDisplayValueString() override {
@@ -259,10 +241,10 @@ struct ADSR : Module {
 		configParam(MANUAL_TRIGGER_PARAM, 0.f, 1.f, 0.f, "Trigger envelope");
 		configParam(SHAPE_PARAM, 0.f, 1.f, 0.f, "Envelope shape");
 
-		configParam<StageTimeParam>(ATTACK_PARAM, 0.f, 1.f, 0.f, "Attack time", "s");
-		configParam<StageTimeParam>(DECAY_PARAM, 0.f, 1.f, 0.f, "Decay time", "s");
+		configParam(ATTACK_PARAM, 0.f, 1.f, 0.f, "Attack time", "s", maxStageTime / minStageTime, minStageTime);
+		configParam(DECAY_PARAM, 0.f, 1.f, 0.f, "Decay time", "s", maxStageTime / minStageTime, minStageTime);
 		configParam(SUSTAIN_PARAM, 0.f, 1.f, 0.f, "Sustain level", "%", 0.f, 100.f);
-		configParam<StageTimeParam>(RELEASE_PARAM, 0.f, 1.f, 0.f, "Release time", "s");
+		configParam(RELEASE_PARAM, 0.f, 1.f, 0.f, "Release time", "s", maxStageTime / minStageTime, minStageTime);
 
 		cvDivider.setDivision(16);
 	}

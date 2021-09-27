@@ -1,5 +1,6 @@
 #include "plugin.hpp"
 
+using simd::float_4;
 
 // equal sum crossfade, -1 <= p <= 1
 template <typename T>
@@ -16,43 +17,8 @@ inline T equalPowerCrossfade(T a, T b, const float p) {
 
 // TExponentialSlewLimiter doesn't appear to work as is required for this application.
 // I think it is due to the absence of the logic that stops the output rising / falling too quickly,
-// i.e. faster than the original signal? I think the following modification would yield the
-// expected behaviour (see 2 lines in process).
-/*
-template <typename T = float>
-struct TExponentialSlewLimiter {
-	T out = 0.f;
-	T riseLambda = 0.f;
-	T fallLambda = 0.f;
-
-	void reset() {
-		out = 0.f;
-	}
-
-	void setRiseFall(T riseLambda, T fallLambda) {
-		this->riseLambda = riseLambda;
-		this->fallLambda = fallLambda;
-	}
-	T process(T deltaTime, T in) {
-		// MODIFICATION:
-		T rising = in > out;
-		T lambda = simd::ifelse(rising, riseLambda, fallLambda);
-		T y = out + (in - out) * lambda * deltaTime;
-		// If the change from the old out to the new out is too small for floats, set `in` directly.
-		out = simd::ifelse(out == y, in, y);
-
-		// MODIFICATION:
-		out = simd::ifelse(rising, simd::ifelse(out > in, in, y), simd::ifelse(out < in, in, y));
-		return out;
-	}
-	DEPRECATED T process(T in) {
-		return process(1.f, in);
-	}
-};
-*/
-
-// For now, I provide this implementation (essentialy the same as SlewLimiter.cpp), but ideally I
-// would replace with updated library function
+// i.e. faster than the original signal? For now, we use this implementation (essentialy the same as
+// SlewLimiter.cpp)
 struct ExpLogSlewLimiter {
 
 	float out = 0.f;
@@ -114,7 +80,7 @@ struct Morphader : Module {
 	};
 
 	static const int NUM_MIXER_CHANNELS = 4;
-	const simd::float_4 normal10VSimd = {10.f};
+	const float_4 normal10VSimd = {10.f};
 	ExpLogSlewLimiter slewLimiter;
 
 	// minimum and maximum slopes in volts per second, they specify the time to get
@@ -152,9 +118,9 @@ struct Morphader : Module {
 	}
 
 	// determine the cross-fade between -1 (A) and +1 (B) for each of the 4 channels
-	simd::float_4 determineChannelCrossfades(const float deltaTime) {
+	float_4 determineChannelCrossfades(const float deltaTime) {
 
-		simd::float_4 channelCrossfades = {};
+		float_4 channelCrossfades = {};
 		const float slewLambda = 2.0f / params[FADER_LAG_PARAM].getValue();
 		slewLimiter.setSlew(slewLambda);
 		const float masterCrossfadeValue = slewLimiter.process(deltaTime, params[FADER_PARAM].getValue());
@@ -192,8 +158,8 @@ struct Morphader : Module {
 	void process(const ProcessArgs& args) override {
 
 		int maxChannels = 1;
-		simd::float_4 mix[4] = {0.f};
-		const simd::float_4 channelCrossfades = determineChannelCrossfades(args.sampleTime);
+		float_4 mix[4] = {};
+		const float_4 channelCrossfades = determineChannelCrossfades(args.sampleTime);
 
 		for (int i = 0; i < NUM_MIXER_CHANNELS; i++) {
 
@@ -204,10 +170,10 @@ struct Morphader : Module {
 				maxChannels = std::max(maxChannels, channels);
 			}
 
-			simd::float_4 out[4] = {0.f};
+			float_4 out[4] = {};
 			for (int c = 0; c < channels; c += 4) {
-				simd::float_4 inA = inputs[A_INPUT + i].getNormalVoltageSimd(normal10VSimd, c) * params[A_LEVEL + i].getValue();
-				simd::float_4 inB = inputs[B_INPUT + i].getNormalVoltageSimd(normal10VSimd, c) * params[B_LEVEL + i].getValue();
+				float_4 inA = inputs[A_INPUT + i].getNormalVoltageSimd(normal10VSimd, c) * params[A_LEVEL + i].getValue();
+				float_4 inB = inputs[B_INPUT + i].getNormalVoltageSimd(normal10VSimd, c) * params[B_LEVEL + i].getValue();
 
 				switch (static_cast<CrossfadeMode>(params[MODE + i].getValue())) {
 					case CV_MODE: {
@@ -221,7 +187,9 @@ struct Morphader : Module {
 						out[c / 4] = equalPowerCrossfade(inA, inB, channelCrossfades[i]);
 						break;
 					}
-					default: assert(false);
+					default: {
+						out[c / 4] = 0.f;
+					}
 				}
 			}
 
@@ -257,7 +225,11 @@ struct Morphader : Module {
 					lights[B_LED + i].setBrightness(equalSumCrossfade(0.f, 1.f, channelCrossfades[i]));
 					break;
 				}
-				default: assert(false);
+				default: {
+					lights[A_LED + i].setBrightness(0.f);
+					lights[B_LED + i].setBrightness(0.f);
+					break;
+				}
 			}
 		} // end loop over mixer channels
 	}

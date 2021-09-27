@@ -641,25 +641,39 @@ struct Muxlicer : Module {
 
 	void dataFromJson(json_t* rootJ) override {
 		json_t* modeJ = json_object_get(rootJ, "modeCOMIO");
-		modeCOMIO = (Muxlicer::ModeCOMIO) json_integer_value(modeJ);
+		if (modeJ) {
+			modeCOMIO = (Muxlicer::ModeCOMIO) json_integer_value(modeJ);
+		}
 
 		json_t* quadraticJ = json_object_get(rootJ, "quadraticGatesOnly");
-		quadraticGatesOnly = json_boolean_value(quadraticJ);
+		if (quadraticJ) {
+			quadraticGatesOnly = json_boolean_value(quadraticJ);
+		}
 
 		json_t* allInNormalVoltageJ = json_object_get(rootJ, "allInNormalVoltage");
-		allInNormalVoltage = json_integer_value(allInNormalVoltageJ);
+		if (allInNormalVoltageJ) {
+			allInNormalVoltage = json_integer_value(allInNormalVoltageJ);
+		}
 
 		json_t* mainClockMultDivJ = json_object_get(rootJ, "mainClockMultDiv");
-		mainClockMultDiv.multDiv = json_integer_value(mainClockMultDivJ);
+		if (mainClockMultDivJ) {
+			mainClockMultDiv.multDiv = json_integer_value(mainClockMultDivJ);
+		}
 
 		json_t* outputClockMultDivJ = json_object_get(rootJ, "outputClockMultDiv");
-		outputClockMultDiv.multDiv = json_integer_value(outputClockMultDivJ);
+		if (outputClockMultDivJ) {
+			outputClockMultDiv.multDiv = json_integer_value(outputClockMultDivJ);
+		}
 
 		json_t* playStateJ = json_object_get(rootJ, "playState");
-		playState = (PlayState) json_integer_value(playStateJ);
+		if (playStateJ) {
+			playState = (PlayState) json_integer_value(playStateJ);
+		}
 
 		json_t* outputClockFollowsPlayModeJ = json_object_get(rootJ, "outputClockFollowsPlayMode");
-		outputClockFollowsPlayMode = json_boolean_value(outputClockFollowsPlayModeJ);
+		if (outputClockFollowsPlayModeJ) {
+			outputClockFollowsPlayMode = json_boolean_value(outputClockFollowsPlayModeJ);
+		}
 
 		updateParamFromMainClockMultDiv();
 	}

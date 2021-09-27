@@ -28,10 +28,6 @@ struct Mex : Module {
 
 	dsp::SchmittTrigger gateInTrigger;
 
-	// this expander communicates with the mother module (Muxlicer) purely
-	// through this pointer (it cannot modify Muxlicer, read-only)
-	Muxlicer const* mother = nullptr;
-
 	struct GateSwitchParamQuantity : ParamQuantity {
 		std::string getDisplayValueString() override {
 
@@ -52,72 +48,59 @@ struct Mex : Module {
 		}
 	}
 
+	Muxlicer* findHostModulePtr(Module* module) {
+		if (module) {
+			if (module->leftExpander.module) {
+				// if it's Muxlicer, we're done
+				if (module->leftExpander.module->model == modelMuxlicer) {
+					return reinterpret_cast<Muxlicer*>(module->leftExpander.module);
+				}
+				// if it's Mex, keep recursing
+				else if (module->leftExpander.module->model == modelMex) {
+					return findHostModulePtr(module->leftExpander.module);
+				}
+			}
+		}
+
+		return nullptr;
+	}
+
 	void process(const ProcessArgs& args) override {
 
 		for (int i = 0; i < 8; i++) {
 			lights[i].setBrightness(0.f);
 		}
 
-		if (leftExpander.module) {
-			// this expander is active if:
-			// * muxlicer is to the left or
-			if (leftExpander.module->model == modelMuxlicer) {
-				mother = reinterpret_cast<Muxlicer*>(leftExpander.module);
-			}
-			// * an active Mex is to the left
-			else if (leftExpander.module->model == modelMex) {
-				Mex* moduleMex =  reinterpret_cast<Mex*>(leftExpander.module);
-				if (moduleMex) {
-					mother = moduleMex->mother;
+		Muxlicer const* mother = findHostModulePtr(this);
+
+		if (mother) {
+
+			float gate = 0.f;
+
+			if (mother->playState != Muxlicer::STATE_STOPPED) {
+				const int currentStep = clamp(mother->addressIndex, 0, 7);
+				StepState state = (StepState) params[STEP_PARAM + currentStep].getValue();
+				if (state == MUXLICER_MODE) {
+					gate = mother->isAllGatesOutHigh;
 				}
-			}
-			else {
-				mother = nullptr;
-			}
-
-			if (mother) {
-
-				float gate = 0.f;
-
-				if (mother->playState != Muxlicer::STATE_STOPPED) {
-					const int currentStep = clamp(mother->addressIndex, 0, 7);
-					StepState state = (StepState) params[STEP_PARAM + currentStep].getValue();
-					if (state == MUXLICER_MODE) {
-						gate = mother->isAllGatesOutHigh;
+				else if (state == GATE_IN_MODE) {
+					// gate in will convert non-gate signals to gates (via schmitt trigger)
+					// if input is present
+					if (inputs[GATE_IN_INPUT].isConnected()) {
+						gateInTrigger.process(inputs[GATE_IN_INPUT].getVoltage());
+						gate = gateInTrigger.isHigh();
 					}
-					else if (state == GATE_IN_MODE) {
-						// gate in will convert non-gate signals to gates (via schmitt trigger)
-						// if input is present
-						if (inputs[GATE_IN_INPUT].isConnected()) {
-							gateInTrigger.process(inputs[GATE_IN_INPUT].getVoltage());
-							gate = gateInTrigger.isHigh();
-						}
-						// otherwise the main Muxlicer output clock (including divisions/multiplications)
-						// is normalled in
-						else {
-							gate = mother->isOutputClockHigh;
-						}
+					// otherwise the main Muxlicer output clock (including divisions/multiplications)
+					// is normalled in
+					else {
+						gate = mother->isOutputClockHigh;
 					}
-
-					lights[currentStep].setBrightness(gate);
 				}
 
-				outputs[OUT_OUTPUT].setVoltage(gate * 10.f);
-
-				// if there's another Mex to the right, update it to also point at the message we just received,
-				// i.e. just forward on the message
-				if (rightExpander.module && rightExpander.module->model == modelMex) {
-					Mex* moduleMexRight =  reinterpret_cast<Mex*>(rightExpander.module);
-
-					// assign current message pointer to the right expander
-					moduleMexRight->mother = mother;
-				}
+				lights[currentStep].setBrightness(gate);
 			}
-		}
-		// if we've become disconnected, i.e. no module to the left, then break the connection
-		// which will propagate to all expanders to the right
-		else {
-			mother = nullptr;
+
+			outputs[OUT_OUTPUT].setVoltage(gate * 10.f);
 		}
 	}
 };
