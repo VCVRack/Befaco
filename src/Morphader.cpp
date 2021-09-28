@@ -197,7 +197,7 @@ struct Morphader : Module {
 			if (outputs[OUT + i].isConnected() && i != NUM_MIXER_CHANNELS - 1) {
 				outputs[OUT + i].setChannels(channels);
 				for (int c = 0; c < channels; c += 4) {
-					out[c / 4].store(outputs[OUT + i].getVoltages(c));
+					outputs[OUT + i].setVoltageSimd(out[c / 4], c);
 				}
 			}
 			else {
@@ -210,7 +210,7 @@ struct Morphader : Module {
 				outputs[OUT + i].setChannels(maxChannels);
 
 				for (int c = 0; c < maxChannels; c += 4) {
-					mix[c / 4].store(outputs[OUT + i].getVoltages(c));
+					outputs[OUT + i].setVoltageSimd(mix[c / 4], c);
 				}
 			}
 
