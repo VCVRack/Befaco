@@ -86,7 +86,7 @@ struct EvenVCO : Module {
 			freq[c / 4] = clamp(freq[c / 4], 0.f, 20000.f);
 		}
 
-		// Pulse width		
+		// Pulse width
 		float_4 pw[4] = {};
 		for (int c = 0; c < channels; c += 4)
 			pw[c / 4] = params[PWM_PARAM].getValue();
@@ -95,7 +95,7 @@ struct EvenVCO : Module {
 			for (int c = 0; c < channels; c += 4)
 				pw[c / 4] += inputs[PWM_INPUT].getPolyVoltageSimd<float_4>(c) / 5.f;
 		}
-		
+
 		float_4 deltaPhase[4] = {};
 		float_4 oldPhase[4] = {};
 		for (int c = 0; c < channels; c += 4) {

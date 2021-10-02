@@ -1,23 +1,29 @@
+#pragma once
 #include <rack.hpp>
 
 
 using namespace rack;
 
 
-extern Plugin *pluginInstance;
+extern Plugin* pluginInstance;
 
-extern Model *modelEvenVCO;
-extern Model *modelRampage;
-extern Model *modelABC;
-extern Model *modelSpringReverb;
-extern Model *modelMixer;
-extern Model *modelSlewLimiter;
-extern Model *modelDualAtenuverter;
-extern Model *modelPercall;
-extern Model *modelHexmixVCA;
-extern Model *modelChoppingKinky;
-extern Model *modelKickall;
-
+extern Model* modelEvenVCO;
+extern Model* modelRampage;
+extern Model* modelABC;
+extern Model* modelSpringReverb;
+extern Model* modelMixer;
+extern Model* modelSlewLimiter;
+extern Model* modelDualAtenuverter;
+extern Model* modelPercall;
+extern Model* modelHexmixVCA;
+extern Model* modelChoppingKinky;
+extern Model* modelKickall;
+extern Model* modelSamplingModulator;
+extern Model* modelMorphader;
+extern Model* modelADSR;
+extern Model* modelSTMix;
+extern Model* modelMuxlicer;
+extern Model* modelMex;
 
 struct Knurlie : SvgScrew {
 	Knurlie() {
@@ -43,17 +49,52 @@ struct BefacoTinyKnobWhite : app::SvgKnob {
 	}
 };
 
-struct BefacoTinyKnobGrey : app::SvgKnob {
-	BefacoTinyKnobGrey() {
+struct BefacoTinyKnobDarkGrey : app::SvgKnob {
+	BefacoTinyKnobDarkGrey() {
 		minAngle = -0.8 * M_PI;
 		maxAngle = 0.8 * M_PI;
-		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoTinyKnobGrey.svg")));
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoTinyKnobDarkGrey.svg")));
+	}
+};
+
+struct BefacoTinyKnobLightGrey : app::SvgKnob {
+	BefacoTinyKnobLightGrey() {
+		minAngle = -0.8 * M_PI;
+		maxAngle = 0.8 * M_PI;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoTinyKnobLightGrey.svg")));
+	}
+};
+
+struct BefacoTinyKnobBlack : app::SvgKnob {
+	BefacoTinyKnobBlack() {
+		minAngle = -0.8 * M_PI;
+		maxAngle = 0.8 * M_PI;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoTinyKnobBlack.svg")));
 	}
 };
 
 struct Davies1900hLargeGreyKnob : Davies1900hKnob {
 	Davies1900hLargeGreyKnob() {
 		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Davies1900hLargeGrey.svg")));
+	}
+};
+
+struct Davies1900hLightGreyKnob : Davies1900hWhiteKnob {
+	Davies1900hLightGreyKnob() {
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Davies1900hLightGrey.svg")));
+	}
+};
+
+struct Davies1900hDarkGreyKnob : Davies1900hWhiteKnob {
+	Davies1900hDarkGreyKnob() {
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Davies1900hDarkGrey.svg")));
+	}
+};
+
+// library black Davies1900h doesn't work well on black backgrounds
+struct Davies1900hDarkBlackAlt : Davies1900hWhiteKnob {
+	Davies1900hDarkBlackAlt() {
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Davies1900hBlack.svg")));
 	}
 };
 
@@ -69,6 +110,35 @@ struct BefacoInputPort : app::SvgPort {
 	}
 };
 
+struct CKSSNarrow : app::SvgSwitch {
+	CKSSNarrow() {
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/SwitchNarrow_0.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/SwitchNarrow_1.svg")));
+	}
+};
+
+struct Crossfader : app::SvgSlider {
+	Crossfader() {
+		setBackgroundSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/CrossfaderBackground.svg")));
+		setHandleSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/CrossfaderHandle.svg")));
+		minHandlePos = mm2px(Vec(4.5f, -0.8f));
+		maxHandlePos = mm2px(Vec(34.5, -0.8f));
+		horizontal = true;
+		math::Vec margin = math::Vec(15, 5);
+		background->box.pos = margin;
+		box.size = background->box.size.plus(margin.mult(2));
+	}
+};
+
+struct BefacoSwitchHorizontal : app::SvgSwitch {
+	BefacoSwitchHorizontal() {
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoSwitchHoriz_0.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoSwitchHoriz_1.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoSwitchHoriz_2.svg")));
+	}
+};
+
+
 template <typename T>
 T sin2pi_pade_05_5_4(T x) {
 	x -= 0.5f;
@@ -83,6 +153,11 @@ T tanh_pade(T x) {
 	return 12.f * x * q / (36.f * x2 + q * q);
 }
 
+template <typename T>
+T exponentialBipolar80Pade_5_4(T x) {
+	return (T(0.109568) * x + T(0.281588) * simd::pow(x, 3) + T(0.133841) * simd::pow(x, 5))
+	       / (T(1.) - T(0.630374) * simd::pow(x, 2) + T(0.166271) * simd::pow(x, 4));
+}
 
 struct ADEnvelope {
 	enum Stage {

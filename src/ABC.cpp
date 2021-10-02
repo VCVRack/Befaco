@@ -11,13 +11,6 @@ static T clip(T x) {
 	       / (1.0f + 1.54167f * simd::pow(x, 12) + 0.642361f * simd::pow(x, 24) + 0.0579909f * simd::pow(x, 36));
 }
 
-
-static float exponentialBipolar80Pade_5_4(float x) {
-	return (0.109568 * x + 0.281588 * std::pow(x, 3) + 0.133841 * std::pow(x, 5))
-	       / (1. - 0.630374 * std::pow(x, 2) + 0.166271 * std::pow(x, 4));
-}
-
-
 struct ABC : Module {
 	enum ParamIds {
 		B1_LEVEL_PARAM,
