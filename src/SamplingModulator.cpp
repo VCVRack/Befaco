@@ -41,38 +41,6 @@ struct SamplingModulator : Module {
 		CLOCK_INTERNAL
 	};
 
-	struct ClockTypeParam : ParamQuantity {
-		std::string getDisplayValueString() override {
-			if (module != nullptr && paramId == INT_EXT_PARAM) {
-				return (module->params[INT_EXT_PARAM].getValue() == CLOCK_EXTERNAL) ? "External" : "Internal";
-			}
-			else {
-				return "";
-			}
-		}
-	};
-
-	struct StepTypeParam : ParamQuantity {
-		std::string getDisplayValueString() override {
-			if (module != nullptr && STEP_PARAM <= paramId && STEP_PARAM < STEP_PARAM_LAST) {
-				StepState stepState = (StepState) module->params[paramId].getValue();
-
-				if (stepState == STATE_RESET) {
-					return "Reset";
-				}
-				else if (stepState == STATE_OFF) {
-					return "Off";
-				}
-				else {
-					return "On";
-				}
-			}
-			else {
-				return "";
-			}
-		}
-	};
-
 	int numEffectiveSteps = numSteps;
 	int currentStep = 0;
 	StepState stepStates[numSteps];
@@ -94,10 +62,10 @@ struct SamplingModulator : Module {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 		configParam(RATE_PARAM, 0.0f, 1.f, 0.f, "Rate");
 		configParam(FINE_PARAM, 0.f, 1.f, 0.f, "Fine tune");
-		configParam<ClockTypeParam>(INT_EXT_PARAM, 0.f, 1.f, CLOCK_INTERNAL, "Clock");
+		configSwitch(INT_EXT_PARAM, 0.f, 1.f, CLOCK_INTERNAL, "Clock", {"External", "Internal"});
 
 		for (int i = 0; i < numSteps; i++) {
-			configParam<StepTypeParam>(STEP_PARAM + i, 0.f, 2.f, STATE_ON, "Step " + std::to_string(i + 1));
+			configSwitch(STEP_PARAM + i, 0.f, 2.f, STATE_ON, string::f("Step %d", i + 1), {"Reset", "Off", "On"});
 		}
 	}
 
@@ -287,22 +255,12 @@ struct SamplingModulatorWidget : ModuleWidget {
 		addChild(createLightCentered<SmallLight<RedLight>>(mm2px(Vec(23.722, 94.617)), module, SamplingModulator::STEP_LIGHT + 7));
 	}
 
-	struct DCMenuItem : MenuItem {
-		SamplingModulator* module;
-		void onAction(const event::Action& e) override {
-			module->removeDC ^= true;
-		}
-	};
-
 	void appendContextMenu(Menu* menu) override {
 		SamplingModulator* module = dynamic_cast<SamplingModulator*>(this->module);
 		assert(module);
 
 		menu->addChild(new MenuSeparator());
-
-		DCMenuItem* dcItem = createMenuItem<DCMenuItem>("Remove DC Offset", CHECKMARK(module->removeDC));
-		dcItem->module = module;
-		menu->addChild(dcItem);
+		menu->addChild(createBoolPtrMenuItem("Remove DC Offset", &module->removeDC));
 	}
 };
 

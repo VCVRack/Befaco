@@ -194,17 +194,7 @@ struct HexmixVCAWidget : ModuleWidget {
 		assert(module);
 
 		menu->addChild(new MenuSeparator());
-
-		struct MixMenuItem : MenuItem {
-			HexmixVCA* module;
-			void onAction(const event::Action& e) override {
-				module->finalRowIsMix ^= true;
-			}
-		};
-
-		MixMenuItem* mixItem = createMenuItem<MixMenuItem>("Final row is mix", CHECKMARK(module->finalRowIsMix));
-		mixItem->module = module;
-		menu->addChild(mixItem);
+		menu->addChild(createBoolPtrMenuItem("Final row is mix", &module->finalRowIsMix));
 	}
 };
 

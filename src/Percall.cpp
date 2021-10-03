@@ -44,12 +44,19 @@ struct Percall : Module {
 		for (int i = 0; i < 4; i++) {
 			configParam(VOL_PARAMS + i, 0.f, 1.f, 1.f, string::f("Channel %d level", i + 1), "%", 0, 100);
 			configParam(DECAY_PARAMS + i, 0.f, 1.f, 0.f, string::f("Channel %d decay time", i + 1));
+			configInput(CH_INPUTS + i, string::f("Channel %d", i + 1));
+			configInput(TRIG_INPUTS + i, string::f("Channel %d trigger", i + 1));
+			configInput(CV_INPUTS + i, string::f("Channel %d CV", i + 1));
+			configOutput(ENV_OUTPUTS + i, string::f("Channel %d envelope", i + 1));
+
 			envs[i].attackTime = attackTime;
 			envs[i].attackShape = 0.5f;
 			envs[i].decayShape = 2.0f;
 		}
 
-		for (int i = 0; i < 2; i++) {			
+		configInput(STRENGTH_INPUT, string::f("Overall gain (also affects Env Outs)"));
+
+		for (int i = 0; i < 2; i++) {
 			configParam(CHOKE_PARAMS + i, 0.f, 1.f, 0.f, string::f("Choke %d to %d", 2 * i + 1, 2 * i + 2));
 		}
 

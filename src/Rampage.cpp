@@ -85,19 +85,44 @@ struct Rampage : Module {
 
 	Rampage() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
-		configParam(RANGE_A_PARAM, 0.0, 2.0, 0.0, "Ch 1 range");
+		configSwitch(RANGE_A_PARAM, 0.0, 2.0, 0.0, "Ch 1 range", {"Medium", "Fast", "Slow"});
 		configParam(SHAPE_A_PARAM, -1.0, 1.0, 0.0, "Ch 1 shape");
-		configParam(TRIGG_A_PARAM, 0.0, 1.0, 0.0, "Ch 1 trigger");
+		configButton(TRIGG_A_PARAM, "Ch 1 trigger");
 		configParam(RISE_A_PARAM, 0.0, 1.0, 0.0, "Ch 1 rise time");
 		configParam(FALL_A_PARAM, 0.0, 1.0, 0.0, "Ch 1 fall time");
-		configParam(CYCLE_A_PARAM, 0.0, 1.0, 0.0, "Ch 1 cycle");
-		configParam(RANGE_B_PARAM, 0.0, 2.0, 0.0, "Ch 2 range");
+		configSwitch(CYCLE_A_PARAM, 0.0, 1.0, 0.0, "Ch 1 cycle", {"Off", "On"});
+		configSwitch(RANGE_B_PARAM, 0.0, 2.0, 0.0, "Ch 2 range", {"Medium", "Fast", "Slow"});
 		configParam(SHAPE_B_PARAM, -1.0, 1.0, 0.0, "Ch 2 shape");
-		configParam(TRIGG_B_PARAM, 0.0, 1.0, 0.0, "Ch 2 trigger");
+		configButton(TRIGG_B_PARAM, "Ch 2 trigger");
 		configParam(RISE_B_PARAM, 0.0, 1.0, 0.0, "Ch 2 rise time");
 		configParam(FALL_B_PARAM, 0.0, 1.0, 0.0, "Ch 2 fall time");
-		configParam(CYCLE_B_PARAM, 0.0, 1.0, 0.0, "Ch 2 cycle");
+		configSwitch(CYCLE_B_PARAM, 0.0, 1.0, 0.0, "Ch 2 cycle", {"Off", "On"});
 		configParam(BALANCE_PARAM, 0.0, 1.0, 0.5, "Balance");
+
+		configInput(IN_A_INPUT, "A");
+		configInput(IN_B_INPUT, "B");
+		configInput(TRIGG_A_INPUT, "Trigger A");
+		configInput(TRIGG_B_INPUT, "Trigger B");
+		configInput(RISE_CV_A_INPUT, "Rise CV A");
+		configInput(RISE_CV_B_INPUT, "Rise CV B");
+		configInput(FALL_CV_A_INPUT, "Fall CV A");
+		configInput(FALL_CV_B_INPUT, "Fall CV B");
+		configInput(EXP_CV_A_INPUT, "Exponetial CV A");
+		configInput(EXP_CV_B_INPUT, "Exponetial CV B");
+		configInput(CYCLE_A_INPUT, "Cycle A");
+		configInput(CYCLE_B_INPUT, "Cycle B");
+
+		configOutput(RISING_A_OUTPUT, "Rising A");
+		configOutput(RISING_B_OUTPUT, "Rising B");
+		configOutput(FALLING_A_OUTPUT, "Falling A");
+		configOutput(FALLING_B_OUTPUT, "Falling B");
+		configOutput(EOC_A_OUTPUT, "End of cycle A");
+		configOutput(EOC_B_OUTPUT, "End of cycle B");
+		configOutput(OUT_A_OUTPUT, "A");
+		configOutput(OUT_B_OUTPUT, "B");
+		configOutput(COMPARATOR_OUTPUT, "B > A");
+		configOutput(MIN_OUTPUT, "Minimum of A and B");
+		configOutput(MAX_OUTPUT, "Maximum of A and B");
 	}
 
 	void process(const ProcessArgs& args) override {

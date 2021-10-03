@@ -905,14 +905,6 @@ struct MuxlicerWidget : ModuleWidget {
 		}
 	};
 
-	struct OutputClockStopStartItem : MenuItem {
-		Muxlicer* module;
-		void onAction(const event::Action& e) override {
-			module->outputClockFollowsPlayMode ^= true;
-			module->updateParamFromMainClockMultDiv();
-		}
-	};
-
 	struct TapTempoItem : MenuItem {
 		Muxlicer* module;
 		void onAction(const event::Action& e) override {
@@ -930,7 +922,6 @@ struct MuxlicerWidget : ModuleWidget {
 
 		if (module->usingExternalClock) {
 			menu->addChild(createMenuLabel<MenuLabel>("Using external clock"));
-
 		}
 		else {
 			TapTempoItem* tapTempoItem = createMenuItem<TapTempoItem>("Tap to set internal tempo...");
@@ -962,10 +953,7 @@ struct MuxlicerWidget : ModuleWidget {
 			menu->addChild(createMenuLabel<MenuLabel>("All In Normalled Value (disabled)"));
 		}
 
-		OutputClockStopStartItem* outputClockStopStartItem =
-		  createMenuItem<OutputClockStopStartItem>("Output clock follows play/stop", CHECKMARK(module->quadraticGatesOnly));
-		outputClockStopStartItem->module = module;
-		menu->addChild(outputClockStopStartItem);
+		menu->addChild(createBoolPtrMenuItem("Output clock follows play/stop", &module->outputClockFollowsPlayMode));
 
 		menu->addChild(new MenuSeparator());
 		menu->addChild(createMenuLabel<MenuLabel>("Input/Output mode"));

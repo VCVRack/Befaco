@@ -28,23 +28,11 @@ struct Mex : Module {
 
 	dsp::SchmittTrigger gateInTrigger;
 
-	struct GateSwitchParamQuantity : ParamQuantity {
-		std::string getDisplayValueString() override {
-
-			switch ((StepState) ParamQuantity::getValue()) {
-				case GATE_IN_MODE: return "Gate in/Clock Out";
-				case MUTE_MODE: return "Muted";
-				case MUXLICER_MODE: return "All Gates";
-				default: return "";
-			}
-		}
-	};
-
 	Mex() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 
 		for (int i = 0; i < 8; ++i) {
-			configParam<GateSwitchParamQuantity>(STEP_PARAM + i, 0.f, 2.f, 0.f, string::f("Step %d", i + 1));
+			configSwitch(STEP_PARAM + i, 0.f, 2.f, 0.f, string::f("Step %d", i + 1), {"Gate in/Clock Out", "Muted", "All Gates"});
 		}
 	}
 

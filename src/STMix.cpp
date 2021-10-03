@@ -32,7 +32,13 @@ struct STMix : Module {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 		for (int i = 0; i < numMixerChannels; ++i) {
 			configParam(GAIN_PARAM + i, 0.f, 1.f, 0.f, string::f("Gain %d", i + 1));
+			configInput(LEFT_INPUT + i, string::f("Channel %d left", i + 1));
+			configInput(RIGHT_INPUT + i, string::f("Channel %d right", i + 1));
 		}
+		configInput(LEFT_INPUT + numMixerChannels, "Channel left (aux)");
+		configInput(RIGHT_INPUT + numMixerChannels, "Channel right (aux)");
+		configOutput(LEFT_OUTPUT, "Left");
+		configOutput(RIGHT_OUTPUT, "Right");
 	}
 
 	void process(const ProcessArgs& args) override {

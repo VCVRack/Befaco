@@ -47,6 +47,18 @@ struct EvenVCO : Module {
 		configParam(OCTAVE_PARAM, -5.0, 4.0, 0.0, "Octave", "'", 0.5);
 		configParam(TUNE_PARAM, -7.0, 7.0, 0.0, "Tune", " semitones");
 		configParam(PWM_PARAM, -1.0, 1.0, 0.0, "Pulse width");
+
+		configInput(PITCH1_INPUT, "Pitch 1");
+		configInput(PITCH2_INPUT, "Pitch 2");
+		configInput(FM_INPUT, "FM");
+		configInput(SYNC_INPUT, "Sync (not implemented)");
+		configInput(PWM_INPUT, "Pulse Width Modulation");
+
+		configOutput(TRI_OUTPUT, "Triangle");
+		configOutput(SINE_OUTPUT, "Sine");
+		configOutput(EVEN_OUTPUT, "Even");
+		configOutput(SAW_OUTPUT, "Sawtooth");
+		configOutput(SQUARE_OUTPUT, "Square");
 	}
 
 	void process(const ProcessArgs& args) override {

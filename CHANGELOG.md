@@ -1,5 +1,8 @@
 # Change Log
 
+## v2.0.0 (unreleased)
+  * update to Rack 2 API (added tooltips, bypass, removed boilerplate etc)
+
 ## v1.2.0 (unreleased)
 
   * Released new modules: Muxlicer, Mex, Morphader, VC ADSR, Sampling Modulator, ST Mix

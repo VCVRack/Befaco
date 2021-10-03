@@ -88,29 +88,22 @@ struct Morphader : Module {
 	constexpr static float slewMin = 2.0 / 15.f;
 	constexpr static float slewMax = 2.0 / 0.01f;
 
-	struct AudioCVModeParam : ParamQuantity {
-		std::string getDisplayValueString() override {
-			switch (static_cast<CrossfadeMode>(getValue())) {
-				case AUDIO_MODE: return "Audio";
-				case CV_MODE: return "CV";
-				default: assert(false);
-			}
-		}
-	};
-
 	Morphader() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 
-		configParam(CV_PARAM, 0.f, 1.f, 1.f, "CV");
+		configParam(CV_PARAM, 0.f, 1.f, 1.f, "CV attenuator");
 
 		for (int i = 0; i < NUM_MIXER_CHANNELS; i++) {
-			configParam(A_LEVEL + i, 0.f, 1.f, 0.f, "A level " + std::to_string(i + 1));
+			configParam(A_LEVEL + i, 0.f, 1.f, 0.f, string::f("A level %d", i + 1));
+			configInput(A_INPUT + i, string::f("A%d", i + 1));
 		}
 		for (int i = 0; i < NUM_MIXER_CHANNELS; i++) {
-			configParam(B_LEVEL + i, 0.f, 1.f, 0.f, "B level " + std::to_string(i + 1));
+			configParam(B_LEVEL + i, 0.f, 1.f, 0.f, string::f("B level %d", i + 1));
+			configInput(B_INPUT + i, string::f("B%d", i + 1));
 		}
 		for (int i = 0; i < NUM_MIXER_CHANNELS; i++) {
-			configParam<AudioCVModeParam>(MODE + i, AUDIO_MODE, CV_MODE, AUDIO_MODE, "Mode " + std::to_string(i + 1));
+			configSwitch(MODE + i, AUDIO_MODE, CV_MODE, AUDIO_MODE, string::f("Mode %d", i + 1), {"Audio", "CV"});
+			configInput(CV_INPUT + i, string::f("CV channel %d", i + 1));
 		}
 
 		configParam(FADER_LAG_PARAM, 2.0f / slewMax, 2.0f / slewMin, 2.0f / slewMax, "Fader lag", "s");

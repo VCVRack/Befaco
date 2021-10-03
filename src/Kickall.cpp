@@ -49,7 +49,7 @@ struct Kickall : Module {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 		// TODO: review this mapping, using displayBase multiplier seems more normal
 		configParam(TUNE_PARAM, FREQ_A0, FREQ_B2, 0.5 * (FREQ_A0 + FREQ_B2), "Tune", "Hz");
-		configParam(TRIGG_BUTTON_PARAM, 0.f, 1.f, 0.f, "Manual trigger");
+		configButton(TRIGG_BUTTON_PARAM, "Manual trigger");
 		configParam(SHAPE_PARAM, 0.f, 1.f, 0.f, "Wave shape");
 		configParam(DECAY_PARAM, 0.f, 1.f, 0.01f, "VCA Envelope decay time");
 		configParam(TIME_PARAM, 0.f, 1.0f, 0.f, "Pitch envelope decay time");
@@ -61,6 +61,15 @@ struct Kickall : Module {
 		pitch.attackTime = 0.00165;
 		pitch.decayShape = 3.0;
 
+		configInput(TRIGG_INPUT, "Trigger");
+		configInput(VOLUME_INPUT, "Gain");
+		configInput(TUNE_INPUT, "Tune (V/Oct)");
+		configInput(SHAPE_INPUT, "Shape CV");
+		configInput(DECAY_INPUT, "Decay CV");
+
+		configOutput(OUT_OUTPUT, "Kick");
+		configLight(ENV_LIGHT, "Volume envelope");
+		
 		// calculate up/downsampling rates
 		onSampleRateChange();
 	}
