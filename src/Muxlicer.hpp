@@ -15,13 +15,13 @@ struct BefacoSwitchMomentary : SVGSwitch {
 
 	void onDragStart(const event::DragStart& e) override {
 		latched = false;
-		startMouseY = APP->scene->rack->mousePos.y;
+		startMouseY = APP->scene->rack->getMousePos().y;
 		ParamWidget::onDragStart(e);
 	}
 
 	void onDragMove(const event::DragMove& e) override {
-
-		float diff = APP->scene->rack->mousePos.y - startMouseY;
+		ParamQuantity* paramQuantity = getParamQuantity();
+		float diff = APP->scene->rack->getMousePos().y - startMouseY;
 
 		// Once the user has dragged the mouse a "threshold" distance, latch
 		// to disallow further changes of state until the mouse is released.
@@ -41,13 +41,10 @@ struct BefacoSwitchMomentary : SVGSwitch {
 
 	void onDragEnd(const event::DragEnd& e) override {
 		// on release, the switch resets to default/neutral/middle position
-		paramQuantity->setValue(1);
+		getParamQuantity()->setValue(1);
 		latched = false;
 		ParamWidget::onDragEnd(e);
 	}
-
-	// do nothing
-	void randomize() override {}
 
 	float startMouseY = 0.f;
 	bool latched = false;
@@ -361,14 +358,33 @@ struct Muxlicer : Module {
 
 	Muxlicer() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
-		configParam(Muxlicer::PLAY_PARAM, STATE_PLAY_ONCE, STATE_PLAY, STATE_STOPPED, "Play switch");
+		configSwitch(Muxlicer::PLAY_PARAM, STATE_PLAY_ONCE, STATE_PLAY, STATE_STOPPED, "Play switch", {"Play Once/Reset", "", "Play/Stop"});
+		getParamQuantity(Muxlicer::PLAY_PARAM)->randomizeEnabled = false;
 		configParam(Muxlicer::ADDRESS_PARAM, -1.f, 7.f, -1.f, "Address");
+		getParamQuantity(Muxlicer::ADDRESS_PARAM)->randomizeEnabled = false;
+
 		configParam<GateModeParamQuantity>(Muxlicer::GATE_MODE_PARAM, -1.f, 8.f, 1.f, "Gate mode");
 		configParam<DivMultKnobParamQuantity>(Muxlicer::DIV_MULT_PARAM, 0, 1, 0.5, "Main clock mult/div");
 
 		for (int i = 0; i < SEQUENCE_LENGTH; ++i) {
-			configParam(Muxlicer::LEVEL_PARAMS + i, 0.0, 1.0, 1.0, string::f("Gain %d", i + 1));
+			configParam(Muxlicer::LEVEL_PARAMS + i, 0.0, 1.0, 1.0, string::f("Gain step %d", i + 1));
+			configInput(Muxlicer::MUX_INPUTS + i, string::f("Step %d", i + 1));
+			configOutput(Muxlicer::GATE_OUTPUTS + i, string::f("Gate step %d", i + 1));
+			configOutput(Muxlicer::MUX_OUTPUTS + i, string::f("Step %d", i + 1));
+			configLight(Muxlicer::GATE_LIGHTS + i, string::f("Step %d gates", i + 1));
 		}
+		configOutput(Muxlicer::EOC_OUTPUT, "End of cycle trigger");
+		configOutput(Muxlicer::CLOCK_OUTPUT, "Clock");
+		configOutput(Muxlicer::ALL_GATES_OUTPUT, "All gates");
+		configOutput(Muxlicer::ALL_OUTPUT, "All");
+		configOutput(Muxlicer::COM_OUTPUT, "COM I/O");
+
+		configInput(Muxlicer::GATE_MODE_INPUT, "Gate mode CV");
+		configInput(Muxlicer::ADDRESS_INPUT, "Address CV");
+		configInput(Muxlicer::CLOCK_INPUT, "Clock");
+		configInput(Muxlicer::RESET_INPUT, "One shot/reset");
+		configInput(Muxlicer::COM_INPUT, "COM I/O");
+		configInput(Muxlicer::ALL_INPUT, "All");
 
 		onReset();
 	}
@@ -941,7 +957,7 @@ struct MuxlicerWidget : ModuleWidget {
 			OutputRangeItem* outputRangeItem = createMenuItem<OutputRangeItem>("All In Normalled Value", "▸");
 			outputRangeItem->module = module;
 			menu->addChild(outputRangeItem);
-		} 
+		}
 		else {
 			menu->addChild(createMenuLabel<MenuLabel>("All In Normalled Value (disabled)"));
 		}
@@ -969,16 +985,16 @@ struct MuxlicerWidget : ModuleWidget {
 
 	void clearCables() {
 		for (int i = Muxlicer::MUX_OUTPUTS; i <= Muxlicer::MUX_OUTPUTS_LAST; ++i) {
-			APP->scene->rack->clearCablesOnPort(outputs[i]);
+			APP->scene->rack->clearCablesOnPort(this->getOutput(i));
 		}
-		APP->scene->rack->clearCablesOnPort(inputs[Muxlicer::COM_INPUT]);
-		APP->scene->rack->clearCablesOnPort(inputs[Muxlicer::ALL_INPUT]);
+		APP->scene->rack->clearCablesOnPort(this->getInput(Muxlicer::COM_INPUT));
+		APP->scene->rack->clearCablesOnPort(this->getInput(Muxlicer::ALL_INPUT));
 
 		for (int i = Muxlicer::MUX_INPUTS; i <= Muxlicer::MUX_INPUTS_LAST; ++i) {
-			APP->scene->rack->clearCablesOnPort(inputs[i]);
+			APP->scene->rack->clearCablesOnPort(this->getInput(i));
 		}
-		APP->scene->rack->clearCablesOnPort(outputs[Muxlicer::COM_OUTPUT]);
-		APP->scene->rack->clearCablesOnPort(outputs[Muxlicer::ALL_OUTPUT]);
+		APP->scene->rack->clearCablesOnPort(this->getOutput(Muxlicer::COM_OUTPUT));
+		APP->scene->rack->clearCablesOnPort(this->getOutput(Muxlicer::ALL_OUTPUT));
 	}
 
 	// set ports visibility, either for 1 input -> 8 outputs or 8 inputs -> 1 output
@@ -987,18 +1003,17 @@ struct MuxlicerWidget : ModuleWidget {
 		bool visibleToggle = (mode == Muxlicer::COM_1_IN_8_OUT);
 
 		for (int i = Muxlicer::MUX_OUTPUTS; i <= Muxlicer::MUX_OUTPUTS_LAST; ++i) {
-			outputs[i]->visible = visibleToggle;
+			this->getOutput(i)->visible = visibleToggle;
 		}
-		inputs[Muxlicer::COM_INPUT]->visible = visibleToggle;
-		outputs[Muxlicer::ALL_OUTPUT]->visible = visibleToggle;
+		this->getInput(Muxlicer::COM_INPUT)->visible = visibleToggle;
+		this->getOutput(Muxlicer::ALL_OUTPUT)->visible = visibleToggle;
 
 		for (int i = Muxlicer::MUX_INPUTS; i <= Muxlicer::MUX_INPUTS_LAST; ++i) {
-			inputs[i]->visible = !visibleToggle;
+			this->getInput(i)->visible = !visibleToggle;
 		}
-		outputs[Muxlicer::COM_OUTPUT]->visible = !visibleToggle;
-		inputs[Muxlicer::ALL_INPUT]->visible = !visibleToggle;
+		this->getOutput(Muxlicer::COM_OUTPUT)->visible = !visibleToggle;
+		this->getInput(Muxlicer::ALL_INPUT)->visible = !visibleToggle;
 	}
-
 
 };
 

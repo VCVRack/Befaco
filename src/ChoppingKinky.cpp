@@ -60,6 +60,18 @@ struct ChoppingKinky : Module {
 		configParam(CV_A_PARAM, -1.f, 1.f, 0.f, "Channel A CV control attenuverter");
 		configParam(CV_B_PARAM, -1.f, 1.f, 0.f, "Channel A CV control attenuverter");
 
+		configInput(IN_A_INPUT, "A");
+		configInput(IN_B_INPUT, "B");
+		configInput(IN_GATE_INPUT, "Chopp");
+		configInput(CV_A_INPUT, "CV A (with attenuator)");
+		configInput(VCA_CV_A_INPUT, "CV A");
+		configInput(CV_B_INPUT, "CV B (with attenuator)");
+		configInput(VCA_CV_B_INPUT, "CV B");
+
+		configOutput(OUT_CHOPP_OUTPUT, "Chopp");
+		configOutput(OUT_A_OUTPUT, "A");
+		configOutput(OUT_B_OUTPUT, "B");
+
 		cacheWaveshaperResponses();
 
 		// calculate up/downsampling rates
@@ -327,16 +339,7 @@ struct ChoppingKinkyWidget : ModuleWidget {
 		assert(module);
 
 		menu->addChild(new MenuSeparator());
-
-		struct DCMenuItem : MenuItem {
-			ChoppingKinky* module;
-			void onAction(const event::Action& e) override {
-				module->blockDC ^= true;
-			}
-		};
-		DCMenuItem* dcItem = createMenuItem<DCMenuItem>("Block DC on Chopp", CHECKMARK(module->blockDC));
-		dcItem->module = module;
-		menu->addChild(dcItem);
+		menu->addChild(createBoolPtrMenuItem("Block DC on Chopp", &module->blockDC));
 
 		menu->addChild(createMenuLabel("Oversampling mode"));
 

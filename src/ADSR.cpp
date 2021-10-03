@@ -225,20 +225,10 @@ struct ADSR : Module {
 		return minStageTime * std::pow(maxStageTime / minStageTime, cv);
 	}
 
-	struct TriggerGateParamQuantity : ParamQuantity {
-		std::string getDisplayValueString() override {
-			switch ((EnvelopeMode) getValue()) {
-				case ADSR::GATE_MODE: return "Gate";
-				case ADSR::TRIGGER_MODE: return "Trigger";
-				default: assert(false);
-			}
-		}
-	};
-
 	ADSR() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
-		configParam<TriggerGateParamQuantity>(TRIGG_GATE_TOGGLE_PARAM, GATE_MODE, TRIGGER_MODE, GATE_MODE, "Mode");
-		configParam(MANUAL_TRIGGER_PARAM, 0.f, 1.f, 0.f, "Trigger envelope");
+		configSwitch(TRIGG_GATE_TOGGLE_PARAM, GATE_MODE, TRIGGER_MODE, GATE_MODE, "Mode", {"Gate", "Trigger"});
+		configButton(MANUAL_TRIGGER_PARAM, "Trigger envelope");
 		configParam(SHAPE_PARAM, 0.f, 1.f, 0.f, "Envelope shape");
 
 		configParam(ATTACK_PARAM, 0.f, 1.f, 0.f, "Attack time", "s", maxStageTime / minStageTime, minStageTime);
@@ -246,6 +236,18 @@ struct ADSR : Module {
 		configParam(SUSTAIN_PARAM, 0.f, 1.f, 0.f, "Sustain level", "%", 0.f, 100.f);
 		configParam(RELEASE_PARAM, 0.f, 1.f, 0.f, "Release time", "s", maxStageTime / minStageTime, minStageTime);
 
+		configInput(TRIGGER_INPUT, "Trigger");
+		configInput(CV_ATTACK_INPUT, "Attack CV");
+		configInput(CV_DECAY_INPUT, "Decay CV");
+		configInput(CV_SUSTAIN_INPUT, "Sustain CV");
+		configInput(CV_RELEASE_INPUT, "Release CV");
+
+		configOutput(OUT_OUTPUT, "Envelope");
+		configOutput(STAGE_ATTACK_OUTPUT, "Attack stage");
+		configOutput(STAGE_DECAY_OUTPUT, "Decay stage");
+		configOutput(STAGE_SUSTAIN_OUTPUT, "Sustain stage");
+		configOutput(STAGE_RELEASE_OUTPUT, "Release stage");
+		
 		cvDivider.setDivision(16);
 	}
 
