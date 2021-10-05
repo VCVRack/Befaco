@@ -947,7 +947,7 @@ struct MuxlicerWidget : ModuleWidget {
 		}
 
 		OutputClockStopStartItem* outputClockStopStartItem =
-		  createMenuItem<OutputClockStopStartItem>("Output clock follows play/stop", CHECKMARK(module->quadraticGatesOnly));
+		  createMenuItem<OutputClockStopStartItem>("Output clock follows play/stop", CHECKMARK(module->outputClockFollowsPlayMode));
 		outputClockStopStartItem->module = module;
 		menu->addChild(outputClockStopStartItem);
 

@@ -123,9 +123,9 @@ struct MexWidget : ModuleWidget {
 		addParam(createParamCentered<BefacoSwitchHorizontal>(mm2px(Vec(8.088, 88.916)),  module, Mex::STEP_PARAM + 6));
 		addParam(createParamCentered<BefacoSwitchHorizontal>(mm2px(Vec(8.088, 101.559)), module, Mex::STEP_PARAM + 7));
 
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(4.978, 113.445)), module, Mex::GATE_IN_INPUT));
+		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(4.978, 113.445)), module, Mex::GATE_IN_INPUT));
 
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(15.014, 113.4)), module, Mex::OUT_OUTPUT));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(15.014, 113.4)), module, Mex::OUT_OUTPUT));
 
 		addChild(createLightCentered<SmallLight<RedLight>>(mm2px(Vec(17.7, 13.063)),  module, Mex::LED + 0));
 		addChild(createLightCentered<SmallLight<RedLight>>(mm2px(Vec(17.7, 25.706)),  module, Mex::LED + 1));
