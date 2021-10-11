@@ -1,9 +1,8 @@
 # Change Log
 
-## v1.2.0 (unreleased)
+## v1.2.0
 
   * Released new modules: Muxlicer, Mex, Morphader, VC ADSR, Sampling Modulator, ST Mix
-  * Removed DC offset from EvenVCO pulse output
 
 ## v1.1.1
 
