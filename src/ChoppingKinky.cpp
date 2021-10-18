@@ -339,7 +339,7 @@ struct ChoppingKinkyWidget : ModuleWidget {
 		assert(module);
 
 		menu->addChild(new MenuSeparator());
-		menu->addChild(createBoolPtrMenuItem("Block DC on Chopp", &module->blockDC));
+		menu->addChild(createBoolPtrMenuItem("Block DC on Chopp", "", &module->blockDC));
 
 		menu->addChild(createMenuLabel("Oversampling mode"));
 

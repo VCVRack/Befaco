@@ -194,7 +194,7 @@ struct HexmixVCAWidget : ModuleWidget {
 		assert(module);
 
 		menu->addChild(new MenuSeparator());
-		menu->addChild(createBoolPtrMenuItem("Final row is mix", &module->finalRowIsMix));
+		menu->addChild(createBoolPtrMenuItem("Final row is mix", "", &module->finalRowIsMix));
 	}
 };
 

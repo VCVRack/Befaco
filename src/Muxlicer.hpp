@@ -953,7 +953,7 @@ struct MuxlicerWidget : ModuleWidget {
 			menu->addChild(createMenuLabel<MenuLabel>("All In Normalled Value (disabled)"));
 		}
 
-		menu->addChild(createBoolPtrMenuItem("Output clock follows play/stop", &module->outputClockFollowsPlayMode));
+		menu->addChild(createBoolPtrMenuItem("Output clock follows play/stop", "", &module->outputClockFollowsPlayMode));
 
 		menu->addChild(new MenuSeparator());
 		menu->addChild(createMenuLabel<MenuLabel>("Input/Output mode"));

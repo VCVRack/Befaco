@@ -260,7 +260,7 @@ struct SamplingModulatorWidget : ModuleWidget {
 		assert(module);
 
 		menu->addChild(new MenuSeparator());
-		menu->addChild(createBoolPtrMenuItem("Remove DC Offset", &module->removeDC));
+		menu->addChild(createBoolPtrMenuItem("Remove DC Offset", "", &module->removeDC));
 	}
 };
 
