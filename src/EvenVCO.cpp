@@ -45,6 +45,7 @@ struct EvenVCO : Module {
 	EvenVCO() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
 		configParam(OCTAVE_PARAM, -5.0, 4.0, 0.0, "Octave", "'", 0.5);
+		getParamQuantity(OCTAVE_PARAM)->snapEnabled = true;
 		configParam(TUNE_PARAM, -7.0, 7.0, 0.0, "Tune", " semitones");
 		configParam(PWM_PARAM, -1.0, 1.0, 0.0, "Pulse width");
 
@@ -221,7 +222,7 @@ struct EvenVCOWidget : ModuleWidget {
 		addChild(createWidget<Knurlie>(Vec(15 * 6, 0)));
 		addChild(createWidget<Knurlie>(Vec(15 * 6, 365)));
 
-		addParam(createParam<BefacoBigSnapKnob>(Vec(22, 32), module, EvenVCO::OCTAVE_PARAM));
+		addParam(createParam<BefacoBigKnob>(Vec(22, 32), module, EvenVCO::OCTAVE_PARAM));
 		addParam(createParam<BefacoTinyKnob>(Vec(73, 131), module, EvenVCO::TUNE_PARAM));
 		addParam(createParam<Davies1900hRedKnob>(Vec(16, 230), module, EvenVCO::PWM_PARAM));
 
