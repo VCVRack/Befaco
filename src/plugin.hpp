@@ -66,39 +66,42 @@ struct BefacoTinyKnobBlack : BefacoTinyKnob {
 struct Davies1900hLargeGreyKnob : Davies1900hKnob {
 	Davies1900hLargeGreyKnob() {
 		setSvg(Svg::load(asset::plugin(pluginInstance, "res/Davies1900hLargeGrey.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/Davies1900hLargeGrey_bg.svg")));
 	}
 };
 
-struct Davies1900hLightGreyKnob : Davies1900hWhiteKnob {
+struct Davies1900hLightGreyKnob : Davies1900hKnob {
 	Davies1900hLightGreyKnob() {
 		setSvg(Svg::load(asset::plugin(pluginInstance, "res/Davies1900hLightGrey.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/Davies1900hLightGrey_bg.svg")));
 	}
 };
 
-struct Davies1900hDarkGreyKnob : Davies1900hWhiteKnob {
+struct Davies1900hDarkGreyKnob : Davies1900hKnob {
 	Davies1900hDarkGreyKnob() {
 		setSvg(Svg::load(asset::plugin(pluginInstance, "res/Davies1900hDarkGrey.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/Davies1900hDarkGrey_bg.svg")));
 	}
 };
 
-// library black Davies1900h doesn't work well on black backgrounds
-struct Davies1900hDarkBlackAlt : Davies1900hWhiteKnob {
-	Davies1900hDarkBlackAlt() {
-		setSvg(Svg::load(asset::plugin(pluginInstance, "res/Davies1900hBlack.svg")));
-	}
-};
+/** Deprecated alias */
+using Davies1900hDarkBlackAlt = Davies1900hBlackKnob;
 
-struct BefacoOutputPort : app::SvgPort {
-	BefacoOutputPort() {
-		setSvg(Svg::load(asset::plugin(pluginInstance, "res/BefacoOutputPort.svg")));
+struct BananutRed : app::SvgPort {
+	BananutRed() {
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/BananutRed.svg")));
 	}
 };
+/** Deprecated alias */
+using BefacoOutputPort = BananutRed;
 
-struct BefacoInputPort : app::SvgPort {
-	BefacoInputPort() {
-		setSvg(Svg::load(asset::plugin(pluginInstance, "res/BefacoInputPort.svg")));
+struct BananutBlack : app::SvgPort {
+	BananutBlack() {
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/BananutBlack.svg")));
 	}
 };
+/** Deprecated alias */
+using BefacoInputPort = BananutRed;
 
 struct CKSSNarrow : app::SvgSwitch {
 	CKSSNarrow() {
