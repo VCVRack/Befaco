@@ -25,102 +25,92 @@ extern Model* modelSTMix;
 extern Model* modelMuxlicer;
 extern Model* modelMex;
 
+
 struct Knurlie : SvgScrew {
 	Knurlie() {
-		sw->svg = APP->window->loadSvg(asset::plugin(pluginInstance, "res/Knurlie.svg"));
-		sw->wrap();
-		box.size = sw->box.size;
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/Knurlie.svg")));
 	}
 };
 
-struct BefacoTinyKnobRed : app::SvgKnob {
+struct BefacoTinyKnobWhite : BefacoTinyKnob {
+	BefacoTinyKnobWhite() {}
+};
+
+struct BefacoTinyKnobRed : BefacoTinyKnob {
 	BefacoTinyKnobRed() {
-		minAngle = -0.8 * M_PI;
-		maxAngle = 0.8 * M_PI;
-		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoTinyKnobRed.svg")));
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/BefacoTinyPointWhite.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/BefacoTinyKnobRed_bg.svg")));
 	}
 };
 
-struct BefacoTinyKnobWhite : app::SvgKnob {
-	BefacoTinyKnobWhite() {
-		minAngle = -0.8 * M_PI;
-		maxAngle = 0.8 * M_PI;
-		setSvg(APP->window->loadSvg(asset::system("res/ComponentLibrary/BefacoTinyKnob.svg")));
-	}
-};
-
-struct BefacoTinyKnobDarkGrey : app::SvgKnob {
+struct BefacoTinyKnobDarkGrey : BefacoTinyKnob {
 	BefacoTinyKnobDarkGrey() {
-		minAngle = -0.8 * M_PI;
-		maxAngle = 0.8 * M_PI;
-		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoTinyKnobDarkGrey.svg")));
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/BefacoTinyPointWhite.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/BefacoTinyKnobDarkGrey_bg.svg")));
 	}
 };
 
-struct BefacoTinyKnobLightGrey : app::SvgKnob {
+struct BefacoTinyKnobLightGrey : BefacoTinyKnob {
 	BefacoTinyKnobLightGrey() {
-		minAngle = -0.8 * M_PI;
-		maxAngle = 0.8 * M_PI;
-		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoTinyKnobLightGrey.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/BefacoTinyKnobLightGrey_bg.svg")));
 	}
 };
 
-struct BefacoTinyKnobBlack : app::SvgKnob {
+struct BefacoTinyKnobBlack : BefacoTinyKnob {
 	BefacoTinyKnobBlack() {
-		minAngle = -0.8 * M_PI;
-		maxAngle = 0.8 * M_PI;
-		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoTinyKnobBlack.svg")));
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/BefacoTinyPointWhite.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/BefacoTinyKnobBlack_bg.svg")));
 	}
 };
 
 struct Davies1900hLargeGreyKnob : Davies1900hKnob {
 	Davies1900hLargeGreyKnob() {
-		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Davies1900hLargeGrey.svg")));
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/Davies1900hLargeGrey.svg")));
 	}
 };
 
 struct Davies1900hLightGreyKnob : Davies1900hWhiteKnob {
 	Davies1900hLightGreyKnob() {
-		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Davies1900hLightGrey.svg")));
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/Davies1900hLightGrey.svg")));
 	}
 };
 
 struct Davies1900hDarkGreyKnob : Davies1900hWhiteKnob {
 	Davies1900hDarkGreyKnob() {
-		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Davies1900hDarkGrey.svg")));
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/Davies1900hDarkGrey.svg")));
 	}
 };
 
 // library black Davies1900h doesn't work well on black backgrounds
 struct Davies1900hDarkBlackAlt : Davies1900hWhiteKnob {
 	Davies1900hDarkBlackAlt() {
-		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Davies1900hBlack.svg")));
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/Davies1900hBlack.svg")));
 	}
 };
 
 struct BefacoOutputPort : app::SvgPort {
 	BefacoOutputPort() {
-		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoOutputPort.svg")));
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/BefacoOutputPort.svg")));
 	}
 };
 
 struct BefacoInputPort : app::SvgPort {
 	BefacoInputPort() {
-		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoInputPort.svg")));
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/BefacoInputPort.svg")));
 	}
 };
 
 struct CKSSNarrow : app::SvgSwitch {
 	CKSSNarrow() {
-		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/SwitchNarrow_0.svg")));
-		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/SwitchNarrow_1.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/SwitchNarrow_0.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/SwitchNarrow_1.svg")));
 	}
 };
 
 struct Crossfader : app::SvgSlider {
 	Crossfader() {
-		setBackgroundSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/CrossfaderBackground.svg")));
-		setHandleSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/CrossfaderHandle.svg")));
+		setBackgroundSvg(Svg::load(asset::plugin(pluginInstance, "res/CrossfaderBackground.svg")));
+		setHandleSvg(Svg::load(asset::plugin(pluginInstance, "res/CrossfaderHandle.svg")));
 		minHandlePos = mm2px(Vec(4.5f, -0.8f));
 		maxHandlePos = mm2px(Vec(34.5, -0.8f));
 		horizontal = true;
@@ -132,9 +122,9 @@ struct Crossfader : app::SvgSlider {
 
 struct BefacoSwitchHorizontal : app::SvgSwitch {
 	BefacoSwitchHorizontal() {
-		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoSwitchHoriz_0.svg")));
-		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoSwitchHoriz_1.svg")));
-		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/BefacoSwitchHoriz_2.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/BefacoSwitchHoriz_0.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/BefacoSwitchHoriz_1.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/BefacoSwitchHoriz_2.svg")));
 	}
 };
 
