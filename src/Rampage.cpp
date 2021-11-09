@@ -343,7 +343,7 @@ struct Rampage : Module {
 struct RampageWidget : ModuleWidget {
 	RampageWidget(Rampage* module) {
 		setModule(module);
-		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Rampage.svg")));
+		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/panels/Rampage.svg")));
 
 		addChild(createWidget<Knurlie>(Vec(15, 0)));
 		addChild(createWidget<Knurlie>(Vec(box.size.x - 30, 0)));

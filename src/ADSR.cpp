@@ -304,7 +304,7 @@ struct ADSR : Module {
 struct ADSRWidget : ModuleWidget {
 	ADSRWidget(ADSR* module) {
 		setModule(module);
-		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/ADSR.svg")));
+		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/panels/ADSR.svg")));
 
 		addChild(createWidget<Knurlie>(Vec(RACK_GRID_WIDTH, 0)));
 		addChild(createWidget<Knurlie>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));

@@ -105,7 +105,7 @@ struct STMix : Module {
 struct STMixWidget : ModuleWidget {
 	STMixWidget(STMix* module) {
 		setModule(module);
-		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/STMix.svg")));
+		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/panels/STMix.svg")));
 
 		addChild(createWidget<Knurlie>(Vec(RACK_GRID_WIDTH, 0)));
 		addChild(createWidget<Knurlie>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));

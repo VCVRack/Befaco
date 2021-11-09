@@ -171,7 +171,7 @@ struct Percall : Module {
 struct PercallWidget : ModuleWidget {
 	PercallWidget(Percall* module) {
 		setModule(module);
-		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Percall.svg")));
+		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/panels/Percall.svg")));
 
 		addChild(createWidget<Knurlie>(Vec(RACK_GRID_WIDTH, 0)));
 		addChild(createWidget<Knurlie>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));

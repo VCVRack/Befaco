@@ -146,7 +146,7 @@ struct HexmixVCA : Module {
 struct HexmixVCAWidget : ModuleWidget {
 	HexmixVCAWidget(HexmixVCA* module) {
 		setModule(module);
-		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/HexmixVCA.svg")));
+		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/panels/HexmixVCA.svg")));
 
 		addChild(createWidget<Knurlie>(Vec(RACK_GRID_WIDTH, 0)));
 		addChild(createWidget<Knurlie>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));

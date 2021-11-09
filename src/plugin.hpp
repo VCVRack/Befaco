@@ -28,7 +28,7 @@ extern Model* modelMex;
 
 struct Knurlie : SvgScrew {
 	Knurlie() {
-		setSvg(Svg::load(asset::plugin(pluginInstance, "res/Knurlie.svg")));
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Knurlie.svg")));
 	}
 };
 
@@ -38,49 +38,49 @@ struct BefacoTinyKnobWhite : BefacoTinyKnob {
 
 struct BefacoTinyKnobRed : BefacoTinyKnob {
 	BefacoTinyKnobRed() {
-		setSvg(Svg::load(asset::plugin(pluginInstance, "res/BefacoTinyPointWhite.svg")));
-		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/BefacoTinyKnobRed_bg.svg")));
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoTinyPointWhite.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoTinyKnobRed_bg.svg")));
 	}
 };
 
 struct BefacoTinyKnobDarkGrey : BefacoTinyKnob {
 	BefacoTinyKnobDarkGrey() {
-		setSvg(Svg::load(asset::plugin(pluginInstance, "res/BefacoTinyPointWhite.svg")));
-		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/BefacoTinyKnobDarkGrey_bg.svg")));
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoTinyPointWhite.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoTinyKnobDarkGrey_bg.svg")));
 	}
 };
 
 struct BefacoTinyKnobLightGrey : BefacoTinyKnob {
 	BefacoTinyKnobLightGrey() {
-		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/BefacoTinyKnobLightGrey_bg.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoTinyKnobLightGrey_bg.svg")));
 	}
 };
 
 struct BefacoTinyKnobBlack : BefacoTinyKnob {
 	BefacoTinyKnobBlack() {
-		setSvg(Svg::load(asset::plugin(pluginInstance, "res/BefacoTinyPointWhite.svg")));
-		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/BefacoTinyKnobBlack_bg.svg")));
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoTinyPointWhite.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoTinyKnobBlack_bg.svg")));
 	}
 };
 
 struct Davies1900hLargeGreyKnob : Davies1900hKnob {
 	Davies1900hLargeGreyKnob() {
-		setSvg(Svg::load(asset::plugin(pluginInstance, "res/Davies1900hLargeGrey.svg")));
-		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/Davies1900hLargeGrey_bg.svg")));
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hLargeGrey.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hLargeGrey_bg.svg")));
 	}
 };
 
 struct Davies1900hLightGreyKnob : Davies1900hKnob {
 	Davies1900hLightGreyKnob() {
-		setSvg(Svg::load(asset::plugin(pluginInstance, "res/Davies1900hLightGrey.svg")));
-		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/Davies1900hLightGrey_bg.svg")));
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hLightGrey.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hLightGrey_bg.svg")));
 	}
 };
 
 struct Davies1900hDarkGreyKnob : Davies1900hKnob {
 	Davies1900hDarkGreyKnob() {
-		setSvg(Svg::load(asset::plugin(pluginInstance, "res/Davies1900hDarkGrey.svg")));
-		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/Davies1900hDarkGrey_bg.svg")));
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hDarkGrey.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hDarkGrey_bg.svg")));
 	}
 };
 
@@ -89,7 +89,7 @@ using Davies1900hDarkBlackAlt = Davies1900hBlackKnob;
 
 struct BananutRed : app::SvgPort {
 	BananutRed() {
-		setSvg(Svg::load(asset::plugin(pluginInstance, "res/BananutRed.svg")));
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BananutRed.svg")));
 	}
 };
 /** Deprecated alias */
@@ -97,7 +97,7 @@ using BefacoOutputPort = BananutRed;
 
 struct BananutBlack : app::SvgPort {
 	BananutBlack() {
-		setSvg(Svg::load(asset::plugin(pluginInstance, "res/BananutBlack.svg")));
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BananutBlack.svg")));
 	}
 };
 /** Deprecated alias */
@@ -105,15 +105,15 @@ using BefacoInputPort = BananutRed;
 
 struct CKSSNarrow : app::SvgSwitch {
 	CKSSNarrow() {
-		addFrame(Svg::load(asset::plugin(pluginInstance, "res/SwitchNarrow_0.svg")));
-		addFrame(Svg::load(asset::plugin(pluginInstance, "res/SwitchNarrow_1.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchNarrow_0.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchNarrow_1.svg")));
 	}
 };
 
 struct Crossfader : app::SvgSlider {
 	Crossfader() {
-		setBackgroundSvg(Svg::load(asset::plugin(pluginInstance, "res/CrossfaderBackground.svg")));
-		setHandleSvg(Svg::load(asset::plugin(pluginInstance, "res/CrossfaderHandle.svg")));
+		setBackgroundSvg(Svg::load(asset::plugin(pluginInstance, "res/components/CrossfaderBackground.svg")));
+		setHandleSvg(Svg::load(asset::plugin(pluginInstance, "res/components/CrossfaderHandle.svg")));
 		minHandlePos = mm2px(Vec(4.5f, -0.8f));
 		maxHandlePos = mm2px(Vec(34.5, -0.8f));
 		horizontal = true;
@@ -125,9 +125,9 @@ struct Crossfader : app::SvgSlider {
 
 struct BefacoSwitchHorizontal : app::SvgSwitch {
 	BefacoSwitchHorizontal() {
-		addFrame(Svg::load(asset::plugin(pluginInstance, "res/BefacoSwitchHoriz_0.svg")));
-		addFrame(Svg::load(asset::plugin(pluginInstance, "res/BefacoSwitchHoriz_1.svg")));
-		addFrame(Svg::load(asset::plugin(pluginInstance, "res/BefacoSwitchHoriz_2.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoSwitchHoriz_0.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoSwitchHoriz_1.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoSwitchHoriz_2.svg")));
 	}
 };
 

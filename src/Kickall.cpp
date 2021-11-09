@@ -127,7 +127,7 @@ struct Kickall : Module {
 struct KickallWidget : ModuleWidget {
 	KickallWidget(Kickall* module) {
 		setModule(module);
-		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Kickall.svg")));
+		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/panels/Kickall.svg")));
 
 		addChild(createWidget<Knurlie>(Vec(RACK_GRID_WIDTH, 0)));
 		addChild(createWidget<Knurlie>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));

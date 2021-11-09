@@ -702,7 +702,7 @@ struct MuxlicerWidget : ModuleWidget {
 	MuxlicerWidget(Muxlicer* module) {
 
 		setModule(module);
-		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Muxlicer.svg")));
+		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/panels/Muxlicer.svg")));
 
 		addChild(createWidget<Knurlie>(Vec(RACK_GRID_WIDTH, 0)));
 		addChild(createWidget<Knurlie>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));

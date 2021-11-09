@@ -217,7 +217,7 @@ struct SamplingModulator : Module {
 struct SamplingModulatorWidget : ModuleWidget {
 	SamplingModulatorWidget(SamplingModulator* module) {
 		setModule(module);
-		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/SamplingModulator.svg")));
+		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/panels/SamplingModulator.svg")));
 
 		addChild(createWidget<Knurlie>(Vec(RACK_GRID_WIDTH, 0)));
 		addChild(createWidget<Knurlie>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));
