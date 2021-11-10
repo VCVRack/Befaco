@@ -101,7 +101,7 @@ struct BananutBlack : app::SvgPort {
 	}
 };
 /** Deprecated alias */
-using BefacoInputPort = BananutRed;
+using BefacoInputPort = BananutBlack;
 
 struct CKSSNarrow : app::SvgSwitch {
 	CKSSNarrow() {
