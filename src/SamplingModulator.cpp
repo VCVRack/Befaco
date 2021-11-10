@@ -197,7 +197,7 @@ struct SamplingModulator : Module {
 		}
 
 		for (int i = 0; i < numSteps; i++) {
-			lights[STEP_LIGHT + i].setBrightness(currentStep == i);
+			lights[STEP_LIGHT + i].setBrightnessSmooth(currentStep == i, args.sampleTime);
 		}
 	}
 
