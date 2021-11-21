@@ -907,8 +907,9 @@ struct MuxlicerWidget : ModuleWidget {
 	struct TapTempoItem : MenuItem {
 		Muxlicer* module;
 		void onAction(const event::Action& e) override {
-			module->tapped = true;
 			e.consume(NULL);
+			module->tapped = true;
+			e.unconsume();
 		}
 	};
 
