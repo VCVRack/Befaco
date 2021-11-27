@@ -3,6 +3,7 @@
   "version": "2.0.0",
   "license": "GPL-3.0-or-later",
   "name": "Befaco",
+  "brand": "Befaco",
   "author": "VCV, Ewan Hemingway",
   "authorEmail": "support@vcvrack.com",
   "pluginUrl": "https://vcvrack.com/Befaco",
@@ -199,8 +200,7 @@
       "modularGridUrl": "https://www.modulargrid.net/e/befaco-stmix-",
       "tags": [
         "Hardware clone", 
-        "Mixer", 
-        "Stereo",
+        "Mixer",        
         "Polyphonic"
       ]
     },
