@@ -226,6 +226,17 @@
         "Expander",
         "Hardware clone"
       ]
+    },
+    {
+      "slug": "NoisePlethora",
+      "name": "Noise Plethora",
+      "description": "Multitimbral noise monster",
+      "tags": [
+        "Dual",
+        "Filter",
+        "Hardware clone",
+        "Noise"
+      ]
     }
   ]
 }

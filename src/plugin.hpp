@@ -24,7 +24,7 @@ extern Model* modelADSR;
 extern Model* modelSTMix;
 extern Model* modelMuxlicer;
 extern Model* modelMex;
-
+extern Model* modelNoisePlethora ;
 
 struct Knurlie : SvgScrew {
 	Knurlie() {
@@ -106,7 +106,7 @@ using BefacoInputPort = BananutBlack;
 struct CKSSNarrow : app::SvgSwitch {
 	CKSSNarrow() {
 		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchNarrow_0.svg")));
-		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchNarrow_1.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchNarrow_2.svg")));
 	}
 };
 
@@ -128,6 +128,28 @@ struct BefacoSwitchHorizontal : app::SvgSwitch {
 		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoSwitchHoriz_0.svg")));
 		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoSwitchHoriz_1.svg")));
 		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoSwitchHoriz_2.svg")));
+	}
+};
+
+struct CKSSHoriz2 : app::SvgSwitch {
+	CKSSHoriz2() {
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchNarrowHoriz_0.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchNarrowHoriz_1.svg")));
+	}
+};
+
+struct CKSSNarrow3 : app::SvgSwitch {
+	CKSSNarrow3() {
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchNarrow_0.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchNarrow_1.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchNarrow_2.svg")));
+	}
+};
+
+struct Davies1900hLargeLightGreyKnob : Davies1900hKnob {
+	Davies1900hLargeLightGreyKnob() {
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hLargeLightGrey.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hLargeLightGrey_bg.svg")));
 	}
 };
 
