@@ -32,6 +32,6 @@ class AudioEffectMultiply : public AudioStream
 {
 public:
 	AudioEffectMultiply() : AudioStream(2) { }
-	virtual void update(audio_block_t *blocka, audio_block_t *blockb, audio_block_t *blockout);
+	virtual void update(const audio_block_t *blocka, const audio_block_t *blockb, audio_block_t *blockout);
 private:
 };

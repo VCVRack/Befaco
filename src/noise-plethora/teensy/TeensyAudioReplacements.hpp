@@ -8,6 +8,7 @@
 #include "effect_freeverb.hpp"
 #include "effect_flange.h"
 #include "effect_granular.hpp"
+#include "effect_multiply.h"
 #include "effect_wavefolder.hpp"
 #include "filter_variable.hpp"
 #include "mixer.hpp"

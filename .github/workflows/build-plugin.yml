@@ -10,9 +10,9 @@ defaults:
 
 jobs:
   build:
+    name: ${{ matrix.config.os }}
     runs-on: ${{ matrix.config.os }}
     strategy:
-      fail-fast: false
       matrix:
         config:
           - os: ubuntu-latest
@@ -51,7 +51,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           path: dist
-          name: ${{ matrix.config.arch }}
+          name: ${{ matrix.config.arch }}.zip
 
   publish:
     name: Publish plugin
@@ -68,4 +68,4 @@ jobs:
           prerelease: true
           title: "Development Build"
           files: |          
-            _artifacts/**/*.zip
+            _artifacts/**/*.vcvplugin

@@ -68,20 +68,27 @@ public:
 	}
 
 	float processGraph(float sampleTime) override {
-		float w1 = waveformMod1.process(sampleTime, waveformMod4Previous); 	// FM from waveform4
-		float w2 = waveformMod2.process(sampleTime, w1);  // FM from waveform1
-		float w3 = waveformMod3.process(sampleTime, w2);  // FM from waveform2
-		float w4 = waveformMod4.process(sampleTime, w3);  // FM from waveform3
-		waveformMod4Previous = w4;
 
-		float mult1 = multiply1.process(w1, w2);
-		float mult2 = multiply1.process(w3, w4);
+		if (buffer.empty()) {
 
-		float output = multiply3.process(mult1, mult2);
+			// NOTE: buffer is zero indexed, waveformMod names are not!!
+			// NOTE: each waveform is modulated by previous
+			waveformMod3.update(&waveformModOut[1], nullptr, &waveformModOut[2]);
+			waveformMod1.update(&waveformModOut[3], nullptr, &waveformModOut[0]);
+			waveformMod4.update(&waveformModOut[2], nullptr, &waveformModOut[3]);
+			waveformMod2.update(&waveformModOut[0], nullptr, &waveformModOut[1]);
 
-		altOutput = w3;
+			// multiply
+			multiply1.update(&waveformModOut[0], &waveformModOut[1], &multiplyOut[0]);
+			multiply2.update(&waveformModOut[2], &waveformModOut[3], &multiplyOut[1]);
+			multiply3.update(&multiplyOut[0], &multiplyOut[1], &multiplyOut[2]);
 
-		return output;
+			buffer.pushBuffer(multiplyOut[2].data, AUDIO_BLOCK_SAMPLES);
+			bufferAlt.pushBuffer(waveformModOut[0].data, AUDIO_BLOCK_SAMPLES);
+		}
+
+		altOutput = int16_to_float_5v(bufferAlt.shift()) / 5.f;
+		return int16_to_float_5v(buffer.shift()) / 5.f;;
 	}
 
 	AudioStream& getStream() override {
@@ -93,25 +100,28 @@ public:
 
 private:
 
-	AudioSynthWaveformModulatedFloat waveformMod3;   //xy=287.99999618530273,420
-	AudioSynthWaveformModulatedFloat waveformMod1;   //xy=288.99999618530273,197
-	AudioSynthWaveformModulatedFloat waveformMod4;   //xy=290.99999618530273,541
-	AudioSynthWaveformModulatedFloat waveformMod2;   //xy=291.99999618530273,318
-	AudioEffectMultiplyFloat      multiply2;      //xy=484.99999618530273,474
-	AudioEffectMultiplyFloat      multiply1;      //xy=485.99999618530273,251
-	AudioEffectMultiplyFloat      multiply3;      //xy=655.9999961853027,356
+	TeensyBuffer buffer, bufferAlt;
+	audio_block_t waveformModOut[4] = {}, multiplyOut[3] = {};
 
-	float waveformMod4Previous = 0.f;
-	// AudioConnection          patchCord1;
-	// AudioConnection          patchCord2;
-	// AudioConnection          patchCord3;
-	// AudioConnection          patchCord4;
-	// AudioConnection          patchCord5;
-	// AudioConnection          patchCord6;
-	// AudioConnection          patchCord7;
-	// AudioConnection          patchCord8;
-	// AudioConnection          patchCord9;
-	// AudioConnection          patchCord10;
+	AudioSynthWaveformModulated waveformMod3;   //xy=287.99999618530273,420
+	AudioSynthWaveformModulated waveformMod1;   //xy=288.99999618530273,197
+	AudioSynthWaveformModulated waveformMod4;   //xy=290.99999618530273,541
+	AudioSynthWaveformModulated waveformMod2;   //xy=291.99999618530273,318
+	AudioEffectMultiply      multiply2;      //xy=484.99999618530273,474
+	AudioEffectMultiply      multiply1;      //xy=485.99999618530273,251
+	AudioEffectMultiply      multiply3;      //xy=655.9999961853027,356
+
+
+	// AudioConnection          patchCord1(waveformMod3, 0, multiply2, 0);
+	// AudioConnection          patchCord2(waveformMod3, 0, waveformMod4, 0);
+	// AudioConnection          patchCord3(waveformMod1, 0, multiply1, 0);
+	// AudioConnection          patchCord4(waveformMod1, 0, waveformMod2, 0);
+	// AudioConnection          patchCord5(waveformMod4, 0, multiply2, 1);
+	// AudioConnection          patchCord6(waveformMod4, 0, waveformMod1, 0);
+	// AudioConnection          patchCord7(waveformMod2, 0, multiply1, 1);
+	// AudioConnection          patchCord8(waveformMod2, 0, waveformMod3, 0);
+	// AudioConnection          patchCord9(multiply2, 0, multiply3, 1);
+	// AudioConnection          patchCord10(multiply1, 0, multiply3, 0);
 
 };
 

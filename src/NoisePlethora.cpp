@@ -151,19 +151,11 @@ struct NoisePlethora : Module {
 	std::shared_ptr<NoisePlethoraPlugin> algorithm[2];
 	// filters for A/B
 	StateVariableFilter2ndOrder svfFilter[2];
-
-
-	// section C
-	AudioSynthNoiseWhiteFloat whiteNoiseSource;
-	AudioSynthNoiseGritFloat gritNoiseSource;
-	StateVariableFilter4thOrder svfFilterC;
-	FilterMode typeMappingSVF[3] = {LOWPASS, BANDPASS, HIGHPASS};
-
 	ProgramSelector programSelector;
-
+	float lastCV[2] = {};
+	// UI / UX for A/B
 	std::string textDisplayA = " ", textDisplayB = " ";
 	bool isDisplayActiveA = false, isDisplayActiveB = false;
-
 	bool programButtonHeld = false;
 	bool programButtonDragged = false;
 	dsp::BooleanTrigger programHoldTrigger;
@@ -171,6 +163,12 @@ struct NoisePlethora : Module {
 
 	dsp::PulseGenerator updateParamsTimer;
 	const float updateTimeSecs = 0.0029f;
+
+	// section C
+	AudioSynthNoiseWhiteFloat whiteNoiseSource;
+	AudioSynthNoiseGritFloat gritNoiseSource;
+	StateVariableFilter4thOrder svfFilterC;
+	FilterMode typeMappingSVF[3] = {LOWPASS, BANDPASS, HIGHPASS};
 
 	NoisePlethora()  {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
@@ -208,7 +206,7 @@ struct NoisePlethora : Module {
 		if (applyFilters) {
 			const float freqCV = std::pow(params[CUTOFF_CV_A_PARAM].getValue(), 2) * inputs[CUTOFF_A_INPUT].getVoltage();
 			const float pitch = rescale(params[CUTOFF_A_PARAM].getValue(), 0, 1, -5, +5) + freqCV;
-			const float cutoff = clamp(dsp::FREQ_C4 * simd::pow(2.f, pitch), 1.f, 44100. / 4.f);
+			const float cutoff = clamp(dsp::FREQ_C4 * std::pow(2.f, pitch), 1.f, 44100. / 4.f);
 			const float cutoffNormalised = clamp(cutoff / args.sampleRate, 0.f, 0.5f);
 			const float q = rescale(params[RES_A_PARAM].getValue(), 0.f, 1.f, 1.f, 10.f);
 			svfFilter[SECTION_A].setParameters(cutoffNormalised, q);
@@ -217,7 +215,7 @@ struct NoisePlethora : Module {
 		if (applyFilters) {
 			const float freqCV = std::pow(params[CUTOFF_CV_B_PARAM].getValue(), 2) * inputs[CUTOFF_B_INPUT].getVoltage();
 			const float pitch = rescale(params[CUTOFF_B_PARAM].getValue(), 0, 1, -5, +5) + freqCV;
-			const float cutoff = clamp(dsp::FREQ_C4 * simd::pow(2.f, pitch), 1.f, 44100. / 4.f);
+			const float cutoff = clamp(dsp::FREQ_C4 * std::pow(2.f, pitch), 1.f, 44100. / 4.f);
 			const float cutoffNormalised = clamp(cutoff / args.sampleRate, 0.f, 0.5f);
 			const float q = rescale(params[RES_B_PARAM].getValue(), 0.f, 1.f, 1.f, 10.f);
 			svfFilter[SECTION_B].setParameters(cutoffNormalised, q);
@@ -226,7 +224,7 @@ struct NoisePlethora : Module {
 		if (applyFilters) {
 			const float freqCV = std::pow(params[CUTOFF_CV_C_PARAM].getValue(), 2) * inputs[CUTOFF_C_INPUT].getVoltage();
 			const float pitch = rescale(params[CUTOFF_C_PARAM].getValue(), 0, 1, -6.f, +6.f) + freqCV;
-			const float cutoff = clamp(dsp::FREQ_C4 * simd::pow(2.f, pitch), 1.f, 44100. / 2.f);
+			const float cutoff = clamp(dsp::FREQ_C4 * std::pow(2.f, pitch), 1.f, 44100. / 2.f);
 			const float cutoffNormalised = clamp(cutoff / args.sampleRate, 0.f, 0.49f);
 			const float Q = rescale(params[RES_C_PARAM].getValue(), 0, 1, 1, 10);
 			svfFilterC.setParameters(cutoffNormalised, Q);
@@ -291,7 +289,7 @@ struct NoisePlethora : Module {
 		if (true /*outputs[FILTERED_OUTPUT].isConnected() */) {
 
 			float gritCv = rescale(clamp(inputs[GRIT_INPUT].getVoltage(), -10.f, 10.f), -10.f, 10.f, -1.f, 1.f);
-			float gritAmount = clamp(1.f - params[GRIT_PARAM].getValue() + gritCv, 0.f, 1.f);
+			float gritAmount = clamp(1.f - params[GRIT_PARAM].getValue() - gritCv, 0.f, 1.f);
 			float gritFrequency = rescale(gritAmount, 0, 1, 0.1, 20000);
 			gritNoiseSource.setDensity(gritFrequency);
 			float gritNoise = gritNoiseSource.process(args.sampleTime);
@@ -313,7 +311,8 @@ struct NoisePlethora : Module {
 
 		processProgramBankKnobLogic(args);
 
-		checkForProgramChangeCV();
+		checkForProgramChangeCV(SECTION_A, PROG_A_INPUT);
+		checkForProgramChangeCV(SECTION_B, PROG_B_INPUT);
 	}
 
 	void updateDataForLEDDisplay() {
@@ -398,12 +397,41 @@ struct NoisePlethora : Module {
 		}
 	}
 
-	void checkForProgramChangeCV() {
-		const int currentBank = programSelector.getSection(SECTION_A).getBank();
-		const int currentProgram = programSelector.getSection(SECTION_A).getProgram();
+	void checkForProgramChangeCV(Section section, InputIds sectionCvInputId) {
+		if (inputs[sectionCvInputId].isConnected()) {
 
-		// TODO:		
-		// const int newProgram = currentProgram + (int) inputs[PROG_A_INPUT].getVoltage();	
+			
+			float diffCv = inputs[sectionCvInputId].getVoltage() - lastCV[section];
+			if (std::abs(diffCv) > 0.5) {
+				int delta = (diffCv < 0) ? -1 : +1;
+
+				const int currentBank = programSelector.getSection(section).getBank();
+				const int currentProgram = programSelector.getSection(section).getProgram();
+				const int currentBankSize = getBankForIndex(currentBank).getSize();
+
+				// modulo operator that works for negative integers
+				const int newProgram = (currentBankSize + ((currentProgram + delta) % currentBankSize)) % currentBankSize;
+
+				const std::string newProgramName = getBankForIndex(currentBank).getProgramName(newProgram);
+				programSelector.getSection(section).setProgram(newProgram);
+
+				// update program selection dial if CV is for currently active mode
+				if (programKnobMode == PROGRAM_MODE && section == programSelector.getMode()) {
+					params[PROGRAM_PARAM].setValue(newProgram);
+				}				
+
+				algorithm[SECTION_A] = MyFactory::Instance()->Create(newProgramName);
+
+				if (algorithm[SECTION_A]) {
+					algorithm[SECTION_A]->init();
+				}
+				else {
+					DEBUG(string::f("Failed to create %s", newProgramName.c_str()).c_str());
+				}
+
+				lastCV[section] = inputs[sectionCvInputId].getVoltage();
+			}
+		}
 	}
 
 	
