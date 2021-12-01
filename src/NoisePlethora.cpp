@@ -120,9 +120,7 @@ struct NoisePlethora : Module {
 	};
 	enum OutputIds {
 		A_OUTPUT,
-		A_OUTPUT_ALT,
 		B_OUTPUT,
-		B_OUTPUT_ALT,
 		GRITTY_OUTPUT,
 		FILTERED_OUTPUT,
 		WHITE_OUTPUT,
@@ -147,7 +145,7 @@ struct NoisePlethora : Module {
 	ProgramKnobMode programKnobMode = PROGRAM_MODE;
 
 	// section A/B
-	bool applyFilters = false;
+	bool bypassFilters = false;
 	std::shared_ptr<NoisePlethoraPlugin> algorithm[2];
 	// filters for A/B
 	StateVariableFilter2ndOrder svfFilter[2];
@@ -174,26 +172,26 @@ struct NoisePlethora : Module {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 		configParam(X_A_PARAM, 0.f, 1.f, 0.5f, "XA");
 		configParam(RES_A_PARAM, 0.f, 1.f, 0.f, "Resonance A");
-		configParam(CUTOFF_A_PARAM, 0.f, 1.f, 0.f, "Cutoff A");
+		configParam(CUTOFF_A_PARAM, 0.f, 1.f, 1.f, "Cutoff A");
 		configParam(Y_A_PARAM, 0.f, 1.f, 0.5f, "YA");
 		configParam(CUTOFF_CV_A_PARAM, 0.f, 1.f, 0.f, "Cutoff CV A");
 		configSwitch(FILTER_TYPE_A_PARAM, 0.f, 2.f, 0.f, "Filter type", {"Lowpass", "Bandpass", "Highpass"});
-		configParam(PROGRAM_PARAM, 0.f, 10.f, 0.f, "Program/Bank selection");
+		configParam(PROGRAM_PARAM, 0.f, 9.f, 0.f, "Program/Bank selection");
 		configSwitch(FILTER_TYPE_B_PARAM, 0.f, 2.f, 0.f, "Filter type", {"Lowpass", "Bandpass", "Highpass"});
 		configParam(CUTOFF_CV_B_PARAM, 0.f, 1.f, 0.f, "Cutoff B");
 		configParam(X_B_PARAM, 0.f, 1.f, 0.5f, "XB");
-		configParam(CUTOFF_B_PARAM, 0.f, 1.f, 0.f, "Cutoff CV B");
+		configParam(CUTOFF_B_PARAM, 0.f, 1.f, 1.f, "Cutoff CV B");
 		configParam(RES_B_PARAM, 0.f, 1.f, 0.f, "Resonance B");
 		configParam(Y_B_PARAM, 0.f, 1.f, 0.5f, "YB");
 		configSwitch(FILTER_TYPE_C_PARAM, 0.f, 2.f, 0.f, "Filter type", {"Lowpass", "Bandpass", "Highpass"});
-		configParam(CUTOFF_C_PARAM, 0.f, 1.f, 0.f, "Cutoff C");
+		configParam(CUTOFF_C_PARAM, 0.f, 1.f, 1.f, "Cutoff C");
 		configParam(GRIT_PARAM, 0.f, 1.f, 0.f, "Grit Quantity");
 		configParam(RES_C_PARAM, 0.f, 1.f, 0.f, "Resonance C");
 		configParam(CUTOFF_CV_C_PARAM, 0.f, 1.f, 0.f, "Cutoff CV C");
 		configSwitch(SOURCE_C_PARAM, 0.f, 1.f, 0.f, "Filter source", {"Gritty", "White"});
 
-		setAlgorithm(SECTION_A, "TestPlugin");
-		setAlgorithm(SECTION_B, "TestPlugin");
+		setAlgorithm(SECTION_B, "radioOhNo");
+		setAlgorithm(SECTION_A, "radioOhNo");
 
 		for (auto item : MyFactory::Instance()->factoryFunctionRegistry) {
 			DEBUG(string::f("found plugin: %s", item.first.c_str()).c_str());
@@ -203,39 +201,37 @@ struct NoisePlethora : Module {
 
 	void process(const ProcessArgs& args) override {
 
-		if (applyFilters) {
-			const float freqCV = std::pow(params[CUTOFF_CV_A_PARAM].getValue(), 2) * inputs[CUTOFF_A_INPUT].getVoltage();
-			const float pitch = rescale(params[CUTOFF_A_PARAM].getValue(), 0, 1, -5, +5) + freqCV;
-			const float cutoff = clamp(dsp::FREQ_C4 * std::pow(2.f, pitch), 1.f, 44100. / 4.f);
-			const float cutoffNormalised = clamp(cutoff / args.sampleRate, 0.f, 0.5f);
-			const float q = rescale(params[RES_A_PARAM].getValue(), 0.f, 1.f, 1.f, 10.f);
-			svfFilter[SECTION_A].setParameters(cutoffNormalised, q);
-		}
+		if (!bypassFilters) {
+			{
+				const float freqCV = std::pow(params[CUTOFF_CV_A_PARAM].getValue(), 2) * inputs[CUTOFF_A_INPUT].getVoltage();
+				const float pitch = rescale(params[CUTOFF_A_PARAM].getValue(), 0, 1, -5, +5) + freqCV;
+				const float cutoff = clamp(dsp::FREQ_C4 * std::pow(2.f, pitch), 1.f, 44100. / 4.f);
+				const float cutoffNormalised = clamp(cutoff / args.sampleRate, 0.f, 0.5f);
+				const float q = rescale(params[RES_A_PARAM].getValue(), 0.f, 1.f, 1.f, 10.f);
+				svfFilter[SECTION_A].setParameters(cutoffNormalised, q);
+			}
 
-		if (applyFilters) {
-			const float freqCV = std::pow(params[CUTOFF_CV_B_PARAM].getValue(), 2) * inputs[CUTOFF_B_INPUT].getVoltage();
-			const float pitch = rescale(params[CUTOFF_B_PARAM].getValue(), 0, 1, -5, +5) + freqCV;
-			const float cutoff = clamp(dsp::FREQ_C4 * std::pow(2.f, pitch), 1.f, 44100. / 4.f);
-			const float cutoffNormalised = clamp(cutoff / args.sampleRate, 0.f, 0.5f);
-			const float q = rescale(params[RES_B_PARAM].getValue(), 0.f, 1.f, 1.f, 10.f);
-			svfFilter[SECTION_B].setParameters(cutoffNormalised, q);
-		}
+			{
+				const float freqCV = std::pow(params[CUTOFF_CV_B_PARAM].getValue(), 2) * inputs[CUTOFF_B_INPUT].getVoltage();
+				const float pitch = rescale(params[CUTOFF_B_PARAM].getValue(), 0, 1, -5, +5) + freqCV;
+				const float cutoff = clamp(dsp::FREQ_C4 * std::pow(2.f, pitch), 1.f, 44100. / 4.f);
+				const float cutoffNormalised = clamp(cutoff / args.sampleRate, 0.f, 0.5f);
+				const float q = rescale(params[RES_B_PARAM].getValue(), 0.f, 1.f, 1.f, 10.f);
+				svfFilter[SECTION_B].setParameters(cutoffNormalised, q);
+			}
 
-		if (applyFilters) {
-			const float freqCV = std::pow(params[CUTOFF_CV_C_PARAM].getValue(), 2) * inputs[CUTOFF_C_INPUT].getVoltage();
-			const float pitch = rescale(params[CUTOFF_C_PARAM].getValue(), 0, 1, -6.f, +6.f) + freqCV;
-			const float cutoff = clamp(dsp::FREQ_C4 * std::pow(2.f, pitch), 1.f, 44100. / 2.f);
-			const float cutoffNormalised = clamp(cutoff / args.sampleRate, 0.f, 0.49f);
-			const float Q = rescale(params[RES_C_PARAM].getValue(), 0, 1, 1, 10);
-			svfFilterC.setParameters(cutoffNormalised, Q);
+			{
+				const float freqCV = std::pow(params[CUTOFF_CV_C_PARAM].getValue(), 2) * inputs[CUTOFF_C_INPUT].getVoltage();
+				const float pitch = rescale(params[CUTOFF_C_PARAM].getValue(), 0, 1, -6.f, +6.f) + freqCV;
+				const float cutoff = clamp(dsp::FREQ_C4 * std::pow(2.f, pitch), 1.f, 44100. / 2.f);
+				const float cutoffNormalised = clamp(cutoff / args.sampleRate, 0.f, 0.49f);
+				const float Q = rescale(params[RES_C_PARAM].getValue(), 0, 1, 1, 10);
+				svfFilterC.setParameters(cutoffNormalised, Q);
+			}
 		}
-
 
 		float outA = 0.f;
 		float outB = 0.f;
-
-		float outAAlt = 0.f;
-		float outBAlt = 0.f;
 
 		// we only periodically update the process() call of each algorithm
 		bool updateParams = false;
@@ -253,9 +249,8 @@ struct NoisePlethora : Module {
 				algorithm[SECTION_A]->process(clamp(cvX, 0.f, 1.f), clamp(cvY, 0.f, 1.f));
 			}
 			// process the audio graph
-			outA = algorithm[SECTION_A]->processGraph(args.sampleTime);
-			outAAlt = algorithm[SECTION_A]->getAlternativeOutput();
-			if (applyFilters) {
+			outA = algorithm[SECTION_A]->processGraph();
+			if (!bypassFilters) {
 				svfFilter[SECTION_A].process(outA);
 				FilterMode mode = typeMappingSVF[(int) params[FILTER_TYPE_A_PARAM].getValue()];
 				outA = svfFilter[SECTION_A].output(mode);
@@ -269,10 +264,9 @@ struct NoisePlethora : Module {
 			if (updateParams) {
 				algorithm[SECTION_B]->process(clamp(cvX, 0.f, 1.f), clamp(cvY, 0.f, 1.f));
 			}
-			outB = algorithm[SECTION_B]->processGraph(args.sampleTime);
-			outBAlt = algorithm[SECTION_B]->getAlternativeOutput();
+			outB = algorithm[SECTION_B]->processGraph();
 
-			if (applyFilters) {
+			if (!bypassFilters) {
 				svfFilter[SECTION_B].process(outB);
 				FilterMode mode = typeMappingSVF[(int) params[FILTER_TYPE_B_PARAM].getValue()];
 				outB = svfFilter[SECTION_B].output(mode);
@@ -282,29 +276,29 @@ struct NoisePlethora : Module {
 		outputs[A_OUTPUT].setVoltage(outA * 5.f);
 		outputs[B_OUTPUT].setVoltage(outB * 5.f);
 
-		outputs[A_OUTPUT_ALT].setVoltage(outAAlt * 5.f);
-		outputs[B_OUTPUT_ALT].setVoltage(outBAlt * 5.f);
+		// section C
+		float gritCv = rescale(clamp(inputs[GRIT_INPUT].getVoltage(), -10.f, 10.f), -10.f, 10.f, -1.f, 1.f);
+		float gritAmount = clamp(1.f - params[GRIT_PARAM].getValue() - gritCv, 0.f, 1.f);
+		float gritFrequency = rescale(gritAmount, 0, 1, 0.1, 20000);
+		gritNoiseSource.setDensity(gritFrequency);
+		float gritNoise = gritNoiseSource.process(args.sampleTime);
+		outputs[GRITTY_OUTPUT].setVoltage(gritNoise * 5.f);
 
+		float whiteNoise = whiteNoiseSource.process();
+		outputs[WHITE_OUTPUT].setVoltage(whiteNoise * 5.f);
 
-		if (true /*outputs[FILTERED_OUTPUT].isConnected() */) {
-
-			float gritCv = rescale(clamp(inputs[GRIT_INPUT].getVoltage(), -10.f, 10.f), -10.f, 10.f, -1.f, 1.f);
-			float gritAmount = clamp(1.f - params[GRIT_PARAM].getValue() - gritCv, 0.f, 1.f);
-			float gritFrequency = rescale(gritAmount, 0, 1, 0.1, 20000);
-			gritNoiseSource.setDensity(gritFrequency);
-			float gritNoise = gritNoiseSource.process(args.sampleTime);
-
-			float whiteNoise = whiteNoiseSource.process();
-
+		if (outputs[FILTERED_OUTPUT].isConnected() && !bypassFilters) {
 			float toFilter = params[SOURCE_C_PARAM].getValue() ? whiteNoise : gritNoise;
 
 			FilterMode mode = typeMappingSVF[(int) params[FILTER_TYPE_C_PARAM].getValue()];
 
 			float filtered = svfFilterC.process(toFilter, mode);
 
-			outputs[GRITTY_OUTPUT].setVoltage(gritNoise * 5.f);
-			outputs[WHITE_OUTPUT].setVoltage(whiteNoise * 5.f);
 			outputs[FILTERED_OUTPUT].setVoltage(filtered * 5.f);
+		}
+		else if (bypassFilters) {
+			float toBypass = params[SOURCE_C_PARAM].getValue() ? whiteNoise : gritNoise;
+			outputs[FILTERED_OUTPUT].setVoltage(toBypass * 5.f);
 		}
 
 		updateDataForLEDDisplay();
@@ -400,7 +394,6 @@ struct NoisePlethora : Module {
 	void checkForProgramChangeCV(Section section, InputIds sectionCvInputId) {
 		if (inputs[sectionCvInputId].isConnected()) {
 
-			
 			float diffCv = inputs[sectionCvInputId].getVoltage() - lastCV[section];
 			if (std::abs(diffCv) > 0.5) {
 				int delta = (diffCv < 0) ? -1 : +1;
@@ -418,12 +411,12 @@ struct NoisePlethora : Module {
 				// update program selection dial if CV is for currently active mode
 				if (programKnobMode == PROGRAM_MODE && section == programSelector.getMode()) {
 					params[PROGRAM_PARAM].setValue(newProgram);
-				}				
+				}
 
-				algorithm[SECTION_A] = MyFactory::Instance()->Create(newProgramName);
+				algorithm[section] = MyFactory::Instance()->Create(newProgramName);
 
-				if (algorithm[SECTION_A]) {
-					algorithm[SECTION_A]->init();
+				if (algorithm[section]) {
+					algorithm[section]->init();
 				}
 				else {
 					DEBUG(string::f("Failed to create %s", newProgramName.c_str()).c_str());
@@ -433,8 +426,6 @@ struct NoisePlethora : Module {
 			}
 		}
 	}
-
-	
 
 	void setAlgorithmViaProgram(int newProgram) {
 
@@ -503,8 +494,8 @@ struct NoisePlethora : Module {
 		json_t* bankBJ = json_object_get(rootJ, "algorithmB");
 		setAlgorithm(SECTION_B, json_string_value(bankBJ));
 
-		json_t* applyFiltersJ = json_object_get(rootJ, "applyFilters");
-		applyFilters = json_boolean_value(applyFiltersJ);
+		json_t* bypassFiltersJ = json_object_get(rootJ, "bypassFilters");
+		bypassFilters = json_boolean_value(bypassFiltersJ);
 
 		DEBUG("JSON load complete");
 	}
@@ -515,7 +506,7 @@ struct NoisePlethora : Module {
 		json_object_set_new(rootJ, "algorithmA", json_string(programSelector.getA().getCurrentProgramName().c_str()));
 		json_object_set_new(rootJ, "algorithmB", json_string(programSelector.getB().getCurrentProgramName().c_str()));
 
-		json_object_set_new(rootJ, "applyFilters", json_boolean(applyFilters));
+		json_object_set_new(rootJ, "bypassFilters", json_boolean(bypassFilters));
 
 		return rootJ;
 	}
@@ -733,10 +724,7 @@ struct NoisePlethoraWidget : ModuleWidget {
 		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(63.36, 114.8)), module, NoisePlethora::CUTOFF_C_INPUT));
 
 		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(64.909, 44.397)), module, NoisePlethora::A_OUTPUT));
-		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(59.909, 44.397)), module, NoisePlethora::A_OUTPUT_ALT));
-
 		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(64.915, 54.608)), module, NoisePlethora::B_OUTPUT));
-		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(59.915, 54.608)), module, NoisePlethora::B_OUTPUT_ALT));
 
 		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(22.345, 114.852)), module, NoisePlethora::GRITTY_OUTPUT));
 		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(34.981, 114.852)), module, NoisePlethora::FILTERED_OUTPUT));
@@ -802,7 +790,7 @@ struct NoisePlethoraWidget : ModuleWidget {
 
 		}
 
-		menu->addChild(createBoolPtrMenuItem("Apply Filters", "", &module->applyFilters));
+		menu->addChild(createBoolPtrMenuItem("Bypass Filters", "", &module->bypassFilters));
 	}
 };
 

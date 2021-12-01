@@ -18,28 +18,19 @@ public:
 	WhiteNoise& operator=(const WhiteNoise&) = delete;
 
 	void init() override {
-		//test.begin(WaveformType::WAVEFORM_SQUARE);
-		//test.offset(1);
-
-		/*
-		int masterVolume= 1;
-		waveformMod1.begin(WAVEFORM_SQUARE);
-		waveformMod2.begin(WAVEFORM_PULSE);
-		waveformMod1.offset(1);
-		waveformMod1.amplitude(masterVolume);
-		waveformMod2.amplitude(masterVolume);
-		*/
+		noise1.amplitude(1);
 	}
 
 	void process(float k1, float k2) override {
 	}
 
-	float processGraph(float sampleTime) override {
-		return noise.process();
+	void processGraphAsBlock(TeensyBuffer& blockBuffer) override {
+		noise1.update(&noiseOut);
+		blockBuffer.pushBuffer(noiseOut.data, AUDIO_BLOCK_SAMPLES);
 	}
 
 	AudioStream& getStream() override {
-		return noise;
+		return noise1;
 	}
 	unsigned char getPort() override {
 		return 0;
@@ -47,7 +38,11 @@ public:
 
 
 private:
-	AudioSynthNoiseWhiteFloat noise;
+
+	TeensyBuffer buffer;
+	audio_block_t noiseOut;
+
+	AudioSynthNoiseWhite noise1;
 
 };
 

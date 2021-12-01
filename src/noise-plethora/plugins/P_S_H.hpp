@@ -7,9 +7,9 @@ class S_H : public NoisePlethoraPlugin {
 public:
 
 	S_H()
-		//: patchCord1(waveformMod1, 0, mixer1, 0)
-		//, patchCord2(waveformMod1, freeverb1)
-		//, patchCord3(freeverb1, 0, mixer1, 1)
+	//: patchCord1(waveformMod1, 0, mixer1, 0)
+	//, patchCord2(waveformMod1, freeverb1)
+	//, patchCord3(freeverb1, 0, mixer1, 1)
 	{ }
 
 	~S_H() override {}
@@ -34,19 +34,12 @@ public:
 		mixer1.gain(1, k2 * 4);
 	}
 
-	float processGraph(float sampleTime) override {
-		if (w1.empty()) {
-			waveformMod1.update(nullptr, nullptr, &waveformModBlock);
-			freeverb1.update(&waveformModBlock, &freeverbBlock);
-			mixer1.update(&waveformModBlock, &freeverbBlock, nullptr, nullptr, &mixerBlock);
+	void processGraphAsBlock(TeensyBuffer& blockBuffer) override {
+		waveformMod1.update(nullptr, nullptr, &waveformModBlock);
+		freeverb1.update(&waveformModBlock, &freeverbBlock);
+		mixer1.update(&waveformModBlock, &freeverbBlock, nullptr, nullptr, &mixerBlock);
 
-			w1.pushBuffer(mixerBlock.data, AUDIO_BLOCK_SAMPLES);
-			w2.pushBuffer(freeverbBlock.data, AUDIO_BLOCK_SAMPLES);
-		}
-
-		altOutput = int16_to_float_5v(w2.shift()) / 5.f;
-
-		return int16_to_float_5v(w1.shift()) / 5.f;
+		blockBuffer.pushBuffer(mixerBlock.data, AUDIO_BLOCK_SAMPLES);
 	}
 
 	AudioStream& getStream() override {
@@ -58,7 +51,6 @@ public:
 
 private:
 
-	TeensyBuffer w1, w2;
 	audio_block_t waveformModBlock, mixerBlock, freeverbBlock;
 
 	AudioSynthWaveformModulated waveformMod1;   //xy=517.5666656494141,413.99998474121094

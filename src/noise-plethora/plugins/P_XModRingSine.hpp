@@ -8,11 +8,11 @@ class XModRingSine : public NoisePlethoraPlugin {
 
 public:
 	XModRingSine()
-		// : patchCord1(sine_fm1, sine_fm2),
-		//   patchCord2(sine_fm1, 0, multiply1, 0),
-		//   patchCord3(sine_fm2, sine_fm1),
-		//   patchCord4(sine_fm2, 0, multiply1, 1)
-		//   // patchCord5(multiply1, 0, i2s1, 0)
+	// : patchCord1(sine_fm1, sine_fm2),
+	//   patchCord2(sine_fm1, 0, multiply1, 0),
+	//   patchCord3(sine_fm2, sine_fm1),
+	//   patchCord4(sine_fm2, 0, multiply1, 1)
+	//   // patchCord5(multiply1, 0, i2s1, 0)
 	{ }
 	~XModRingSine() override {}
 
@@ -44,13 +44,14 @@ public:
 		//Serial.print(knob_2*0.5);
 	}
 
-	float processGraph(float sampleTime) override {
-		float s1 = sine_fm1.process(sampleTime, sine_fm2_previous);
-		float s2 = sine_fm2.process(sampleTime, s1);
-		sine_fm2_previous = s2;
-		altOutput = s1;
+	void processGraphAsBlock(TeensyBuffer& blockBuffer) override {
 
-		return multiply1.process(s1, s2);
+		sine_fm1.update(&sineModOut[1], &sineModOut[0]);
+		sine_fm2.update(&sineModOut[0], &sineModOut[1]);
+
+		multiply1.update(&sineModOut[0], &sineModOut[1], &multiplyOut);
+
+		blockBuffer.pushBuffer(multiplyOut.data, AUDIO_BLOCK_SAMPLES);
 	}
 
 
@@ -64,17 +65,16 @@ public:
 
 private:
 
-	AudioSynthWaveformSineModulatedFloat sine_fm1;       //xy=360,220
-	AudioSynthWaveformSineModulatedFloat sine_fm2;       //xy=363,404
-	AudioEffectMultiplyFloat      multiply1;      //xy=569,311
+	audio_block_t sineModOut[2] = {}, multiplyOut;
+
+	AudioSynthWaveformSineModulated sine_fm1;       //xy=360,220
+	AudioSynthWaveformSineModulated sine_fm2;       //xy=363,404
+	AudioEffectMultiply      multiply1;      //xy=569,311
 
 	// AudioConnection          patchCord1;
 	// AudioConnection          patchCord2;
 	// AudioConnection          patchCord3;
 	// AudioConnection          patchCord4;
-
-	float sine_fm2_previous = 0.f;
-
 };
 
 REGISTER_PLUGIN(XModRingSine); // this is important, so that we can include the plugin in a bank

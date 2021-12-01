@@ -43,20 +43,14 @@ public:
 		//Serial.println();
 	}
 
-	float processGraph(float sampleTime) override {
-		if (w1.empty()) {
-			pink1.update(&noiseBlock);
-			pwm1.update(&noiseBlock, &pwmBlock);
-			freeverb1.update(&pwmBlock, &freeverbBlock);
+	void processGraphAsBlock(TeensyBuffer& blockBuffer) override {
+		pink1.update(&noiseBlock);
+		pwm1.update(&noiseBlock, &pwmBlock);
+		freeverb1.update(&pwmBlock, &freeverbBlock);
 
-			w1.pushBuffer(freeverbBlock.data, AUDIO_BLOCK_SAMPLES);
-			w2.pushBuffer(pwmBlock.data, AUDIO_BLOCK_SAMPLES);
-		}
-
-		altOutput = int16_to_float_5v(w2.shift()) / 5.f;
-
-		return int16_to_float_5v(w1.shift()) / 5.f;
+		blockBuffer.pushBuffer(freeverbBlock.data, AUDIO_BLOCK_SAMPLES);
 	}
+
 	AudioStream& getStream() override {
 		return freeverb1;
 	}
@@ -65,7 +59,6 @@ public:
 	}
 
 private:
-	TeensyBuffer w1, w2;
 	audio_block_t noiseBlock, pwmBlock, freeverbBlock;
 
 	// GUItool: begin automatically generated code

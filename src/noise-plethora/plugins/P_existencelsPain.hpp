@@ -83,33 +83,25 @@ public:
 		filter4.octaveControl(octaves);
 	}
 
-	float processGraph(float sampleTime) override {
+	void processGraphAsBlock(TeensyBuffer& blockBuffer) override {
+		// waveform to filter
+		waveform1.update(&waveformOut);
 
-		if (buffer.empty()) {
-			// waveform to filter
-			waveform1.update(&waveformOut);
+		waveformMod1.update(nullptr, nullptr, &waveformModOut[0]);
+		waveformMod2.update(nullptr, nullptr, &waveformModOut[1]);
+		waveformMod3.update(nullptr, nullptr, &waveformModOut[2]);
+		waveformMod4.update(nullptr, nullptr, &waveformModOut[3]);
 
-			waveformMod1.update(nullptr, nullptr, &waveformModOut[0]);
-			waveformMod2.update(nullptr, nullptr, &waveformModOut[1]);
-			waveformMod3.update(nullptr, nullptr, &waveformModOut[2]);
-			waveformMod4.update(nullptr, nullptr, &waveformModOut[3]);
+		// SVF needs LP, BP and HP (even if we only use one)
+		filter1.update(&waveformOut, &waveformModOut[0], &filterOutLP[0], &filterOutBP[0], &filterOutHP[0]);
+		filter2.update(&waveformOut, &waveformModOut[1], &filterOutLP[1], &filterOutBP[1], &filterOutHP[1]);
+		filter3.update(&waveformOut, &waveformModOut[2], &filterOutLP[2], &filterOutBP[2], &filterOutHP[2]);
+		filter4.update(&waveformOut, &waveformModOut[3], &filterOutLP[3], &filterOutBP[3], &filterOutHP[3]);
 
-			// SVF needs LP, BP and HP (even if we only use one)
-			filter1.update(&waveformOut, &waveformModOut[0], &filterOutLP[0], &filterOutBP[0], &filterOutHP[0]);
-			filter2.update(&waveformOut, &waveformModOut[1], &filterOutLP[1], &filterOutBP[1], &filterOutHP[1]);
-			filter3.update(&waveformOut, &waveformModOut[2], &filterOutLP[2], &filterOutBP[2], &filterOutHP[2]);
-			filter4.update(&waveformOut, &waveformModOut[3], &filterOutLP[3], &filterOutBP[3], &filterOutHP[3]);
+		// sum up
+		mixer1.update(&filterOutBP[0], &filterOutBP[1], &filterOutBP[2], &filterOutBP[3], &mixerOut);
 
-			// sum up
-			mixer1.update(&filterOutBP[0], &filterOutBP[1], &filterOutBP[2], &filterOutBP[3], &mixerOut);
-
-			buffer.pushBuffer(mixerOut.data, AUDIO_BLOCK_SAMPLES);
-			bufferAlt.pushBuffer(filterOutBP[0].data, AUDIO_BLOCK_SAMPLES);
-		}
-
-		altOutput = int16_to_float_5v(bufferAlt.shift()) / 5.f;;
-
-		return int16_to_float_5v(buffer.shift()) / 5.f;;
+		blockBuffer.pushBuffer(mixerOut.data, AUDIO_BLOCK_SAMPLES);
 	}
 
 	AudioStream& getStream() override {
@@ -121,7 +113,6 @@ public:
 
 private:
 
-	TeensyBuffer buffer, bufferAlt;
 	audio_block_t waveformModOut[4];
 	audio_block_t filterOutLP[4], filterOutBP[4], filterOutHP[4];
 	audio_block_t waveformOut, mixerOut;

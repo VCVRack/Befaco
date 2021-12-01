@@ -1,6 +1,7 @@
 #pragma once
 
 #include <rack.hpp>
+#include "../../plugin.hpp"
 
 #include "audio_core.hpp"
 #include "effect_bitcrusher.h"
@@ -18,5 +19,3 @@
 #include "synth_whitenoise.hpp"
 #include "synth_pinknoise.hpp"
 #include "synth_pwm.hpp"
-#include "teensy_float_replacements.hpp"
-

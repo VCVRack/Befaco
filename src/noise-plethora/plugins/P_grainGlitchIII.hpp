@@ -45,20 +45,12 @@ public:
 
 	}
 
-	float processGraph(float sampleTime) override {
-		if (buffer.empty()) {
+	void processGraphAsBlock(TeensyBuffer& blockBuffer) override {
+		granular1.update(&waveformMod1Previous, &granularOut);
 
-			granular1.update(&waveformMod1Previous, &granular1Previous);
+		waveformMod1.update(&granularOut, nullptr, &waveformMod1Previous);
 
-			waveformMod1.update(&granular1Previous, nullptr, &waveformMod1Previous);
-
-			bufferAlt.pushBuffer(waveformMod1Previous.data, AUDIO_BLOCK_SAMPLES);
-			buffer.pushBuffer(granular1Previous.data, AUDIO_BLOCK_SAMPLES);
-		}
-
-		altOutput = int16_to_float_5v(bufferAlt.shift()) / 5.f;;
-
-		return int16_to_float_5v(buffer.shift()) / 5.f;;
+		blockBuffer.pushBuffer(granularOut.data, AUDIO_BLOCK_SAMPLES);
 	}
 
 	AudioStream& getStream() override {
@@ -75,8 +67,7 @@ private:
 	//AudioConnection          patchCord3;
 	int16_t granularMemory[GRANULAR_MEMORY_SIZE];
 
-	TeensyBuffer buffer, bufferAlt;
-	audio_block_t granular1Previous;
+	audio_block_t granularOut;
 	audio_block_t waveformMod1Previous;
 };
 

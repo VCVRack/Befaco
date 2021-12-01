@@ -82,12 +82,12 @@ public:
 		// random walk initial conditions
 		for (int i = 0; i < 9; i++) {
 			// velocities: initial conditions in -pi : +pi
-			theta = M_PI * (random::uniform()*2.0 - 1.0);
+			theta = M_PI * (random::uniform() * 2.0 - 1.0);
 			vx[i] = std::cos(theta);
 			vy[i] = std::sin(theta);
 			// positions: random in [0,L] x [0, L]
-			x[i] = random::uniform()*L;
-			y[i] = random::uniform()*L;
+			x[i] = random::uniform() * L;
+			y[i] = random::uniform() * L;
 
 		}
 	}
@@ -113,7 +113,7 @@ public:
 
 		// loop to "walk" randomly
 		for (int i = 0; i < 9; i++) {
-			theta = M_PI * (random::uniform()*2.0 - 1.0);
+			theta = M_PI * (random::uniform() * 2.0 - 1.0);
 
 			posx = std::cos(theta);
 			vx[i] = posx;
@@ -167,40 +167,33 @@ public:
 	}
 
 
-	float processGraph(float sampleTime) override {
-		if (w1.empty()) {
-			// sum first block of oscillators
-			waveform1.update(&waveformBlock[0]);
-			waveform2.update(&waveformBlock[1]);
-			waveform3.update(&waveformBlock[2]);
-			waveform4.update(&waveformBlock[3]);
-			mixer1.update(&waveformBlock[0], &waveformBlock[1], &waveformBlock[2], &waveformBlock[3], &mixerBlock[0]);
+	void processGraphAsBlock(TeensyBuffer& blockBuffer) override {
+		// sum first block of oscillators
+		waveform1.update(&waveformBlock[0]);
+		waveform2.update(&waveformBlock[1]);
+		waveform3.update(&waveformBlock[2]);
+		waveform4.update(&waveformBlock[3]);
+		mixer1.update(&waveformBlock[0], &waveformBlock[1], &waveformBlock[2], &waveformBlock[3], &mixerBlock[0]);
 
-			// sum second block of oscillators
-			waveform5.update(&waveformBlock[4]);
-			waveform6.update(&waveformBlock[5]);
-			waveform7.update(&waveformBlock[6]);
-			waveform8.update(&waveformBlock[7]);
-			mixer2.update(&waveformBlock[4], &waveformBlock[5], &waveformBlock[6], &waveformBlock[7], &mixerBlock[1]);
+		// sum second block of oscillators
+		waveform5.update(&waveformBlock[4]);
+		waveform6.update(&waveformBlock[5]);
+		waveform7.update(&waveformBlock[6]);
+		waveform8.update(&waveformBlock[7]);
+		mixer2.update(&waveformBlock[4], &waveformBlock[5], &waveformBlock[6], &waveformBlock[7], &mixerBlock[1]);
 
-			// sum two blocks and feed into bitcrusher
-			mixer5.update(&mixerBlock[0], &mixerBlock[1], nullptr, nullptr, &mixerBlock[2]);
-			bitcrusher1.update(&mixerBlock[2], &bitcrushBlock);
+		// sum two blocks and feed into bitcrusher
+		mixer5.update(&mixerBlock[0], &mixerBlock[1], nullptr, nullptr, &mixerBlock[2]);
+		bitcrusher1.update(&mixerBlock[2], &bitcrushBlock);
 
-			waveform9.update(&waveformBlock[8]);
-			// mixer3/6 are just one-input + unit gain so just skip to freeverb			
-			freeverb1.update(&waveformBlock[8], &freeverbBlock);
+		waveform9.update(&waveformBlock[8]);
+		// mixer3/6 are just one-input + unit gain so just skip to freeverb
+		freeverb1.update(&waveformBlock[8], &freeverbBlock);
 
-			// finally sum bitcrush and freeverb
-			mixer7.update(&bitcrushBlock, &freeverbBlock, nullptr, nullptr, &mixerBlock[3]);
+		// finally sum bitcrush and freeverb
+		mixer7.update(&bitcrushBlock, &freeverbBlock, nullptr, nullptr, &mixerBlock[3]);
 
-			w1.pushBuffer(mixerBlock[3].data, AUDIO_BLOCK_SAMPLES);
-			w2.pushBuffer(bitcrushBlock.data, AUDIO_BLOCK_SAMPLES);
-		}
-
-		altOutput = int16_to_float_5v(w2.shift()) / 5.f;
-
-		return int16_to_float_5v(w1.shift()) / 5.f;
+		blockBuffer.pushBuffer(mixerBlock[3].data, AUDIO_BLOCK_SAMPLES);
 	}
 
 	AudioStream& getStream() override {
@@ -212,7 +205,6 @@ public:
 
 private:
 
-	TeensyBuffer w1, w2;
 	audio_block_t waveformBlock[9], mixerBlock[4], bitcrushBlock, freeverbBlock;
 
 	/* will be filled in */
@@ -232,7 +224,7 @@ private:
 	//AudioMixer4              mixer6;         //xy=1248,561
 
 	AudioMixer4              mixer5; //xy=961.75,589.75
-	
+
 	AudioEffectBitcrusher    bitcrusher1;    //xy=1439,393
 	AudioEffectFreeverb      freeverb1;      //xy=923.5,281.5
 	AudioMixer4              mixer7;         //xy=1650,448

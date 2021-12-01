@@ -214,5 +214,5 @@ private:
 	int32_t setting_damp;
 	int32_t state_inputprev;
 	int32_t state_lowpass;
-	int32_t state_bandpass;	
+	int32_t state_bandpass;
 };

@@ -28,19 +28,20 @@
 #define synth_whitenoise_h_
 #include "audio_core.hpp"
 
-class AudioSynthNoiseWhite : public AudioStream
-{
+class AudioSynthNoiseWhite : public AudioStream {
 public:
 	AudioSynthNoiseWhite() : AudioStream(0) {
 		level = 0;
 		seed = 1 + instance_count++;
 	}
 	void amplitude(float n) {
-		if (n < 0.0f) n = 0.0;
-		else if (n > 1.0f) n = 1.0f;
+		if (n < 0.0f)
+			n = 0.0;
+		else if (n > 1.0f)
+			n = 1.0f;
 		level = (int32_t)(n * 65536.0f);
 	}
-	virtual void update(audio_block_t *block);
+	virtual void update(audio_block_t* block);
 private:
 	int32_t  level; // 0=off, 65536=max
 	uint32_t seed;  // must start at 1

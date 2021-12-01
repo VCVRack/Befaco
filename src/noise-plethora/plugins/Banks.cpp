@@ -4,39 +4,39 @@
 const Bank::BankElem Bank::defaultElem = {"", 1.0};
 
 Bank::Bank() {
-  programs.fill(defaultElem);
+	programs.fill(defaultElem);
 }
 
 Bank::Bank(const BankElem& p1, const BankElem& p2, const BankElem& p3,
            const BankElem& p4, const BankElem& p5, const BankElem& p6,
            const BankElem& p7, const BankElem& p8, const BankElem& p9,
            const BankElem& p10)
-       : programs{p1, p2, p3, p4, p5, p6, p7, p8, p9, p10}
-     { }
+	: programs{p1, p2, p3, p4, p5, p6, p7, p8, p9, p10}
+{ }
 
 const std::string Bank::getProgramName(int i) {
-  if (i >= 0 && i < programsPerBank) {
-    return programs[i].name;
-  }
-  return "";
+	if (i >= 0 && i < programsPerBank) {
+		return programs[i].name;
+	}
+	return "";
 }
 
 float Bank::getProgramGain(int i) {
-  if (i >= 0 && i < programsPerBank) {
-    return programs[i].gain;
-  }
-  return 1.0;
+	if (i >= 0 && i < programsPerBank) {
+		return programs[i].gain;
+	}
+	return 1.0;
 }
 
 int Bank::getSize() {
-  int size = 0;
-  for (auto it = programs.begin(); it != programs.end(); it++) {
-	  if ((*it).name == "") {
-		  break;
-	  }
-	  size++;
-  }
-  return size;
+	int size = 0;
+	for (auto it = programs.begin(); it != programs.end(); it++) {
+		if ((*it).name == "") {
+			break;
+		}
+		size++;
+	}
+	return size;
 }
 
 
@@ -79,10 +79,7 @@ int Bank::getSize() {
 
 // Bank D: Test / other
 #include "P_TestPlugin.hpp"
-#include "P_Teensy.hpp"
 #include "P_TeensyAlt.hpp"
-#include "P_clusterSaw_int16.hpp"
-#include "P_clusterSaw_slow.hpp"
 #include "P_WhiteNoise.hpp"
 //#include "P_Rwalk_LBit.hpp"
 //#include "P_Rwalk_SineFM.hpp"
@@ -107,7 +104,9 @@ static std::array<Bank, numBanks> banks { bank1, bank2, bank3, bank4}; //, bank5
 // static std::array<Bank, programsPerBank> banks { bank1, bank2, bank3, bank4, bank5, bank6, bank7, bank8, bank9, bank10 };
 
 Bank& getBankForIndex(int i) {
-  if (i < 0) i = 0;
-  if (i >= programsPerBank) i = (programsPerBank - 1);
-  return banks[i];
+	if (i < 0)
+		i = 0;
+	if (i >= programsPerBank)
+		i = (programsPerBank - 1);
+	return banks[i];
 }

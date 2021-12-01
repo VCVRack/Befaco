@@ -8,7 +8,7 @@ class arrayOnTheRocks: public NoisePlethoraPlugin {
 public:
 
 	arrayOnTheRocks()
-		// : patchCord1(waveform1, 0, waveformMod1, 0)
+	// : patchCord1(waveform1, 0, waveformMod1, 0)
 	{}
 	~arrayOnTheRocks() override {}
 
@@ -69,20 +69,13 @@ public:
 		waveform1.amplitude(knob_2);
 	}
 
-	float processGraph(float sampleTime) override {
-		if (w1.empty()) {
-			waveform1.update(&waveformBlock);
-			waveformMod1.update(&waveformBlock, nullptr, &waveformModBlock);
+	void processGraphAsBlock(TeensyBuffer& blockBuffer) override {
+		waveform1.update(&waveformBlock);
+		waveformMod1.update(&waveformBlock, nullptr, &waveformModBlock);
 
-			w1.pushBuffer(waveformModBlock.data, AUDIO_BLOCK_SAMPLES);
-			w2.pushBuffer(waveformBlock.data, AUDIO_BLOCK_SAMPLES);
-
-		}
-		
-		altOutput = int16_to_float_5v(w2.shift()) / 5.f;;
-		return int16_to_float_5v(w1.shift()) / 5.f;
+		blockBuffer.pushBuffer(waveformModBlock.data, AUDIO_BLOCK_SAMPLES);
 	}
-	
+
 	AudioStream& getStream() override {
 		return waveformMod1;
 	}
@@ -92,7 +85,6 @@ public:
 
 private:
 
-	TeensyBuffer w1, w2;
 	audio_block_t waveformBlock, waveformModBlock;
 
 	// GUItool: begin automatically generated code

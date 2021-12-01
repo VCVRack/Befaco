@@ -27,11 +27,10 @@
 #include "effect_multiply.h"
 
 
-void AudioEffectMultiply::update(const audio_block_t *blocka, const audio_block_t *blockb, audio_block_t *blockout)
-{
-	
-	const int16_t *pa, *pb, *end;
-	int16_t *out = blockout->data;
+void AudioEffectMultiply::update(const audio_block_t* blocka, const audio_block_t* blockb, audio_block_t* blockout) {
+
+	const int16_t* pa, *pb, *end;
+	int16_t* out = blockout->data;
 
 	if (!blocka || ! blockb || !blockout) {
 		return;
@@ -40,9 +39,9 @@ void AudioEffectMultiply::update(const audio_block_t *blocka, const audio_block_
 	pa = (blocka->data);
 	pb = (blockb->data);
 	end = pa + AUDIO_BLOCK_SAMPLES;
-	
-	while (pa < end) {		
-	 	*out++ = (int16_t) signed_saturate_rshift(int32_t (*pa++) * int32_t (*pb++), 16, 15);
+
+	while (pa < end) {
+		*out++ = (int16_t) signed_saturate_rshift(int32_t (*pa++) * int32_t (*pb++), 16, 15);
 	}
 
 }

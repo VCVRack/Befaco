@@ -25,39 +25,24 @@ public:
 	}
 
 	void process(float k1, float k2) override {
-		
+
 		float knob_1 = k1;
 		float knob_2 = k2;
 		(void) knob_2;
-		
+
 		float pitch1 = pow(knob_1, 2);
 		// float pitch2 = pow(knob_2, 2);
 
 		waveform1.frequency(50 + (pitch1 * 5000));
 	}
 
-	float processGraph(float sampleTime) override {
+	void processGraphAsBlock(TeensyBuffer& blockBuffer) override {
 
+		waveform1.update(&output1);
+		filter1.update(&output1, nullptr, &filterOutLP, &filterOutBP, &filterOutHP);
 
-
-		if (w1.empty()) {
-			// waveformMod1
-			waveform1.update(&output1);
-			w1.pushBuffer(output1.data, AUDIO_BLOCK_SAMPLES);
-
-			//
-			filter1.update(&output1, nullptr, &filterOutLP, &filterOutBP, &filterOutHP);
-			w2.pushBuffer(filterOutBP.data, AUDIO_BLOCK_SAMPLES);
-		}
-
-		float waveformOut = int16_to_float_5v(w1.shift()) / 5.f ;
-		float filterOut = int16_to_float_5v(w2.shift()) / 5.f;
-
-		altOutput = waveformOut;
-
-		return filterOut;
+		blockBuffer.pushBuffer(filterOutBP.data, AUDIO_BLOCK_SAMPLES);
 	}
-
 
 	AudioStream& getStream() override {
 		return filter1;
@@ -69,8 +54,6 @@ public:
 private:
 	audio_block_t output1 = {};
 	audio_block_t filterOutLP, filterOutBP, filterOutHP;
-
-	TeensyBuffer w1, w2;
 
 
 	AudioSynthWaveform       waveform1;      //xy=829.0908737182617,499.54540252685547

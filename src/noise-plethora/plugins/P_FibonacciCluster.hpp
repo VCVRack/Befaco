@@ -72,13 +72,25 @@ public:
 		mixer5.gain(2, 1);
 		mixer5.gain(3, 1);
 
-		WaveformType masterWaveform = WAVEFORM_SAWTOOTH;
+		int masterWaveform = WAVEFORM_SAWTOOTH;
 		float masterVolume = 0.2;
 
-		waveform4_1.begin(masterVolume, simd::float_4(794, 647, 524, 444), masterWaveform);
-		waveform4_2.begin(masterVolume, simd::float_4(368, 283, 283, 283), masterWaveform);
-		waveform4_3.begin(masterVolume, simd::float_4(283, 283, 283, 283), masterWaveform);
-		waveform4_4.begin(masterVolume, simd::float_4(283, 283, 283, 283), masterWaveform);
+		waveform1.begin(masterVolume, 794, masterWaveform);
+		waveform2.begin(masterVolume, 647, masterWaveform);
+		waveform3.begin(masterVolume, 524, masterWaveform);
+		waveform4.begin(masterVolume, 444, masterWaveform);
+		waveform5.begin(masterVolume, 368, masterWaveform);
+		waveform6.begin(masterVolume, 283, masterWaveform);
+		waveform7.begin(masterVolume, 283, masterWaveform);
+		waveform8.begin(masterVolume, 283, masterWaveform);
+		waveform9.begin(masterVolume, 283, masterWaveform);
+		waveform10.begin(masterVolume, 283, masterWaveform);
+		waveform11.begin(masterVolume, 283, masterWaveform);
+		waveform12.begin(masterVolume, 283, masterWaveform);
+		waveform13.begin(masterVolume, 283, masterWaveform);
+		waveform14.begin(masterVolume, 283, masterWaveform);
+		waveform15.begin(masterVolume, 283, masterWaveform);
+		waveform16.begin(masterVolume, 283, masterWaveform);
 	}
 
 	void process(float k1, float k2) override {
@@ -106,23 +118,54 @@ public:
 		float f15 = f13 + f14 * spread;
 		float f16 = f14 + f15 * spread;
 
-		waveform4_1.frequency(simd::float_4(f1, f2, f3, f4));
-		waveform4_2.frequency(simd::float_4(f5, f6, f7, f8));
-		waveform4_3.frequency(simd::float_4(f9, f10, f11, f12));
-		waveform4_4.frequency(simd::float_4(f13, f14, f15, f16));
+		waveform1.frequency(f1);
+		waveform2.frequency(f2);
+		waveform3.frequency(f3);
+		waveform4.frequency(f4);
+		waveform5.frequency(f5);
+		waveform6.frequency(f6);
+		waveform7.frequency(f7);
+		waveform8.frequency(f8);
+		waveform9.frequency(f9);
+		waveform10.frequency(f10);
+		waveform11.frequency(f11);
+		waveform12.frequency(f12);
+		waveform13.frequency(f13);
+		waveform14.frequency(f14);
+		waveform15.frequency(f15);
+		waveform16.frequency(f16);
 	}
 
-	float processGraph(float sampleTime) override {
-		float noise = noise1.process();
+	void processGraphAsBlock(TeensyBuffer& blockBuffer) override {
 
-		float mix1 = mixer1.process(waveform4_1.process(sampleTime, noise));
-		float mix2 = mixer2.process(waveform4_2.process(sampleTime, noise));
-		float mix3 = mixer3.process(waveform4_3.process(sampleTime, noise));
-		float mix4 = mixer4.process(waveform4_4.process(sampleTime, noise));
+		noise1.update(&noiseOut);
 
-		altOutput = noise;
+		// FM from single noise source
+		waveform1.update(&noiseOut, nullptr, &waveformOut[0]);
+		waveform2.update(&noiseOut, nullptr, &waveformOut[1]);
+		waveform3.update(&noiseOut, nullptr, &waveformOut[2]);
+		waveform4.update(&noiseOut, nullptr, &waveformOut[3]);
+		waveform5.update(&noiseOut, nullptr, &waveformOut[4]);
+		waveform6.update(&noiseOut, nullptr, &waveformOut[5]);
+		waveform7.update(&noiseOut, nullptr, &waveformOut[6]);
+		waveform8.update(&noiseOut, nullptr, &waveformOut[7]);
+		waveform9.update(&noiseOut, nullptr, &waveformOut[8]);
+		waveform10.update(&noiseOut, nullptr, &waveformOut[9]);
+		waveform11.update(&noiseOut, nullptr, &waveformOut[10]);
+		waveform12.update(&noiseOut, nullptr, &waveformOut[11]);
+		waveform13.update(&noiseOut, nullptr, &waveformOut[12]);
+		waveform14.update(&noiseOut, nullptr, &waveformOut[13]);
+		waveform15.update(&noiseOut, nullptr, &waveformOut[14]);
+		waveform16.update(&noiseOut, nullptr, &waveformOut[15]);
 
-		return mixer5.process(mix1, mix2, mix3, mix4);
+		mixer1.update(&waveformOut[0], &waveformOut[1], &waveformOut[2], &waveformOut[3], &mixerOut[0]);
+		mixer2.update(&waveformOut[4], &waveformOut[5], &waveformOut[6], &waveformOut[7], &mixerOut[1]);
+		mixer3.update(&waveformOut[8], &waveformOut[9], &waveformOut[10], &waveformOut[11], &mixerOut[2]);
+		mixer4.update(&waveformOut[12], &waveformOut[13], &waveformOut[14], &waveformOut[15], &mixerOut[3]);
+
+		mixer5.update(&mixerOut[0], &mixerOut[1], &mixerOut[2], &mixerOut[3], &mixerOut[4]);
+
+		blockBuffer.pushBuffer(mixerOut[4].data, AUDIO_BLOCK_SAMPLES);
 	}
 
 	AudioStream& getStream() override {
@@ -134,20 +177,31 @@ public:
 
 private:
 
+	audio_block_t noiseOut, waveformOut[16] = {}, mixerOut[5] = {};
 
-	AudioSynthNoiseWhiteFloat     noise1;         //xy=296.75,791.75
+	AudioSynthNoiseWhite     noise1;         //xy=306.20001220703125,530
+	AudioSynthWaveformModulated waveform16;     //xy=591.2000122070312,906
+	AudioSynthWaveformModulated waveform14;     //xy=593.2000122070312,801
+	AudioSynthWaveformModulated waveform15;     //xy=593.2000122070312,846
+	AudioSynthWaveformModulated waveform13;     //xy=594.2000122070312,759
+	AudioSynthWaveformModulated waveform8;      //xy=601.2000122070312,486
+	AudioSynthWaveformModulated waveform6;      //xy=603.2000122070312,381
+	AudioSynthWaveformModulated waveform7;      //xy=603.2000122070312,426
+	AudioSynthWaveformModulated waveform12;     //xy=602.2000122070312,697
+	AudioSynthWaveformModulated waveform5;      //xy=604.2000122070312,339
+	AudioSynthWaveformModulated waveform10;     //xy=604.2000122070312,592
+	AudioSynthWaveformModulated waveform11;     //xy=604.2000122070312,637
+	AudioSynthWaveformModulated waveform9;      //xy=605.2000122070312,550
+	AudioSynthWaveformModulated waveform4;      //xy=609.2000122070312,271
+	AudioSynthWaveformModulated waveform2;      //xy=611.2000122070312,166
+	AudioSynthWaveformModulated waveform3;      //xy=611.2000122070312,211
+	AudioSynthWaveformModulated waveform1;      //xy=612.2000122070312,123
+	AudioMixer4              mixer4;         //xy=811.2000122070312,850
+	AudioMixer4              mixer3;         //xy=822.2000122070312,641
+	AudioMixer4              mixer2;         //xy=828.2000122070312,430
+	AudioMixer4              mixer1;         //xy=829.2000122070312,215
+	AudioMixer4              mixer5;         //xy=1076.2000122070312,427
 
-	AudioSynthWaveformModulatedFloat4 waveform4_1;
-	AudioSynthWaveformModulatedFloat4 waveform4_2;
-	AudioSynthWaveformModulatedFloat4 waveform4_3;
-	AudioSynthWaveformModulatedFloat4 waveform4_4;
-	AudioMixer4Float              mixer4; //xy=801.75,1111.25
-	AudioMixer4Float              mixer3; //xy=812.75,902.25
-	AudioMixer4Float              mixer2; //xy=818.75,691.25
-	AudioMixer4Float              mixer1;         //xy=819.75,476
-	AudioMixer4Float              mixer5;         //xy=1066.75,688
-
-	// AudioSynthNoiseWhite     noise1;         //xy=296.75,791.75
 	// AudioSynthWaveformModulated waveform16; //xy=581.75,1167.5
 	// AudioSynthWaveformModulated waveform14; //xy=583.75,1062.5
 	// AudioSynthWaveformModulated waveform15; //xy=583.75,1107.5

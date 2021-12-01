@@ -28,26 +28,29 @@
 
 #include "audio_core.hpp"
 
-class AudioSynthWaveformPWM : public AudioStream
-{
+class AudioSynthWaveformPWM : public AudioStream {
 public:
 	AudioSynthWaveformPWM() : AudioStream(1), magnitude(0), elapsed(0) {}
 	void frequency(float freq) {
-		
-		if (freq < 1.0) freq = 1.0;
-		else if (freq > AUDIO_SAMPLE_RATE_EXACT/4.0f) freq = AUDIO_SAMPLE_RATE_EXACT/4.0f;
+
+		if (freq < 1.0)
+			freq = 1.0;
+		else if (freq > AUDIO_SAMPLE_RATE_EXACT / 4.0f)
+			freq = AUDIO_SAMPLE_RATE_EXACT / 4.0f;
 		//phase_increment = freq * (4294967296.0f / AUDIO_SAMPLE_RATE_EXACT);
 		duration = (APP->engine->getSampleRate() * 65536.0f + freq) / (freq * 2.0f);
 	}
 	void amplitude(float n) {
-		if (n < 0.0f) n = 0;
-		else if (n > 1.0f) n = 1.0f;
+		if (n < 0.0f)
+			n = 0;
+		else if (n > 1.0f)
+			n = 1.0f;
 		magnitude = n * 32767.0f;
 	}
-	virtual void update(const audio_block_t *modinput, audio_block_t *block);
+	virtual void update(const audio_block_t* modinput, audio_block_t* block);
 private:
 	uint32_t duration; // samples per half cycle (when 50% duty) * 65536
-	audio_block_t *inputQueueArray[1];
+	audio_block_t* inputQueueArray[1];
 	int32_t magnitude;
 	uint32_t elapsed;
 };

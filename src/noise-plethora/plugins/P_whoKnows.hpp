@@ -82,42 +82,27 @@ public:
 		filter3.octaveControl(octaves);
 		filter4.octaveControl(octaves);
 
-
-		/*
-		Serial.print(octaves);
-		Serial.println();*/
-
 	}
 
-	float processGraph(float sampleTime) override {
+	void processGraphAsBlock(TeensyBuffer& blockBuffer) override {
 
-		if (w1.empty()) {
-			// waveform to filter
-			waveform1.update(&waveformOut);
+		// waveform to filter
+		waveform1.update(&waveformOut);
 
-			waveformMod1.update(nullptr, nullptr, &waveformModOut[0]);
-			waveformMod2.update(nullptr, nullptr, &waveformModOut[1]);
-			waveformMod3.update(nullptr, nullptr, &waveformModOut[2]);
-			waveformMod4.update(nullptr, nullptr, &waveformModOut[3]);
+		waveformMod1.update(nullptr, nullptr, &waveformModOut[0]);
+		waveformMod2.update(nullptr, nullptr, &waveformModOut[1]);
+		waveformMod3.update(nullptr, nullptr, &waveformModOut[2]);
+		waveformMod4.update(nullptr, nullptr, &waveformModOut[3]);
 
-			filter1.update(&waveformOut, &waveformModOut[0], &filterOutLP[0], &filterOutBP[0], &filterOutHP[0]);
-			filter2.update(&waveformOut, &waveformModOut[1], &filterOutLP[1], &filterOutBP[1], &filterOutHP[1]);
-			filter3.update(&waveformOut, &waveformModOut[2], &filterOutLP[2], &filterOutBP[2], &filterOutHP[2]);
-			filter4.update(&waveformOut, &waveformModOut[3], &filterOutLP[3], &filterOutBP[3], &filterOutHP[3]);
+		filter1.update(&waveformOut, &waveformModOut[0], &filterOutLP[0], &filterOutBP[0], &filterOutHP[0]);
+		filter2.update(&waveformOut, &waveformModOut[1], &filterOutLP[1], &filterOutBP[1], &filterOutHP[1]);
+		filter3.update(&waveformOut, &waveformModOut[2], &filterOutLP[2], &filterOutBP[2], &filterOutHP[2]);
+		filter4.update(&waveformOut, &waveformModOut[3], &filterOutLP[3], &filterOutBP[3], &filterOutHP[3]);
 
-			// sum up
-			mixer1.update(&filterOutBP[0], &filterOutBP[1], &filterOutBP[2], &filterOutBP[3], &mixerOut);
-			
-			w1.pushBuffer(mixerOut.data, AUDIO_BLOCK_SAMPLES);
-			w2.pushBuffer(filterOutBP[3].data, AUDIO_BLOCK_SAMPLES);
-		}
+		// sum up
+		mixer1.update(&filterOutBP[0], &filterOutBP[1], &filterOutBP[2], &filterOutBP[3], &mixerOut);
 
-		float mixerOut = int16_to_float_5v(w1.shift()) / 5.f ;
-		float filter1Out = int16_to_float_5v(w2.shift()) / 5.f;
-
-		altOutput = filter1Out;
-
-		return mixerOut;
+		blockBuffer.pushBuffer(mixerOut.data, AUDIO_BLOCK_SAMPLES);
 	}
 
 
@@ -133,7 +118,6 @@ private:
 
 	audio_block_t filterOutLP[4], filterOutBP[4], filterOutHP[4], waveformModOut[4], waveformOut, mixerOut;
 
-	TeensyBuffer w1, w2;
 
 	// GUItool: begin automatically generated code
 	AudioSynthWaveform       waveform1;      //xy=283,566

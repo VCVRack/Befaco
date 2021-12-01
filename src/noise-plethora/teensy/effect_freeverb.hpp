@@ -3,23 +3,23 @@
 // cleaner sat16 by http://www.moseleyinstruments.com/
 __attribute__((unused))
 static int16_t sat16(int32_t n, int rshift) {
-    // we should always round towards 0
-    // to avoid recirculating round-off noise
-    //
-    // a 2s complement positive number is always
-    // rounded down, so we only need to take
-    // care of negative numbers
-    if (n < 0) {
-        n = n + (~(0xFFFFFFFFUL << rshift));
-    }
-    n = n >> rshift;
-    if (n > 32767) {
-        return 32767;
-    }
-    if (n < -32768) {
-        return -32768;
-    }
-    return n;
+	// we should always round towards 0
+	// to avoid recirculating round-off noise
+	//
+	// a 2s complement positive number is always
+	// rounded down, so we only need to take
+	// care of negative numbers
+	if (n < 0) {
+		n = n + (~(0xFFFFFFFFUL << rshift));
+	}
+	n = n >> rshift;
+	if (n > 32767) {
+		return 32767;
+	}
+	if (n < -32768) {
+		return -32768;
+	}
+	return n;
 }
 
 

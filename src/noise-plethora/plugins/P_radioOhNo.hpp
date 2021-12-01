@@ -50,27 +50,19 @@ public:
 
 	}
 
-	float processGraph(float sampleTime) override {
+	void processGraphAsBlock(TeensyBuffer& blockBuffer) override {
+		dc1.update(&dcPrevious);
 
-		if (buffer.empty()) {
+		waveformMod2.update(&waveformModPrevious[1], &dcPrevious, &waveformModPrevious[2]);
+		waveformMod1.update(&waveformModPrevious[2], &dcPrevious, &waveformModPrevious[1]);
 
-			dc1.update(&dcPrevious);
+		waveformMod3.update(&waveformModPrevious[4], &dcPrevious, &waveformModPrevious[3]);
+		waveformMod4.update(&waveformModPrevious[3], &dcPrevious, &waveformModPrevious[4]);
 
-			waveformMod2.update(&waveformModPrevious[1], &dcPrevious, &waveformModPrevious[2]);
-			waveformMod1.update(&waveformModPrevious[2], &dcPrevious, &waveformModPrevious[1]);
+		mixer1.update(&waveformModPrevious[1], &waveformModPrevious[3], nullptr, nullptr, &mixerOut);
 
-			waveformMod3.update(&waveformModPrevious[4], &dcPrevious, &waveformModPrevious[3]);
-			waveformMod4.update(&waveformModPrevious[3], &dcPrevious, &waveformModPrevious[4]);
+		blockBuffer.pushBuffer(mixerOut.data, AUDIO_BLOCK_SAMPLES);
 
-			mixer1.update(&waveformModPrevious[1], &waveformModPrevious[3], nullptr, nullptr, &mixerOut);
-
-			bufferAlt.pushBuffer(waveformModPrevious[3].data, AUDIO_BLOCK_SAMPLES);
-			buffer.pushBuffer(mixerOut.data, AUDIO_BLOCK_SAMPLES);
-		}
-
-		altOutput = int16_to_float_5v(bufferAlt.shift()) / 5.f;;
-
-		return int16_to_float_5v(buffer.shift()) / 5.f;;
 	}
 
 	AudioStream& getStream() override {
@@ -82,7 +74,6 @@ public:
 
 private:
 
-	TeensyBuffer buffer, bufferAlt;
 	audio_block_t waveformModPrevious[5];
 	audio_block_t dcPrevious;
 	audio_block_t mixerOut;

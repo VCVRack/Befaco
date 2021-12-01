@@ -30,22 +30,23 @@
 // Park-Miller-Carta Pseudo-Random Number Generator
 // http://www.firstpr.com.au/dsp/rand31/
 
-void AudioSynthNoiseWhite::update(audio_block_t *block)
-{	
-	uint32_t *p, *end;
+void AudioSynthNoiseWhite::update(audio_block_t* block) {
+	uint32_t* p, *end;
 	int32_t n1, n2, gain;
 	uint32_t lo, hi;
 
 	gain = level;
-	if (gain == 0) return;
-	
-	if (!block) return;
-	p = (uint32_t *)(block->data);
-	end = p + AUDIO_BLOCK_SAMPLES/2;
+	if (gain == 0)
+		return;
+
+	if (!block)
+		return;
+	p = (uint32_t*)(block->data);
+	end = p + AUDIO_BLOCK_SAMPLES / 2;
 	lo = seed;
 	do {
 		uint32_t val1;
-		
+
 		hi = 16807 * (lo >> 16);
 		lo = 16807 * (lo & 0xFFFF);
 		lo += (hi & 0x7FFF) << 16;

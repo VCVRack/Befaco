@@ -67,28 +67,20 @@ public:
 
 	}
 
-	float processGraph(float sampleTime) override {
+	void processGraphAsBlock(TeensyBuffer& blockBuffer) override {
+		// NOTE: buffer is zero indexed, waveformMod names are not!!
+		// NOTE: each waveform is modulated by previous
+		waveformMod3.update(&waveformModOut[1], nullptr, &waveformModOut[2]);
+		waveformMod1.update(&waveformModOut[3], nullptr, &waveformModOut[0]);
+		waveformMod4.update(&waveformModOut[2], nullptr, &waveformModOut[3]);
+		waveformMod2.update(&waveformModOut[0], nullptr, &waveformModOut[1]);
 
-		if (buffer.empty()) {
+		// multiply
+		multiply1.update(&waveformModOut[0], &waveformModOut[1], &multiplyOut[0]);
+		multiply2.update(&waveformModOut[2], &waveformModOut[3], &multiplyOut[1]);
+		multiply3.update(&multiplyOut[0], &multiplyOut[1], &multiplyOut[2]);
 
-			// NOTE: buffer is zero indexed, waveformMod names are not!!
-			// NOTE: each waveform is modulated by previous
-			waveformMod3.update(&waveformModOut[1], nullptr, &waveformModOut[2]);
-			waveformMod1.update(&waveformModOut[3], nullptr, &waveformModOut[0]);
-			waveformMod4.update(&waveformModOut[2], nullptr, &waveformModOut[3]);
-			waveformMod2.update(&waveformModOut[0], nullptr, &waveformModOut[1]);
-
-			// multiply
-			multiply1.update(&waveformModOut[0], &waveformModOut[1], &multiplyOut[0]);
-			multiply2.update(&waveformModOut[2], &waveformModOut[3], &multiplyOut[1]);
-			multiply3.update(&multiplyOut[0], &multiplyOut[1], &multiplyOut[2]);
-
-			buffer.pushBuffer(multiplyOut[2].data, AUDIO_BLOCK_SAMPLES);
-			bufferAlt.pushBuffer(waveformModOut[0].data, AUDIO_BLOCK_SAMPLES);
-		}
-
-		altOutput = int16_to_float_5v(bufferAlt.shift()) / 5.f;
-		return int16_to_float_5v(buffer.shift()) / 5.f;;
+		blockBuffer.pushBuffer(multiplyOut[2].data, AUDIO_BLOCK_SAMPLES);
 	}
 
 	AudioStream& getStream() override {
@@ -100,7 +92,6 @@ public:
 
 private:
 
-	TeensyBuffer buffer, bufferAlt;
 	audio_block_t waveformModOut[4] = {}, multiplyOut[3] = {};
 
 	AudioSynthWaveformModulated waveformMod3;   //xy=287.99999618530273,420

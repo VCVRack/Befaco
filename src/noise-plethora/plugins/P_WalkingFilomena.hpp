@@ -210,40 +210,32 @@ public:
 
 	}
 
-	float processGraph(float sampleTime) override {
+	void processGraphAsBlock(TeensyBuffer& blockBuffer) override {
 
-		if (buffer.empty()) {
-			waveform1.update(&waveformBlock[0]);
-			waveform2.update(&waveformBlock[1]);
-			waveform3.update(&waveformBlock[2]);
-			waveform4.update(&waveformBlock[3]);
-			waveform5.update(&waveformBlock[4]);
-			waveform6.update(&waveformBlock[5]);
-			waveform7.update(&waveformBlock[6]);
-			waveform8.update(&waveformBlock[7]);
-			waveform9.update(&waveformBlock[8]);
-			waveform10.update(&waveformBlock[9]);
-			waveform11.update(&waveformBlock[10]);
-			waveform12.update(&waveformBlock[11]);
-			waveform13.update(&waveformBlock[12]);
-			waveform14.update(&waveformBlock[13]);
-			waveform15.update(&waveformBlock[14]);
-			waveform16.update(&waveformBlock[15]);
+		waveform1.update(&waveformBlock[0]);
+		waveform2.update(&waveformBlock[1]);
+		waveform3.update(&waveformBlock[2]);
+		waveform4.update(&waveformBlock[3]);
+		waveform5.update(&waveformBlock[4]);
+		waveform6.update(&waveformBlock[5]);
+		waveform7.update(&waveformBlock[6]);
+		waveform8.update(&waveformBlock[7]);
+		waveform9.update(&waveformBlock[8]);
+		waveform10.update(&waveformBlock[9]);
+		waveform11.update(&waveformBlock[10]);
+		waveform12.update(&waveformBlock[11]);
+		waveform13.update(&waveformBlock[12]);
+		waveform14.update(&waveformBlock[13]);
+		waveform15.update(&waveformBlock[14]);
+		waveform16.update(&waveformBlock[15]);
 
-			mixer1.update(&waveformBlock[0], &waveformBlock[1], &waveformBlock[2], &waveformBlock[3], &mixBlock[0]);
-			mixer2.update(&waveformBlock[4], &waveformBlock[5], &waveformBlock[6], &waveformBlock[7], &mixBlock[1]);
-			mixer3.update(&waveformBlock[8], &waveformBlock[9], &waveformBlock[10], &waveformBlock[11], &mixBlock[2]);
-			mixer4.update(&waveformBlock[12], &waveformBlock[13], &waveformBlock[14], &waveformBlock[15], &mixBlock[3]);
+		mixer1.update(&waveformBlock[0], &waveformBlock[1], &waveformBlock[2], &waveformBlock[3], &mixBlock[0]);
+		mixer2.update(&waveformBlock[4], &waveformBlock[5], &waveformBlock[6], &waveformBlock[7], &mixBlock[1]);
+		mixer3.update(&waveformBlock[8], &waveformBlock[9], &waveformBlock[10], &waveformBlock[11], &mixBlock[2]);
+		mixer4.update(&waveformBlock[12], &waveformBlock[13], &waveformBlock[14], &waveformBlock[15], &mixBlock[3]);
 
-			mixer5.update(&mixBlock[0], &mixBlock[1], &mixBlock[2], &mixBlock[3], &mixBlock[4]);
-			buffer.pushBuffer(mixBlock[4].data, AUDIO_BLOCK_SAMPLES);
-			bufferAlt.pushBuffer(waveformBlock[0].data, AUDIO_BLOCK_SAMPLES);
-			
-		}
-
-		altOutput = int16_to_float_5v(bufferAlt.shift()) / 5.f;
-
-		return int16_to_float_5v(buffer.shift()) / 5.f;;
+		mixer5.update(&mixBlock[0], &mixBlock[1], &mixBlock[2], &mixBlock[3], &mixBlock[4]);
+		blockBuffer.pushBuffer(mixBlock[4].data, AUDIO_BLOCK_SAMPLES);
 	}
 
 	AudioStream& getStream() override {
@@ -256,7 +248,6 @@ public:
 private:
 
 	audio_block_t waveformBlock[16], mixBlock[5];
-	TeensyBuffer buffer, bufferAlt;
 
 	/* will be filled in */
 	// GUItool: begin automatically generated code

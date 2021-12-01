@@ -56,12 +56,12 @@ public:
 
 		//blocka = receiveWritable(0);
 		//blockb = receiveReadOnly(1);
-		if (!blocka || !blockb) {			
+		if (!blocka || !blockb) {
 			return;
 		}
 		pa = (uint32_t*)(blocka->data);
 		pb = (uint32_t*)(blockb->data);
-		pout = (uint32_t *)(output->data);
+		pout = (uint32_t*)(output->data);
 		end = pa + AUDIO_BLOCK_SAMPLES / 2;
 
 		while (pa < end) {

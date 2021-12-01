@@ -54,7 +54,7 @@ public:
 			return;
 		beginFreeze_int(grain_length * (APP->engine->getSampleRate() * 0.001f) + 0.5f);
 	}
-	
+
 	void beginPitchShift(float grain_length) {
 		if (grain_length <= 0.0f)
 			return;
@@ -67,7 +67,7 @@ public:
 	}
 
 	void update(audio_block_t* input_block, audio_block_t* output_block) {
-		
+
 
 		if (sample_bank == NULL) {
 			/* block = receiveReadOnly(0);

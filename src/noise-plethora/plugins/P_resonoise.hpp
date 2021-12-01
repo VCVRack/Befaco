@@ -7,11 +7,11 @@ class resonoise : public NoisePlethoraPlugin {
 public:
 
 	resonoise()
-		// : patchCord1(waveformMod1, sine_fm1)
-		// , patchCord2(noise1, 0, filter1, 0)
-		// , patchCord3(sine_fm1, 0, wavefolder1, 0)
-		// , patchCord4(dc1, 0, wavefolder1, 1)
-		// , patchCord5(wavefolder1, 0, filter1, 1)
+	// : patchCord1(waveformMod1, sine_fm1)
+	// , patchCord2(noise1, 0, filter1, 0)
+	// , patchCord3(sine_fm1, 0, wavefolder1, 0)
+	// , patchCord4(dc1, 0, wavefolder1, 1)
+	// , patchCord5(wavefolder1, 0, filter1, 1)
 	{ }
 
 	~resonoise() override {}
@@ -49,30 +49,19 @@ public:
 
 	}
 
-	
-	float processGraph(float sampleTime) override {
-		
-		if (w1.empty()) {
-			
-			waveformMod1.update(nullptr, nullptr, &waveformMod1Block);
-			sine_fm1.update(&waveformMod1Block, &sineFMBlock);
 
-			dc1.update(&dcBlock);
-			wavefolder1.update(&sineFMBlock, &dcBlock, &wavefolderBlock);
-			
-			noise1.update(&noiseBlock);
-			filter1.update(&noiseBlock, &wavefolderBlock, &filterOutLP, &filterOutBP, &filterOutHP);
+	void processGraphAsBlock(TeensyBuffer& blockBuffer) override {
 
-			w1.pushBuffer(filterOutLP.data, AUDIO_BLOCK_SAMPLES);
-			w2.pushBuffer(wavefolderBlock.data, AUDIO_BLOCK_SAMPLES);
-		}
+		waveformMod1.update(nullptr, nullptr, &waveformMod1Block);
+		sine_fm1.update(&waveformMod1Block, &sineFMBlock);
 
-		float filterOut = int16_to_float_5v(w1.shift()) / 5.f ;
-		float foldOut = int16_to_float_5v(w2.shift()) / 5.f;
+		dc1.update(&dcBlock);
+		wavefolder1.update(&sineFMBlock, &dcBlock, &wavefolderBlock);
 
-		altOutput = foldOut;
+		noise1.update(&noiseBlock);
+		filter1.update(&noiseBlock, &wavefolderBlock, &filterOutLP, &filterOutBP, &filterOutHP);
 
-		return filterOut;
+		blockBuffer.pushBuffer(filterOutLP.data, AUDIO_BLOCK_SAMPLES);
 	}
 
 	AudioStream& getStream() override {
@@ -91,7 +80,6 @@ private:
 	AudioEffectWaveFolder    wavefolder1;    //xy=469.8888854980469,520.1111145019531
 	AudioFilterStateVariable filter1;        //xy=559.8888854980469,410.88891983032227
 
-	TeensyBuffer w1, w2;
 	audio_block_t noiseBlock, waveformMod1Block, sineFMBlock, wavefolderBlock, dcBlock;
 	audio_block_t filterOutLP, filterOutBP, filterOutHP;
 

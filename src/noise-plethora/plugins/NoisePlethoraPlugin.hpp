@@ -9,7 +9,7 @@
 class NoisePlethoraPlugin {
 
 public:
-	NoisePlethoraPlugin() {}
+	NoisePlethoraPlugin() {	}
 	virtual ~NoisePlethoraPlugin() {}
 
 	NoisePlethoraPlugin(const NoisePlethoraPlugin&) = delete;
@@ -18,21 +18,29 @@ public:
 	virtual void init() {};
 	// equivelent to arduino void loop()
 	virtual void process(float k1, float k2) {};
-	// process the audio graph
-	virtual float processGraph(float sampleTime) { return 0.f; };
-	virtual void onSampleRateChange(float sampleTime) { };
+	
+	// called once-per sample, will consume a buffer of length AUDIO_BLOCK_SAMPLES (128)
+	// then request that the buffer be refilled, returns values in range [-1, 1]
+	float processGraph() {
 
-	float getAlternativeOutput() { return altOutput; }
+		if (blockBuffer.empty()) {
+			processGraphAsBlock(blockBuffer);
+		}
 
+		return int16_to_float_1v(blockBuffer.shift());
+	}
 
 	virtual AudioStream& getStream();
 	virtual unsigned char getPort();
 
 protected:
-	// just for DEBUG, remove!
-	float altOutput = 0.f;
+
+	// subclass should process the audio graph and fill the supplied buffer
+	virtual void processGraphAsBlock(TeensyBuffer& blockBuffer);
+
+	TeensyBuffer blockBuffer;
 };
 
 #define REGISTER_PLUGIN(NAME) \
-    static Registrar<NAME> NAME ##_reg(#NAME)
+	static Registrar<NAME> NAME ##_reg(#NAME)
 

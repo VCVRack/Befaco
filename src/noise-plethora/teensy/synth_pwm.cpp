@@ -28,8 +28,7 @@
 #include "dspinst.h"
 
 
-void AudioSynthWaveformPWM::update(const audio_block_t *modinput, audio_block_t *block)
-{
+void AudioSynthWaveformPWM::update(const audio_block_t* modinput, audio_block_t* block) {
 	uint32_t i;
 	int32_t out;
 
@@ -37,24 +36,27 @@ void AudioSynthWaveformPWM::update(const audio_block_t *modinput, audio_block_t 
 		return;
 	}
 	else if (magnitude == 0) {
-		block->zeroAudioBlock();				
+		block->zeroAudioBlock();
 	}
-	
+
 	if (modinput) {
 		const uint32_t _duration = duration;
 		uint32_t _elapsed = elapsed;
 		int32_t _magnitude = magnitude;
-		for (i=0; i < AUDIO_BLOCK_SAMPLES; i++) {
+		for (i = 0; i < AUDIO_BLOCK_SAMPLES; i++) {
 			_elapsed += 65536;
 			int32_t in = modinput->data[i];
-			if (_magnitude < 0) in = -in;
+			if (_magnitude < 0)
+				in = -in;
 			uint32_t dur = ((uint64_t)(in + 32768) * _duration) >> 15;
 			if (_elapsed < dur) {
 				out = _magnitude;
-			} else {
+			}
+			else {
 				int32_t e = _elapsed - dur;
 				signed_saturate_rshift(e, 17, 0);
-				if (e < 0) e = 0;
+				if (e < 0)
+					e = 0;
 				_elapsed = e;
 				// elapsed must be 0 to 65535
 				// magnitude must be -32767 to +32767
@@ -65,13 +67,15 @@ void AudioSynthWaveformPWM::update(const audio_block_t *modinput, audio_block_t 
 		}
 		elapsed = _elapsed;
 		magnitude = _magnitude;
-		
-	} else {
-		for (i=0; i < AUDIO_BLOCK_SAMPLES; i++) {
+
+	}
+	else {
+		for (i = 0; i < AUDIO_BLOCK_SAMPLES; i++) {
 			elapsed += 65536;
 			if (elapsed < duration) {
 				out = magnitude;
-			} else {
+			}
+			else {
 				elapsed -= duration;
 				// elapsed must be 0 to 65535
 				// magnitude must be -32767 to +32767

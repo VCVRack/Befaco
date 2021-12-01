@@ -42,7 +42,7 @@ public:
 	virtual void update(const audio_block_t* inputBlock, audio_block_t* outputBlock);
 
 private:
-	
+
 	short* l_delayline;
 	int delay_length;
 	short l_circ_idx;

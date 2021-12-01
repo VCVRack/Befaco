@@ -9,15 +9,15 @@ class Rwalk_SineFMFlange : public NoisePlethoraPlugin {
 public:
 
 	Rwalk_SineFMFlange()
-		// : patchCord1(waveform4, sine_fm3)
-		// , patchCord2(waveform3, sine_fm4)
-		// , patchCord3(waveform2, sine_fm2)
-		// , patchCord4(waveform1, sine_fm1)
-		// , patchCord5(sine_fm3, 0, mixer1, 3)
-		// , patchCord6(sine_fm2, 0, mixer1, 1)
-		// , patchCord7(sine_fm1, 0, mixer1, 0)
-		// , patchCord8(sine_fm4, 0, mixer1, 2)
-		// , patchCord9(mixer1, flange1)
+	// : patchCord1(waveform4, sine_fm3)
+	// , patchCord2(waveform3, sine_fm4)
+	// , patchCord3(waveform2, sine_fm2)
+	// , patchCord4(waveform1, sine_fm1)
+	// , patchCord5(sine_fm3, 0, mixer1, 3)
+	// , patchCord6(sine_fm2, 0, mixer1, 1)
+	// , patchCord7(sine_fm1, 0, mixer1, 0)
+	// , patchCord8(sine_fm4, 0, mixer1, 2)
+	// , patchCord9(mixer1, flange1)
 	{ }
 
 	~Rwalk_SineFMFlange() override {}
@@ -60,12 +60,12 @@ public:
 		// random walk initial conditions
 		for (int i = 0; i < 4; i++) {
 			// velocities: initial conditions in -pi : +pi
-			theta = M_PI * (random::uniform()*(2.0) - 1.0);
+			theta = M_PI * (random::uniform() * (2.0) - 1.0);
 			vx[i] = cos(theta);
 			vy[i] = sin(theta);
 			// positions: random in [0,L] x [0, L]
-			x[i] = random::uniform()*(L);
-			y[i] = random::uniform()*(L);
+			x[i] = random::uniform() * (L);
+			y[i] = random::uniform() * (L);
 		}
 	}
 
@@ -87,7 +87,7 @@ public:
 
 		// loop to "walk" randomly
 		for (int i = 0; i < 4; i++) {
-			theta = M_PI * (random::uniform()*(2.0) - 1.0);
+			theta = M_PI * (random::uniform() * (2.0) - 1.0);
 
 			posx = cos(theta);
 			vx[i] = posx;
@@ -128,30 +128,23 @@ public:
 		waveform4.frequency(x[3]);
 	}
 
-	
-	float processGraph(float sampleTime) override {
-		if (w1.empty()) {
 
-			waveform1.update(&waveformBlock[0]);
-			waveform2.update(&waveformBlock[1]);
-			waveform3.update(&waveformBlock[2]);
-			waveform4.update(&waveformBlock[3]);
-			
-			sine_fm1.update(&waveformBlock[0], &sineFMBlock[0]);
-			sine_fm2.update(&waveformBlock[1], &sineFMBlock[1]);
-			sine_fm3.update(&waveformBlock[2], &sineFMBlock[2]);
-			sine_fm4.update(&waveformBlock[3], &sineFMBlock[3]);
+	void processGraphAsBlock(TeensyBuffer& blockBuffer) override {
 
-			mixer1.update(&sineFMBlock[0], &sineFMBlock[1], &sineFMBlock[2], &sineFMBlock[3], &mixerBlock);
-			flange1.update(&mixerBlock, &flangeBlock);
+		waveform1.update(&waveformBlock[0]);
+		waveform2.update(&waveformBlock[1]);
+		waveform3.update(&waveformBlock[2]);
+		waveform4.update(&waveformBlock[3]);
 
-			w1.pushBuffer(flangeBlock.data, AUDIO_BLOCK_SAMPLES);
-			w2.pushBuffer(mixerBlock.data, AUDIO_BLOCK_SAMPLES);
-		}
+		sine_fm1.update(&waveformBlock[0], &sineFMBlock[0]);
+		sine_fm2.update(&waveformBlock[1], &sineFMBlock[1]);
+		sine_fm3.update(&waveformBlock[2], &sineFMBlock[2]);
+		sine_fm4.update(&waveformBlock[3], &sineFMBlock[3]);
 
-		altOutput = int16_to_float_5v(w2.shift()) / 5.f;
+		mixer1.update(&sineFMBlock[0], &sineFMBlock[1], &sineFMBlock[2], &sineFMBlock[3], &mixerBlock);
+		flange1.update(&mixerBlock, &flangeBlock);
 
-		return int16_to_float_5v(w1.shift()) / 5.f;
+		blockBuffer.pushBuffer(flangeBlock.data, AUDIO_BLOCK_SAMPLES);
 	}
 
 	AudioStream& getStream() override {
@@ -163,7 +156,6 @@ public:
 
 private:
 
-	TeensyBuffer w1, w2;
 	audio_block_t waveformBlock[4], sineFMBlock[4], flangeBlock, mixerBlock;
 
 	AudioSynthWaveform    waveform1;

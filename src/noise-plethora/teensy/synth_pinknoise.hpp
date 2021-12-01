@@ -28,8 +28,7 @@
 
 #include "audio_core.hpp"
 
-class AudioSynthNoisePink : public AudioStream
-{
+class AudioSynthNoisePink : public AudioStream {
 public:
 	AudioSynthNoisePink() : AudioStream(0) {
 		plfsr  = 0x5EED41F5 + instance_cnt++;
@@ -37,10 +36,12 @@ public:
 		pncnt  = 0;
 		pinc   = 0x0CCC;
 		pdec   = 0x0CCC;
-	}	
+	}
 	void amplitude(float n) {
-		if (n < 0.0f) n = 0.0;
-		else if (n > 1.0f) n = 1.0f;
+		if (n < 0.0f)
+			n = 0.0;
+		else if (n > 1.0f)
+			n = 1.0f;
 		level = (int32_t)(n * 65536.0f);
 	}
 	virtual void update(audio_block_t* block);

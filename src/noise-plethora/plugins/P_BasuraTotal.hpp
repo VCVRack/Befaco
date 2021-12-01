@@ -18,7 +18,7 @@ public:
 	dsp::Timer timer;
 
 	void init() override {
-		
+
 		freeverb1.roomsize(0);
 		timer.reset();
 		waveformMod1.begin(1, 500, WAVEFORM_SINE);
@@ -31,7 +31,7 @@ public:
 
 		float pitch1 = pow(knob_1, 2);
 		float pitch2 = pow(knob_2, 2);
-		
+
 		float timeMicros = timer.time * 1000000;
 		if (timeMicros > 100000 * pitch2) { // Changing this value changes the frequency.
 			timer.reset();
@@ -42,28 +42,23 @@ public:
 		}
 	}
 
-	float processGraph(float sampleTime) override {
+	void processGraphAsBlock(TeensyBuffer& blockBuffer) override {
 
-		timer.process(sampleTime);
+		const float blockTime = APP->engine->getSampleTime() * AUDIO_BLOCK_SAMPLES;
+		timer.process(blockTime);
 
-		if (w1.empty() || w2.empty()) {					
+		waveformMod1.update(nullptr, nullptr, &waveformOut);
+		freeverb1.update(&waveformOut, &freeverbOut);
 
-			waveformMod1.update(nullptr, nullptr, &output1);
-			w1.pushBuffer(output1.data, AUDIO_BLOCK_SAMPLES);
-			
-			freeverb1.update(&output1, &output2);
-			w2.pushBuffer(output2.data, AUDIO_BLOCK_SAMPLES);
-		}
-		
-		float waveformMod1Out = int16_to_float_5v(w1.shift()) / 5.f ;
-		float freeverbOut = int16_to_float_5v(w2.shift()) / 5.f;
-
-		altOutput = waveformMod1Out;
-		return freeverbOut;
+		blockBuffer.pushBuffer(freeverbOut.data, AUDIO_BLOCK_SAMPLES);
 	}
 
-	AudioStream& getStream() override { return freeverb1; }
-	unsigned char getPort() override { return 0; }
+	AudioStream& getStream() override {
+		return freeverb1;
+	}
+	unsigned char getPort() override {
+		return 0;
+	}
 
 private:
 
@@ -86,9 +81,7 @@ private:
 		}
 	}
 
-	TeensyBuffer w1, w2; 
-	audio_block_t output1 = {};
-	audio_block_t output2 = {};
+	audio_block_t waveformOut, freeverbOut;
 
 	AudioSynthWaveformModulated waveformMod1;   //xy=216.88888549804688,217.9999988898635
 	AudioEffectFreeverb         freeverb1;      //xy=374.8888854980469,153.88888549804688

@@ -7,11 +7,11 @@ class Rwalk_LFree : public NoisePlethoraPlugin {
 public:
 
 	Rwalk_LFree()
-		// : patchCord1(pwm2, 0, mixer5, 1)
-		// , patchCord2(pwm1, 0, mixer5, 0)
-		// , patchCord3(pwm3, 0, mixer5, 2)
-		// , patchCord4(pwm4, 0, mixer5, 3)
-		// , patchCord5(mixer5, freeverb1)
+	// : patchCord1(pwm2, 0, mixer5, 1)
+	// , patchCord2(pwm1, 0, mixer5, 0)
+	// , patchCord3(pwm3, 0, mixer5, 2)
+	// , patchCord4(pwm4, 0, mixer5, 3)
+	// , patchCord5(mixer5, freeverb1)
 	{ }
 
 	~Rwalk_LFree() override {}
@@ -103,24 +103,17 @@ public:
 		pwm4.frequency(x[3]);
 	}
 
-	float processGraph(float sampleTime) override {
-		if (w1.empty()) {
+	void processGraphAsBlock(TeensyBuffer& blockBuffer) override {
 
-			pwm1.update(nullptr, &pwmBlock[0]);
-			pwm2.update(nullptr, &pwmBlock[1]);
-			pwm3.update(nullptr, &pwmBlock[2]);
-			pwm4.update(nullptr, &pwmBlock[3]);
+		pwm1.update(nullptr, &pwmBlock[0]);
+		pwm2.update(nullptr, &pwmBlock[1]);
+		pwm3.update(nullptr, &pwmBlock[2]);
+		pwm4.update(nullptr, &pwmBlock[3]);
 
-			mixer5.update(&pwmBlock[0], &pwmBlock[1], &pwmBlock[2], &pwmBlock[3], &mixerBlock);
-			freeverb1.update(&mixerBlock, &freeverbBlock);
+		mixer5.update(&pwmBlock[0], &pwmBlock[1], &pwmBlock[2], &pwmBlock[3], &mixerBlock);
+		freeverb1.update(&mixerBlock, &freeverbBlock);
 
-			w1.pushBuffer(freeverbBlock.data, AUDIO_BLOCK_SAMPLES);
-			w2.pushBuffer(mixerBlock.data, AUDIO_BLOCK_SAMPLES);
-		}
-
-		altOutput = int16_to_float_5v(w2.shift()) / 5.f;
-
-		return int16_to_float_5v(w1.shift()) / 5.f;
+		blockBuffer.pushBuffer(freeverbBlock.data, AUDIO_BLOCK_SAMPLES);
 	}
 
 	AudioStream& getStream() override {
@@ -132,7 +125,6 @@ public:
 
 private:
 
-	TeensyBuffer w1, w2;
 	audio_block_t pwmBlock[4], mixerBlock, freeverbBlock;
 
 	/* will be filled in */

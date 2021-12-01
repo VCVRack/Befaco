@@ -41,29 +41,24 @@ public:
 		float pitch1 = std::pow(knob_1, 2);
 
 		waveform1.frequency((pitch1 * 10000));
-		waveform2.frequency((pitch1 * 10000));
-		if (knob_2 > 0.5) {			
-			waveform1.begin((knob_2 > 0.75) ? WAVEFORM_SQUARE : WAVEFORM_SINE);			
-			waveform2.begin((knob_2 > 0.75) ? WAVEFORM_SQUARE : WAVEFORM_SINE);			
-		} else {
-			waveform1.begin((knob_2 > 0.25) ? WAVEFORM_TRIANGLE : WAVEFORM_SAWTOOTH );			
-			waveform2.begin((knob_2 > 0.25) ? WAVEFORM_TRIANGLE : WAVEFORM_SAWTOOTH );			
+		if (knob_2 > 0.5) {
+			waveform1.begin((knob_2 > 0.75) ? WAVEFORM_SQUARE : WAVEFORM_SINE);
 		}
-		
+		else {
+			waveform1.begin((knob_2 > 0.25) ? WAVEFORM_TRIANGLE : WAVEFORM_SAWTOOTH);
+		}
+
 		//waveformMod1.frequency(10+(pitch1*50));
 		//waveformMod2.frequency(10+(knob_2*200));
 		//waveformMod1.frequencyModulation(knob_2*8+3);
 		//DEBUG(string::f("%g %d %g %g", waveform1.frequency, waveform1.tone_type, k1, k2).c_str());
 	}
 
-	float processGraph(float sampleTime) override {
-				
-		// waveformMod1		
-		float output1 = waveform1.process(sampleTime);
-		float output2 = waveform2.process(sampleTime)[0];
+	void processGraphAsBlock(TeensyBuffer& blockBuffer) override {
 
-		altOutput = output2; 			
-		return output1;
+		// waveformMod1
+		waveform1.update(nullptr, nullptr, &waveformOut);
+		blockBuffer.pushBuffer(waveformOut.data, AUDIO_BLOCK_SAMPLES);
 	}
 
 	AudioStream& getStream() override {
@@ -75,9 +70,9 @@ public:
 
 private:
 
+	audio_block_t waveformOut;
 
-	AudioSynthWaveformModulatedFloat waveform1;
-	AudioSynthWaveformModulatedFloat4 waveform2;
+	AudioSynthWaveformModulated waveform1;
 
 	//AudioSynthWaveformModulated waveformMod1;   //xy=334,349
 	//AudioSynthWaveformModulated waveformMod2; //xy=616,284

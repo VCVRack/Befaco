@@ -39,14 +39,13 @@ public:
 
 	}
 
-	float processGraph(float sampleTime) override {
-		float s2 = waveformMod2.process(sampleTime, waveformMod1Previous);
-		float s1 = waveformMod1.process(sampleTime, s2);
-		waveformMod1Previous = s1;
+	void processGraphAsBlock(TeensyBuffer& blockBuffer) override {
+		waveformMod2.update(&waveformModOut[0], nullptr, &waveformModOut[1]);
+		waveformMod1.update(&waveformModOut[1], nullptr, &waveformModOut[0]);
 
-		altOutput = s1;
+		multiply1.update(&waveformModOut[0], &waveformModOut[1], &multiplyOut);
 
-		return multiply1.process(s1, s2);
+		blockBuffer.pushBuffer(multiplyOut.data, AUDIO_BLOCK_SAMPLES);
 	}
 
 	AudioStream& getStream() override {
@@ -57,9 +56,11 @@ public:
 	}
 
 private:
-	AudioSynthWaveformModulatedFloat waveformMod2;   //xy=464,422
-	AudioSynthWaveformModulatedFloat waveformMod1;   //xy=472,319
-	AudioEffectMultiplyFloat      multiply1;      //xy=682,361
+	audio_block_t waveformModOut[2] = {}, multiplyOut;
+
+	AudioSynthWaveformModulated waveformMod2;   //xy=464,422
+	AudioSynthWaveformModulated waveformMod1;   //xy=472,319
+	AudioEffectMultiply      multiply1;      //xy=682,361
 	AudioConnection          patchCord1;
 	AudioConnection          patchCord2;
 	AudioConnection          patchCord3;

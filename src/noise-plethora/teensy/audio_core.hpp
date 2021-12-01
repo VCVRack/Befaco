@@ -142,3 +142,67 @@ inline int32_t random(int32_t howsmall, int32_t howbig) {
 	return random(diff) + howsmall;
 }
 }
+
+
+
+
+class AudioSynthNoiseWhiteFloat : public AudioStream {
+public:
+	AudioSynthNoiseWhiteFloat() : AudioStream(0) { }
+
+	void amplitude(float level) {
+		level_ = level;
+	}
+
+	// uniform on [-1, 1]
+	float process() {
+		return level_ * ((rand31pm_next() / 2147483647.0) * 2.f - 1.f);
+	}
+
+	// uniform on [0, 1]
+	float processNonnegative() {
+		return level_ * (rand31pm_next() / 2147483647.0);
+	}
+
+	long unsigned int rand31pm_next() {
+		double const a = 16807;
+		double const m = 2147483647.0  ;
+
+		return (seed31pm = (long)(fmod((seed31pm * a), m)));
+	}
+
+private:
+	float level_ = 1.0;
+	long unsigned int seed31pm  = 1;
+};
+
+
+class AudioSynthNoiseGritFloat : public AudioStream {
+public:
+	AudioSynthNoiseGritFloat() : AudioStream(0) { }
+
+	void setDensity(float density) {
+		density_ = density;
+	}
+
+	float process(float sampleTime) {
+
+		float threshold = density_ * sampleTime;
+		float scale = threshold > 0.f ? 2.f / threshold : 0.f;
+
+		float z = white.processNonnegative();
+
+		if (z < threshold) {
+			return z * scale - 1.0f;
+		}
+		else {
+			return 0.f;
+		}
+	}
+
+private:
+
+	float density_ = 0.f;
+
+	AudioSynthNoiseWhiteFloat white;
+};
