@@ -210,7 +210,7 @@ public:
 					*bp++ = sample;
 					uint32_t newph = ph + inc;
 					if (newph < ph) {
-						sample = teensy::random(magnitude) - (magnitude >> 1);
+						sample = teensy::random_teensy(magnitude) - (magnitude >> 1);
 					}
 					ph = newph;
 				}
@@ -501,7 +501,7 @@ public:
 				for (i = 0; i < AUDIO_BLOCK_SAMPLES; i++) {
 					ph = phasedata[i];
 					if (ph < priorphase) { // does not work for phase modulation
-						sample = teensy::random(magnitude) - (magnitude >> 1);
+						sample = teensy::random_teensy(magnitude) - (magnitude >> 1);
 					}
 					priorphase = ph;
 					*bp++ = sample;
@@ -526,7 +526,7 @@ public:
 	}
 
 private:
-	int16_t  inputQueueArray[2];
+	
 	uint32_t phase_accumulator;
 	uint32_t phase_increment;
 	uint32_t modulation_factor;

@@ -49,8 +49,7 @@ public:
 	}
 	virtual void update(const audio_block_t* modinput, audio_block_t* block);
 private:
-	uint32_t duration; // samples per half cycle (when 50% duty) * 65536
-	audio_block_t* inputQueueArray[1];
+	uint32_t duration; // samples per half cycle (when 50% duty) * 65536	
 	int32_t magnitude;
 	uint32_t elapsed;
 };

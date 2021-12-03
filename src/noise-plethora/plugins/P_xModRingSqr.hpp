@@ -7,10 +7,10 @@ class xModRingSqr : public NoisePlethoraPlugin {
 public:
 
 	xModRingSqr()
-		: patchCord1(waveformMod2, 0, multiply1, 1),
-		  patchCord2(waveformMod2, 0, waveformMod1, 0),
-		  patchCord3(waveformMod1, 0, multiply1, 0),
-		  patchCord4(waveformMod1, 0, waveformMod2, 0)
+		// : patchCord1(waveformMod2, 0, multiply1, 1),
+		//   patchCord2(waveformMod2, 0, waveformMod1, 0),
+		//   patchCord3(waveformMod1, 0, multiply1, 0),
+		//   patchCord4(waveformMod1, 0, waveformMod2, 0)
 	{ }
 
 	~xModRingSqr() override {}
@@ -61,10 +61,10 @@ private:
 	AudioSynthWaveformModulated waveformMod2;   //xy=464,422
 	AudioSynthWaveformModulated waveformMod1;   //xy=472,319
 	AudioEffectMultiply      multiply1;      //xy=682,361
-	AudioConnection          patchCord1;
-	AudioConnection          patchCord2;
-	AudioConnection          patchCord3;
-	AudioConnection          patchCord4;
+	// AudioConnection          patchCord1;
+	// AudioConnection          patchCord2;
+	// AudioConnection          patchCord3;
+	// AudioConnection          patchCord4;
 
 	float waveformMod1Previous = 0.f;
 

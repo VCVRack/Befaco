@@ -1,9 +1,6 @@
-/* Copyright (c) 2018 John-Michael Reed
- * bleeplabs.com
+/* Wavefolder effect for Teensy Audio library
  *
- * Development of this audio library was funded by PJRC.COM, LLC by sales of
- * Teensy and Audio Adaptor boards.  Please support PJRC's efforts to develop
- * open source software by purchasing Teensy or other PJRC products.
+ * Copyright (c) 2020, Mark Tillotson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,32 +19,31 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- *
- * Combine analog signals with bitwise expressions like XOR.
- * Combining two simple oscillators results in interesting new waveforms,
- * Combining white noise or dynamic incoming audio results in aggressive digital distortion.
  */
 
-#pragma once
+#include "effect_wavefolder.hpp"
 
-#include "audio_core.hpp"
+void AudioEffectWaveFolder::update(const audio_block_t* blocka, const audio_block_t* blockb, audio_block_t* output) {
 
-class AudioEffectDigitalCombine : public AudioStream {
-public:
-	enum combineMode {
-		OR    = 0,
-		XOR   = 1,
-		AND   = 2,
-		MODULO = 3,
-	};
-	AudioEffectDigitalCombine() : AudioStream(2), mode_sel(OR) { }
-	void setCombineMode(int mode_in) {
-		if (mode_in > 3) {
-			mode_in = 3;
-		}
-		mode_sel = mode_in;
+	if (!blocka || !blockb || !output) {
+		return;
 	}
-	virtual void update(const audio_block_t* blocka, const audio_block_t* blockb, audio_block_t* output);
-private:
-	short mode_sel;
-};
+
+	const int16_t* pa = blocka->data ;
+	const int16_t* pb = blockb->data ;
+	int16_t* po = output->data ;
+
+	for (int i = 0 ; i < AUDIO_BLOCK_SAMPLES ; i++) {
+		int32_t a12 = pa[i];
+		int32_t b12 = pb[i];
+
+		// scale upto 16 times input, so that can fold upto 16 times in each polarity
+		int32_t s1 = (a12 * b12 + 0x400) >> 11 ;
+		// if in a band where the sense needs to be reverse, detect this
+		bool flip1 = ((s1 + 0x8000) >> 16) & 1 ;
+		// reverse and truncate to 16 bits
+		s1 = 0xFFFF & (flip1 ? ~s1 : +s1) ;
+
+		po[i] = s1;
+	}
+}

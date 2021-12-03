@@ -28,30 +28,5 @@
 class AudioEffectWaveFolder : public AudioStream {
 public:
 	AudioEffectWaveFolder() : AudioStream(2) {}
-
-	void update(const audio_block_t* blocka, const audio_block_t* blockb, audio_block_t* output) {
-
-		if (!blocka || !blockb || !output) {
-			return;
-		}
-
-		const int16_t* pa = blocka->data ;
-		const int16_t* pb = blockb->data ;
-		int16_t* po = output->data ;
-
-		for (int i = 0 ; i < AUDIO_BLOCK_SAMPLES ; i++) {
-			int32_t a12 = pa[i];
-			int32_t b12 = pb[i];
-
-			// scale upto 16 times input, so that can fold upto 16 times in each polarity
-			int32_t s1 = (a12 * b12 + 0x400) >> 11 ;
-			// if in a band where the sense needs to be reverse, detect this
-			bool flip1 = ((s1 + 0x8000) >> 16) & 1 ;
-			// reverse and truncate to 16 bits
-			s1 = 0xFFFF & (flip1 ? ~s1 : +s1) ;
-
-			po[i] = s1;
-		}
-	}
+	virtual void update(const audio_block_t* blocka, const audio_block_t* blockb, audio_block_t* output);
 };
-

@@ -1,5 +1,5 @@
 #include "plugin.hpp"
-#include "noise-plethora/plugins/PluginFactory.hpp"
+#include "noise-plethora/plugins/NoisePlethoraPlugin.hpp"
 #include "noise-plethora/plugins/ProgramSelector.hpp"
 
 enum FilterMode {

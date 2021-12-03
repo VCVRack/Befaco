@@ -97,8 +97,7 @@ public:
 		multiplier[channel] = gain * 256.0f; // TODO: proper roundoff?
 	}
 private:
-	int16_t multiplier[4];
-	audio_block_t* inputQueueArray[4];
+	int16_t multiplier[4];	
 };
 
 
@@ -138,5 +137,4 @@ public:
 	}
 private:
 	int32_t multiplier;
-	audio_block_t* inputQueueArray[1];
 };

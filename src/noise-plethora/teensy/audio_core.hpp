@@ -35,34 +35,6 @@ typedef struct audio_block_struct {
 	}
 } audio_block_t;
 
-
-
-class AudioConnection {
-public:
-	AudioConnection(AudioStream& source, const int sourceOutput,
-	                AudioStream& destination, const int destinationInput) :
-		src(source), dst(destination),
-		src_index(sourceOutput), dest_index(destinationInput),
-		next_dest(NULL) {
-
-		if (destinationInput >= destination.num_inputs) {
-			DEBUG("Configuration error, exiting!");
-			assert(false);
-		}
-	}
-
-	friend class AudioStream;
-
-protected:
-	AudioStream& src;
-	AudioStream& dst;
-	unsigned char src_index;
-	unsigned char dest_index;
-	AudioConnection* next_dest;
-	bool isConnected;
-
-};
-
 enum WaveformType {
 	WAVEFORM_SINE,
 	WAVEFORM_SAWTOOTH,
@@ -113,7 +85,7 @@ namespace teensy {
 
 static uint32_t seed;
 
-inline int32_t random(void) {
+inline int32_t random_teensy(void) {
 	int32_t hi, lo, x;
 
 	// the algorithm used in avr-libc 1.6.4
@@ -129,17 +101,17 @@ inline int32_t random(void) {
 	return x;
 }
 
-inline uint32_t random(uint32_t howbig) {
+inline uint32_t random_teensy(uint32_t howbig) {
 	if (howbig == 0)
 		return 0;
-	return random() % howbig;
+	return random_teensy() % howbig;
 }
 
-inline int32_t random(int32_t howsmall, int32_t howbig) {
+inline int32_t random_teensy(int32_t howsmall, int32_t howbig) {
 	if (howsmall >= howbig)
 		return howsmall;
 	int32_t diff = howbig - howsmall;
-	return random(diff) + howsmall;
+	return random_teensy(diff) + howsmall;
 }
 }
 

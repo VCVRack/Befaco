@@ -28,26 +28,45 @@
  * Combining white noise or dynamic incoming audio results in aggressive digital distortion.
  */
 
-#pragma once
+#include "effect_combine.hpp"
 
-#include "audio_core.hpp"
 
-class AudioEffectDigitalCombine : public AudioStream {
-public:
-	enum combineMode {
-		OR    = 0,
-		XOR   = 1,
-		AND   = 2,
-		MODULO = 3,
-	};
-	AudioEffectDigitalCombine() : AudioStream(2), mode_sel(OR) { }
-	void setCombineMode(int mode_in) {
-		if (mode_in > 3) {
-			mode_in = 3;
-		}
-		mode_sel = mode_in;
+void AudioEffectDigitalCombine::update(const audio_block_t* blocka, const audio_block_t* blockb, audio_block_t* output) {
+	uint32_t* pa, *pb, *end, *pout;
+	uint32_t a12, a34; //, a56, a78;
+	uint32_t b12, b34; //, b56, b78;
+
+	if (!blocka || !blockb || !output) {
+		return;
 	}
-	virtual void update(const audio_block_t* blocka, const audio_block_t* blockb, audio_block_t* output);
-private:
-	short mode_sel;
-};
+
+	pa = (uint32_t*)(blocka->data);
+	pb = (uint32_t*)(blockb->data);
+	pout = (uint32_t*)(output->data);
+	end = pa + AUDIO_BLOCK_SAMPLES / 2;
+
+	while (pa < end) {
+		a12 = *pa++;
+		a34 = *pa++;
+		b12 = *pb++;
+		b34 = *pb++;
+		if (mode_sel == OR) {
+			a12 = a12 | b12;
+			a34 = a34 | b34;
+		}
+		if (mode_sel == XOR) {
+			a12 = a12 ^ b12;
+			a34 = a34 ^ b34;
+		}
+		if (mode_sel == AND) {
+			a12 = a12 & b12;
+			a34 = a34 & b34;
+		}
+		if (mode_sel == MODULO) {
+			a12 = a12 % b12;
+			a34 = a34 % b34;
+		}
+		*pout++ = a12;
+		*pout++ = a34;
+	}
+}
