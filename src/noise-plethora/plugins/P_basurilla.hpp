@@ -81,7 +81,7 @@ public:
 
 private:
 
-	audio_block_t noiseOut, waveformOut[3] = {}, multiplyOut[3] = {}, mixerOut;
+	audio_block_t noiseOut, waveformOut[3] = {}, multiplyOut[3] = {};
 
 	AudioSynthNoiseWhite      noise1;         //xy=240,621
 	AudioSynthWaveform       waveform3; //xy=507,823

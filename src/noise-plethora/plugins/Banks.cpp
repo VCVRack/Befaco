@@ -78,9 +78,9 @@ int Bank::getSize() {
 #include "P_Rwalk_LFree.hpp"
 
 // Bank D: Test / other
-#include "P_TestPlugin.hpp"
-#include "P_TeensyAlt.hpp"
-#include "P_WhiteNoise.hpp"
+//#include "P_TestPlugin.hpp"
+//#include "P_TeensyAlt.hpp"
+//#include "P_WhiteNoise.hpp"
 //#include "P_Rwalk_LBit.hpp"
 //#include "P_Rwalk_SineFM.hpp"
 //#include "P_VarWave.hpp"
@@ -92,9 +92,9 @@ int Bank::getSize() {
 static const Bank bank1 BANKS_DEF_1; // Banks_Def.hpp
 static const Bank bank2 BANKS_DEF_2;
 static const Bank bank3 BANKS_DEF_3;
-static const Bank bank4 BANKS_DEF_4;
+//static const Bank bank4 BANKS_DEF_4;
 //static const Bank bank5 BANKS_DEF_5;
-static std::array<Bank, numBanks> banks { bank1, bank2, bank3, bank4}; //, bank5 };
+static std::array<Bank, numBanks> banks { bank1, bank2, bank3 }; //, bank5 };
 
 // static const Bank bank6 BANKS_DEF_6;
 // static const Bank bank7 BANKS_DEF_7;

@@ -437,7 +437,7 @@ struct NoisePlethora : Module {
 	}
 
 	void setAlgorithmViaBank(int newBank) {
-		newBank = clamp(newBank, 0, numBanks);
+		newBank = clamp(newBank, 0, numBanks - 1);
 		const int currentProgram = programSelector.getCurrent().getProgram();
 		// the new bank may not have as many algorithms
 		const int currentProgramInNewBank = clamp(currentProgram, 0, getBankForIndex(newBank).getSize() - 1);

@@ -66,8 +66,6 @@ private:
 	// AudioConnection          patchCord3;
 	// AudioConnection          patchCord4;
 
-	float waveformMod1Previous = 0.f;
-
 };
 
 REGISTER_PLUGIN(xModRingSqr);

@@ -5,7 +5,7 @@
 #include <array>
 
 static const int programsPerBank = 10;
-static const int numBanks = 4;
+static const int numBanks = 3;
 
 struct Bank {
 
