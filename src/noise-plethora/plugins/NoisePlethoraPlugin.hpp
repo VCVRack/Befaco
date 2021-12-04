@@ -33,13 +33,13 @@ public:
 		return int16_to_float_1v(blockBuffer.shift());
 	}
 
-	virtual AudioStream& getStream();
-	virtual unsigned char getPort();
+	virtual AudioStream& getStream() = 0;
+	virtual unsigned char getPort() = 0;
 
 protected:
 
 	// subclass should process the audio graph and fill the supplied buffer
-	virtual void processGraphAsBlock(TeensyBuffer& blockBuffer);
+	virtual void processGraphAsBlock(TeensyBuffer& blockBuffer) = 0;
 
 	TeensyBuffer blockBuffer;
 };
