@@ -295,7 +295,7 @@ private:
 	// AudioConnection          patchCord20;
 	//AudioConnection          patchCord21(mixer5, 0, i2s1, 0);
 	//AudioControlSGTL5000     audioOut;     //xy=1016.75,846.75
-	int L, i, t;
+	int L; //, i, t;
 	float theta, posx, posy, xn, yin;
 	float v_0, v_var;//pw = pulse width
 	float x[16], y[16], vx[16], vy[16]; // number depends on waveforms declared

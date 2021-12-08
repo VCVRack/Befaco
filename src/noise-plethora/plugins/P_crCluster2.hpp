@@ -104,7 +104,7 @@ public:
 	}
 
 private:
-	audio_block_t dcOut, waveformOut, waveformModOut[6] = {}, mixerOut[3] = {};
+	audio_block_t waveformOut, waveformModOut[6] = {}, mixerOut[3] = {};
 
 	AudioSynthWaveform       modulator;      //xy=135.88888549804688,405.55555725097656
 	AudioSynthWaveformModulated waveform6;      //xy=453.8888854980469,543.6666889190674

@@ -9,44 +9,52 @@ enum FilterMode {
 	NUM_TYPES
 };
 
+// based on Chapter 4 of THE ART OF VA FILTER DESIGN and
+// Chap 12.4 of "Designing Audio Effect Plugins in C++" Will Pirkle
 class StateVariableFilter2ndOrder {
 public:
 
 	StateVariableFilter2ndOrder() {
-
+		setParameters(0.f, M_SQRT1_2);
 	}
 
 	void setParameters(float fc, float q) {
 		// avoid repeated evaluations of tanh if not needed
-		if (fc != fcCached) {
-			g = std::tan(M_PI * fc);
+		if (fc != fcCached || q != qCached) {
+
 			fcCached = fc;
+			qCached = q;
+
+			const double g = std::tan(M_PI * fc);
+			const double R = 1.0f / (2 * q);
+
+			alpha0 = 1.0 / (1.0 + 2.0 * R * g + g * g);
+			alpha = g;
+			rho = 2.0 * R + g;
 		}
-		R = 1.0f / q;
 	}
 
 	void process(float input) {
-		hp = (input - (R + g) * mem1 - mem2) / (1.0f + g * (R + g));
-		bp = g * hp + mem1;
-		lp = g * bp + mem2;
-		mem1 = g * hp + bp;
-		mem2 = g * bp + lp;
+		hp = (input - rho * mem1 - mem2) * alpha0;
+		bp = alpha * hp + mem1;
+		lp = alpha * bp + mem2;
+		mem1 = alpha * hp + bp;
+		mem2 = alpha * bp + lp;
 	}
 
 	float output(FilterMode mode) {
 		switch (mode) {
 			case LOWPASS: return lp;
 			case HIGHPASS: return hp;
-			case BANDPASS: return bp * 2.f * R;
+			case BANDPASS: return bp;
 			default: return 0.0;
 		}
 	}
 
 private:
-	float g = 0.f;
-	float R = 0.5f;
+	float alpha, alpha0, rho;
 
-	float fcCached = -1.f;
+	float fcCached = -1.f, qCached = -1.f;
 
 	float hp = 0.0f, bp = 0.0f, lp = 0.0f, mem1 = 0.0f, mem2 = 0.0f;
 };
@@ -149,6 +157,9 @@ struct NoisePlethora : Module {
 	std::shared_ptr<NoisePlethoraPlugin> algorithm[2];
 	// filters for A/B
 	StateVariableFilter2ndOrder svfFilter[2];
+	bool blockDC = true;
+	DCBlocker blockDCFilter[2];
+
 	ProgramSelector programSelector;
 	float lastCV[2] = {};
 	// UI / UX for A/B
@@ -192,91 +203,91 @@ struct NoisePlethora : Module {
 
 		setAlgorithm(SECTION_B, "radioOhNo");
 		setAlgorithm(SECTION_A, "radioOhNo");
+		onSampleRateChange();
+	}
 
-		for (auto item : MyFactory::Instance()->factoryFunctionRegistry) {
-			DEBUG(string::f("found plugin: %s", item.first.c_str()).c_str());
-		}
-		DEBUG("Constructor complete!");
+	void onSampleRateChange() override {
+		// set ~10Hz DC blocker
+		const float fc = 10.3f / APP->engine->getSampleRate();
+		blockDCFilter[SECTION_A].setFrequency(fc);
+		blockDCFilter[SECTION_B].setFrequency(fc);
 	}
 
 	void process(const ProcessArgs& args) override {
 
-		if (!bypassFilters) {
-			{
-				const float freqCV = std::pow(params[CUTOFF_CV_A_PARAM].getValue(), 2) * inputs[CUTOFF_A_INPUT].getVoltage();
-				const float pitch = rescale(params[CUTOFF_A_PARAM].getValue(), 0, 1, -5, +5) + freqCV;
-				const float cutoff = clamp(dsp::FREQ_C4 * std::pow(2.f, pitch), 1.f, 44100. / 4.f);
-				const float cutoffNormalised = clamp(cutoff / args.sampleRate, 0.f, 0.5f);
-				const float q = rescale(params[RES_A_PARAM].getValue(), 0.f, 1.f, 1.f, 10.f);
-				svfFilter[SECTION_A].setParameters(cutoffNormalised, q);
-			}
-
-			{
-				const float freqCV = std::pow(params[CUTOFF_CV_B_PARAM].getValue(), 2) * inputs[CUTOFF_B_INPUT].getVoltage();
-				const float pitch = rescale(params[CUTOFF_B_PARAM].getValue(), 0, 1, -5, +5) + freqCV;
-				const float cutoff = clamp(dsp::FREQ_C4 * std::pow(2.f, pitch), 1.f, 44100. / 4.f);
-				const float cutoffNormalised = clamp(cutoff / args.sampleRate, 0.f, 0.5f);
-				const float q = rescale(params[RES_B_PARAM].getValue(), 0.f, 1.f, 1.f, 10.f);
-				svfFilter[SECTION_B].setParameters(cutoffNormalised, q);
-			}
-
-			{
-				const float freqCV = std::pow(params[CUTOFF_CV_C_PARAM].getValue(), 2) * inputs[CUTOFF_C_INPUT].getVoltage();
-				const float pitch = rescale(params[CUTOFF_C_PARAM].getValue(), 0, 1, -6.f, +6.f) + freqCV;
-				const float cutoff = clamp(dsp::FREQ_C4 * std::pow(2.f, pitch), 1.f, 44100. / 2.f);
-				const float cutoffNormalised = clamp(cutoff / args.sampleRate, 0.f, 0.49f);
-				const float Q = rescale(params[RES_C_PARAM].getValue(), 0, 1, 1, 10);
-				svfFilterC.setParameters(cutoffNormalised, Q);
-			}
-		}
-
-		float outA = 0.f;
-		float outB = 0.f;
-
-		// we only periodically update the process() call of each algorithm
+		// we only periodically update the process() call of each algorithm (once per block, ~2.9ms)
 		bool updateParams = false;
 		if (!updateParamsTimer.process(args.sampleTime)) {
 			updateParams = true;
 			updateParamsTimer.trigger(updateTimeSecs);
 		}
 
-		if (algorithm[SECTION_A] && outputs[A_OUTPUT].isConnected()) {
-			float cvX = params[X_A_PARAM].getValue() + rescale(inputs[X_A_INPUT].getVoltage(), -10.f, +10.f, -1.f, 1.f);
-			float cvY = params[Y_A_PARAM].getValue() + rescale(inputs[Y_A_INPUT].getVoltage(), -10.f, +10.f, -1.f, 1.f);
+		// process A, B and C
+		processTopSection(SECTION_A, X_A_PARAM, Y_A_PARAM,
+		                  FILTER_TYPE_A_PARAM, CUTOFF_A_PARAM, CUTOFF_CV_A_PARAM, RES_A_PARAM,
+		                  PROG_A_INPUT, X_A_INPUT, Y_A_INPUT, CUTOFF_A_INPUT, A_OUTPUT, args, updateParams);
+		processTopSection(SECTION_B, X_B_PARAM, Y_B_PARAM,
+		                  FILTER_TYPE_B_PARAM, CUTOFF_B_PARAM, CUTOFF_CV_B_PARAM, RES_B_PARAM,
+		                  PROG_B_INPUT, X_B_INPUT, Y_B_INPUT, CUTOFF_B_INPUT, B_OUTPUT, args, updateParams);
+		processBottomSection(args);
+
+		// UI
+		updateDataForLEDDisplay();
+		processProgramBankKnobLogic(args);
+	}
+
+	// exactly the same for A and B
+	void processTopSection(Section SECTION, ParamIds X_PARAM, ParamIds Y_PARAM, ParamIds FILTER_TYPE_PARAM,
+	                       ParamIds CUTOFF_PARAM, ParamIds CUTOFF_CV_PARAM, ParamIds RES_PARAM,
+	                       InputIds PROG_INPUT, InputIds X_INPUT, InputIds Y_INPUT, InputIds CUTOFF_INPUT, OutputIds OUTPUT,
+	                       const ProcessArgs& args, bool updateParams) {
+		float out = 0.f;
+
+		if (algorithm[SECTION] && outputs[OUTPUT].isConnected()) {
+			float cvX = params[X_PARAM].getValue() + rescale(inputs[X_INPUT].getVoltage(), -10.f, +10.f, -1.f, 1.f);
+			float cvY = params[Y_PARAM].getValue() + rescale(inputs[Y_INPUT].getVoltage(), -10.f, +10.f, -1.f, 1.f);
 
 			// update parameters of the algorithm
 			if (updateParams) {
-				algorithm[SECTION_A]->process(clamp(cvX, 0.f, 1.f), clamp(cvY, 0.f, 1.f));
+				algorithm[SECTION]->process(clamp(cvX, 0.f, 1.f), clamp(cvY, 0.f, 1.f));
 			}
 			// process the audio graph
-			outA = algorithm[SECTION_A]->processGraph();
+			out = algorithm[SECTION]->processGraph();
+			// each algorithm has a specific gain factor
+			out = out * programSelector.getSection(SECTION).getCurrentProgramGain();
+
+			// if filters are active
 			if (!bypassFilters) {
-				svfFilter[SECTION_A].process(outA);
-				FilterMode mode = typeMappingSVF[(int) params[FILTER_TYPE_A_PARAM].getValue()];
-				outA = svfFilter[SECTION_A].output(mode);
+
+				// set parameters
+				const float freqCV = std::pow(params[CUTOFF_CV_PARAM].getValue(), 2) * inputs[CUTOFF_INPUT].getVoltage();
+				const float pitch = rescale(params[CUTOFF_PARAM].getValue(), 0, 1, -5, +5) + freqCV;
+				const float cutoff = clamp(dsp::FREQ_C4 * std::pow(2.f, pitch), 1.f, 44100. / 4.f);
+				const float cutoffNormalised = clamp(cutoff / args.sampleRate, 0.f, 0.49f);
+				const float q = rescale(params[RES_PARAM].getValue(), 0.f, 1.f, M_SQRT1_2, 12.f);
+				const FilterMode mode = typeMappingSVF[(int) params[FILTER_TYPE_PARAM].getValue()];
+				svfFilter[SECTION].setParameters(cutoffNormalised, q);
+
+				// apply filter
+				svfFilter[SECTION].process(out);
+				// and retrieve relevant output
+				out = svfFilter[SECTION].output(mode);
+			}
+
+			if (blockDC) {
+				// cascaded Biquad (4th order highpass at ~10Hz)
+				out = blockDCFilter[SECTION].process(out);
 			}
 		}
-		if (algorithm[SECTION_B] && outputs[B_OUTPUT].isConnected()) {
-			float cvX = params[X_B_PARAM].getValue() + rescale(inputs[X_B_INPUT].getVoltage(), -10.f, +10.f, -1.f, 1.f);
-			float cvY = params[Y_B_PARAM].getValue() + rescale(inputs[Y_B_INPUT].getVoltage(), -10.f, +10.f, -1.f, 1.f);
 
-			// update parameters of the algorithm
-			if (updateParams) {
-				algorithm[SECTION_B]->process(clamp(cvX, 0.f, 1.f), clamp(cvY, 0.f, 1.f));
-			}
-			outB = algorithm[SECTION_B]->processGraph();
+		outputs[OUTPUT].setVoltage(out * 5.f);
 
-			if (!bypassFilters) {
-				svfFilter[SECTION_B].process(outB);
-				FilterMode mode = typeMappingSVF[(int) params[FILTER_TYPE_B_PARAM].getValue()];
-				outB = svfFilter[SECTION_B].output(mode);
-			}
+		checkForProgramChangeCV(SECTION, PROG_INPUT);
+	}
 
-		}
-		outputs[A_OUTPUT].setVoltage(outA * 5.f);
-		outputs[B_OUTPUT].setVoltage(outB * 5.f);
+	// process section C
+	void processBottomSection(const ProcessArgs& args) {
 
-		// section C
 		float gritCv = rescale(clamp(inputs[GRIT_INPUT].getVoltage(), -10.f, 10.f), -10.f, 10.f, -1.f, 1.f);
 		float gritAmount = clamp(1.f - params[GRIT_PARAM].getValue() - gritCv, 0.f, 1.f);
 		float gritFrequency = rescale(gritAmount, 0, 1, 0.1, 20000);
@@ -288,10 +299,16 @@ struct NoisePlethora : Module {
 		outputs[WHITE_OUTPUT].setVoltage(whiteNoise * 5.f);
 
 		if (outputs[FILTERED_OUTPUT].isConnected() && !bypassFilters) {
+
+			const float freqCV = std::pow(params[CUTOFF_CV_C_PARAM].getValue(), 2) * inputs[CUTOFF_C_INPUT].getVoltage();
+			const float pitch = rescale(params[CUTOFF_C_PARAM].getValue(), 0, 1, -6.f, +6.f) + freqCV;
+			const float cutoff = clamp(dsp::FREQ_C4 * std::pow(2.f, pitch), 1.f, 44100. / 2.f);
+			const float cutoffNormalised = clamp(cutoff / args.sampleRate, 0.f, 0.49f);
+			const float Q = rescale(params[RES_C_PARAM].getValue(), 0.f, 1.f, M_SQRT1_2, 12.f);
+			const FilterMode mode = typeMappingSVF[(int) params[FILTER_TYPE_C_PARAM].getValue()];
+			svfFilterC.setParameters(cutoffNormalised, Q);
+
 			float toFilter = params[SOURCE_C_PARAM].getValue() ? whiteNoise : gritNoise;
-
-			FilterMode mode = typeMappingSVF[(int) params[FILTER_TYPE_C_PARAM].getValue()];
-
 			float filtered = svfFilterC.process(toFilter, mode);
 
 			outputs[FILTERED_OUTPUT].setVoltage(filtered * 5.f);
@@ -300,15 +317,9 @@ struct NoisePlethora : Module {
 			float toBypass = params[SOURCE_C_PARAM].getValue() ? whiteNoise : gritNoise;
 			outputs[FILTERED_OUTPUT].setVoltage(toBypass * 5.f);
 		}
-
-		updateDataForLEDDisplay();
-
-		processProgramBankKnobLogic(args);
-
-		checkForProgramChangeCV(SECTION_A, PROG_A_INPUT);
-		checkForProgramChangeCV(SECTION_B, PROG_B_INPUT);
 	}
 
+	// set which text NoisePlethoraWidget should display on the 7 segment display
 	void updateDataForLEDDisplay() {
 
 		if (programKnobMode == PROGRAM_MODE) {
@@ -328,6 +339,7 @@ struct NoisePlethora : Module {
 		isDisplayActiveB = programSelector.getMode() == SECTION_B;
 	}
 
+	// handle convoluted logic for the multifunction Program knob
 	void processProgramBankKnobLogic(const ProcessArgs& args) {
 
 		// program knob will either change program for current bank...
@@ -359,8 +371,8 @@ struct NoisePlethora : Module {
 			if (programButtonHeld) {
 				programHoldTimer.process(args.sampleTime);
 
-				// if we've held for at least 0.75 seconds, switch into "bank mode"
-				if (programHoldTimer.time > 0.75f) {
+				// if we've held for at least 0.5 seconds, switch into "bank mode"
+				if (programHoldTimer.time > 0.5f) {
 					programButtonHeld = false;
 					programHoldTimer.reset();
 
@@ -376,7 +388,8 @@ struct NoisePlethora : Module {
 					lights[BANK_LIGHT].setBrightness(programKnobMode == BANK_MODE);
 				}
 			}
-			// no longer held, but has been held for non-zero time (without being dragged), toggle "active" section (A or B)
+			// no longer held, but has been held for non-zero time (without being dragged), toggle "active" section (A or B),
+			// this is effectively just a "click"
 			else if (programHoldTimer.time > 0.f) {
 				programSelector.setMode(!programSelector.getMode());
 				programHoldTimer.reset();
@@ -419,7 +432,7 @@ struct NoisePlethora : Module {
 					algorithm[section]->init();
 				}
 				else {
-					DEBUG(string::f("Failed to create %s", newProgramName.c_str()).c_str());
+					DEBUG("WARNING: Failed to initialise %s in programSelector", newProgramName.c_str());
 				}
 
 				lastCV[section] = inputs[sectionCvInputId].getVoltage();
@@ -444,8 +457,6 @@ struct NoisePlethora : Module {
 		const std::string algorithmName = getBankForIndex(newBank).getProgramName(currentProgramInNewBank);
 		const int section = programSelector.getMode();
 
-		DEBUG(string::f("setAlgorithmViaBank: using %s", algorithmName.c_str()).c_str());
-
 		setAlgorithm(section, algorithmName);
 	}
 
@@ -458,9 +469,6 @@ struct NoisePlethora : Module {
 		for (int bank = 0; bank < numBanks; ++bank) {
 			for (int program = 0; program < getBankForIndex(bank).getSize(); ++program) {
 				if (getBankForIndex(bank).getProgramName(program) == algorithmName) {
-
-					DEBUG(string::f("Setting algorithm[%d] (bank: %d, program: %d, name: %s)", section, bank, program, algorithmName.c_str()).c_str());
-
 					programSelector.setMode(section);
 					programSelector.getCurrent().setBank(bank);
 					programSelector.getCurrent().setProgram(program);
@@ -474,7 +482,7 @@ struct NoisePlethora : Module {
 						algorithm[section]->init();
 					}
 					else {
-						DEBUG(string::f("Failed to create %s", algorithmName.c_str()).c_str());
+						DEBUG("WARNING: Failed to initialise %s in programSelector", algorithmName.c_str());
 					}
 
 					return;
@@ -482,12 +490,10 @@ struct NoisePlethora : Module {
 			}
 		}
 
-		DEBUG(string::f("Didn't find %s in programSelector", algorithmName.c_str()).c_str());
+		DEBUG("WARNING: Didn't find %s in programSelector", algorithmName.c_str());
 	}
 
 	void dataFromJson(json_t* rootJ) override {
-		DEBUG("JSON load starting");
-
 		json_t* bankAJ = json_object_get(rootJ, "algorithmA");
 		setAlgorithm(SECTION_A, json_string_value(bankAJ));
 
@@ -497,7 +503,8 @@ struct NoisePlethora : Module {
 		json_t* bypassFiltersJ = json_object_get(rootJ, "bypassFilters");
 		bypassFilters = json_boolean_value(bypassFiltersJ);
 
-		DEBUG("JSON load complete");
+		json_t* blockDCJ = json_object_get(rootJ, "blockDC");
+		blockDC = json_boolean_value(blockDCJ);
 	}
 
 	json_t* dataToJson() override {
@@ -507,6 +514,7 @@ struct NoisePlethora : Module {
 		json_object_set_new(rootJ, "algorithmB", json_string(programSelector.getB().getCurrentProgramName().c_str()));
 
 		json_object_set_new(rootJ, "bypassFilters", json_boolean(bypassFilters));
+		json_object_set_new(rootJ, "blockDC", json_boolean(blockDC));
 
 		return rootJ;
 	}
@@ -520,17 +528,24 @@ struct BefacoTinyKnobSnapPress : BefacoTinyKnobBlack {
 		maxAngle = 0.80 * M_PI;
 	}
 
+	// this seems convoluted but I can't see how to achieve the following (say) with onAction:
+	// a) need to support standard knob dragging behaviour
+	// b) need to support click detection (not drag)
+	// c) need to distinguish short click from long click
+	//
+	// To achieve this we have 2 state variables, held and dragged. The Module thread will
+	// time how long programButtonHeld is "true" and switch between bank and program mode if
+	// longer than X secs. A drag, as measured here as a displacement greater than Y, will cancel
+	// this timer and we're back to normal param mode. See processProgramBankKnobLogic(...) for details
 	void onDragStart(const DragStartEvent& e) override {
-		Knob::onDragStart(e);
-
 		NoisePlethora* noisePlethoraModule = static_cast<NoisePlethora*>(module);
 		if (noisePlethoraModule) {
 			noisePlethoraModule->programButtonHeld = true;
 			noisePlethoraModule->programButtonDragged = false;
 		}
 
-		DEBUG(string::f("onDragStart %d %d", e.button, noisePlethoraModule == nullptr).c_str());
 		pos = Vec(0, 0);
+		Knob::onDragStart(e);
 	}
 
 	void onDragMove(const DragMoveEvent& e) override {
@@ -545,8 +560,8 @@ struct BefacoTinyKnobSnapPress : BefacoTinyKnobBlack {
 
 		Knob::onDragMove(e);
 	}
+
 	void onDragEnd(const DragEndEvent& e) override {
-		DEBUG(string::f("onDragEnd %d", e.button).c_str());
 
 		NoisePlethora* noisePlethoraModule = static_cast<NoisePlethora*>(module);
 		if (noisePlethoraModule) {
@@ -556,7 +571,9 @@ struct BefacoTinyKnobSnapPress : BefacoTinyKnobBlack {
 		Knob::onDragEnd(e);
 	}
 
-	bool dragged = false;
+	// suppress double click
+	void onDoubleClick(const DoubleClickEvent& e) override {}
+
 	Vec pos;
 };
 
@@ -750,6 +767,8 @@ struct NoisePlethoraWidget : ModuleWidget {
 		NoisePlethora* module = dynamic_cast<NoisePlethora*>(this->module);
 		assert(module);
 
+		// build the two algorithm selection menus programmatically
+		menu->addChild(createMenuLabel("Algorithms"));
 		std::vector<std::string> bankAliases = {"Textures", "HH Clusters", "Harsh & Wild", "Test"};
 		char programNames[] = "AB";
 		for (int sectionId = 0; sectionId < 2; ++sectionId) {
@@ -780,6 +799,7 @@ struct NoisePlethoraWidget : ModuleWidget {
 								}));
 							}
 							else {
+								// placeholder text (greyed out)
 								menu->addChild(createMenuLabel(algorithmName));
 							}
 						}
@@ -790,6 +810,8 @@ struct NoisePlethoraWidget : ModuleWidget {
 
 		}
 
+		menu->addChild(createMenuLabel("Filters"));
+		menu->addChild(createBoolPtrMenuItem("Remove DC", "", &module->blockDC));
 		menu->addChild(createBoolPtrMenuItem("Bypass Filters", "", &module->bypassFilters));
 	}
 };

@@ -146,7 +146,7 @@ private:
 	//AudioConnection          patchCord4;
 	//AudioConnection          patchCord5;
 
-	int L, i, t;
+	int L; //, i, t;
 	float theta, posx, posy, xn, yin;
 	float v_0, v_var;//pw = pulse width
 	float x[4], y[4], vx[4], vy[4]; // number depends on waveforms declared

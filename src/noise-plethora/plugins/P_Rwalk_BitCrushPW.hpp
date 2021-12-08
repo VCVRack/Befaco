@@ -248,7 +248,7 @@ private:
 	// AudioConnection          patchCord24(freeverb1, 0, mixer7, 2);
 
 
-	int L, i, t;
+	int L; //, i, t;
 	float theta, posx, posy, xn, yin;
 	float v_0, v_var, bc_01, fv;//pw = pulse width
 	float x[9], y[9], vx[9], vy[9]; // number depends on waveforms declared

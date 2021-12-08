@@ -121,7 +121,7 @@ private:
 	                                 (int16_t) - test, (int16_t) - test, (int16_t) - test, (int16_t) - test, (int16_t) - test, (int16_t) - test
 	                                };
 
-	int current_waveform = 0;
+	// int current_waveform = 0;
 
 	/* PREGUNTA A DIEGO ¿Este sobra? */
 	//extern const int16_t myWaveform[256];  // defined in myWaveform.ino

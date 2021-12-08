@@ -222,3 +222,45 @@ struct ADEnvelope {
 private:
 	float envLinear = 0.f;
 };
+
+// Creates a Butterworth 2*Nth order highpass filter for blocking DC
+template<int N>
+struct DCBlockerT {
+	
+	DCBlockerT() { 
+		setFrequency(0.1f);
+	}
+
+	// set frequency (in normalised units, 0 < fc < 1)
+	void setFrequency(float fc) {
+		fc_ = fc;
+		recalculateCoefficients();
+	}
+
+	float process(float x) {
+
+		x = blockDCFilter[0].process(x);
+		return blockDCFilter[1].process(x);
+	}
+
+private:
+
+	// https://www.earlevel.com/main/2016/09/29/cascading-filters/
+	void recalculateCoefficients() {
+
+		float poleInc = M_PI / order;	
+		float firstAngle = poleInc / 2;
+			
+		for (int idx = 0; idx < N; idx++) {
+			float Q = 1.0f / (2.0f * std::cos(firstAngle + idx * poleInc));
+			blockDCFilter[idx].setParameters(dsp::BiquadFilter::HIGHPASS, fc_, Q, 1.0f);
+		}
+	}
+
+	float fc_;
+	static const int order = 2 * N;
+
+	dsp::BiquadFilter blockDCFilter[N];
+};
+
+typedef DCBlockerT<2> DCBlocker;

@@ -50,7 +50,7 @@ struct ChoppingKinky : Module {
 	chowdsp::VariableOversampling<> oversampler[NUM_CHANNELS];
 	int oversamplingIndex = 2; 	// default is 2^oversamplingIndex == x4 oversampling
 
-	dsp::BiquadFilter blockDCFilter;
+	DCBlocker blockDCFilter;
 	bool blockDC = false;
 
 	ChoppingKinky() {
@@ -80,8 +80,8 @@ struct ChoppingKinky : Module {
 
 	void onSampleRateChange() override {
 		float sampleRate = APP->engine->getSampleRate();
-
-		blockDCFilter.setParameters(dsp::BiquadFilter::HIGHPASS, 10.3f / sampleRate, M_SQRT1_2, 1.0f);
+		
+		blockDCFilter.setFrequency(10.3f / sampleRate);
 
 		for (int channel_idx = 0; channel_idx < NUM_CHANNELS; channel_idx++) {
 			oversampler[channel_idx].setOversamplingIndex(oversamplingIndex);

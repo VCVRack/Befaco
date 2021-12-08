@@ -92,34 +92,6 @@ static int16_t sat16(int32_t n, int rshift) {
 	return n;
 }
 
-// TODO: move this to one of the data files, use in output_adat.cpp, output_tdm.cpp, etc
-static const audio_block_t zeroblock = {
-	0, 0, 0, {
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#if AUDIO_BLOCK_SAMPLES > 16
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#endif
-#if AUDIO_BLOCK_SAMPLES > 32
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#endif
-#if AUDIO_BLOCK_SAMPLES > 48
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#endif
-#if AUDIO_BLOCK_SAMPLES > 64
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#endif
-#if AUDIO_BLOCK_SAMPLES > 80
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#endif
-#if AUDIO_BLOCK_SAMPLES > 96
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#endif
-#if AUDIO_BLOCK_SAMPLES > 112
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#endif
-	}
-};
-
 void AudioEffectFreeverb::update(const audio_block_t* block, audio_block_t* outblock) {
 	int i;
 	int16_t input, bufout, output;
