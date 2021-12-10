@@ -9,7 +9,7 @@
   "pluginUrl": "https://vcvrack.com/Befaco",
   "authorUrl": "https://vcvrack.com/",
   "sourceUrl": "https://github.com/VCVRack/Befaco",
-  "changelogUrl": "https://github.com/VCVRack/Befaco/blob/v1/CHANGELOG.md",
+  "changelogUrl": "https://github.com/VCVRack/Befaco/blob/v2/CHANGELOG.md",
   "modules": [
     {
       "slug": "EvenVCO",

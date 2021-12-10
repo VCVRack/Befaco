@@ -9,6 +9,35 @@ enum FilterMode {
 	NUM_TYPES
 };
 
+
+// Zavalishin 2018, "The Art of VA Filter Design", http://www.native-instruments.com/fileadmin/ni_media/downloads/pdf/VAFilterDesign_2.0.0a.pdf
+// Section 6.7, adopted from BogAudio Saturator https://github.com/bogaudio/BogaudioModules/blob/master/src/dsp/signal.cpp
+struct Saturator {
+
+	// saturate input at around ~[-1, +1] with soft clipping
+	static float process(float sample) {
+
+		if (sample < 0.0f) {
+			return -saturation(-sample);
+		}
+		return saturation(sample);
+	}
+private:
+
+	static float saturation(float sample) {
+
+		const float limit = 1.05f;
+		const float y1 = 0.98765f; // (2*x - 1)/x**2 where x is 0.9.
+		// correction so that saturation(0) = 0
+		const float offset = 0.0062522; // -0.5f + sqrtf(0.5f * 0.5f) / y1;
+
+		float x = sample / limit;
+		float x1 = (x + 1.0f) * 0.5f;
+
+		return limit * (offset + x1 - std::sqrt(x1 * x1 - y1 * x) * (1.0f / y1));
+	}
+};
+
 // based on Chapter 4 of THE ART OF VA FILTER DESIGN and
 // Chap 12.4 of "Designing Audio Effect Plugins in C++" Will Pirkle
 class StateVariableFilter2ndOrder {
@@ -67,8 +96,9 @@ public:
 	}
 
 	void setParameters(float fc, float q) {
-		stage1.setParameters(fc, 1.0);
-		stage2.setParameters(fc, q);
+		float rootQ = std::sqrt(q);
+		stage1.setParameters(fc, rootQ);
+		stage2.setParameters(fc, rootQ);
 	}
 
 	float process(float input, FilterMode mode) {
@@ -84,6 +114,8 @@ public:
 private:
 	StateVariableFilter2ndOrder stage1, stage2;
 };
+
+
 
 
 struct NoisePlethora : Module {
@@ -158,7 +190,7 @@ struct NoisePlethora : Module {
 	// filters for A/B
 	StateVariableFilter2ndOrder svfFilter[2];
 	bool blockDC = true;
-	DCBlocker blockDCFilter[2];
+	DCBlocker blockDCFilter[3];
 
 	ProgramSelector programSelector;
 	float lastCV[2] = {};
@@ -201,6 +233,26 @@ struct NoisePlethora : Module {
 		configParam(CUTOFF_CV_C_PARAM, 0.f, 1.f, 0.f, "Cutoff CV C");
 		configSwitch(SOURCE_C_PARAM, 0.f, 1.f, 0.f, "Filter source", {"Gritty", "White"});
 
+
+		configInput(X_A_INPUT, "XA CV");
+		configInput(Y_A_INPUT, "YA CV");
+		configInput(CUTOFF_A_INPUT, "Cutoff CV A");
+		configInput(PROG_A_INPUT, "Program select A");
+		configInput(PROG_B_INPUT, "Program select B");
+		configInput(CUTOFF_B_INPUT, "Cutoff CV B");
+		configInput(X_B_INPUT, "XB CV");
+		configInput(Y_B_INPUT, "YB CV");
+		configInput(GRIT_INPUT, "Grit Quantity CV");
+		configInput(CUTOFF_C_INPUT, "Cutoff CV C");
+
+		configOutput(A_OUTPUT, "Algorithm A");
+		configOutput(B_OUTPUT, "Algorithm B");
+		configOutput(GRITTY_OUTPUT, "Gritty noise");
+		configOutput(FILTERED_OUTPUT, "Filtered noise");
+		configOutput(WHITE_OUTPUT, "White noise");
+
+		configLight(BANK_LIGHT, "Bank mode");
+
 		setAlgorithm(SECTION_B, "radioOhNo");
 		setAlgorithm(SECTION_A, "radioOhNo");
 		onSampleRateChange();
@@ -211,6 +263,7 @@ struct NoisePlethora : Module {
 		const float fc = 10.3f / APP->engine->getSampleRate();
 		blockDCFilter[SECTION_A].setFrequency(fc);
 		blockDCFilter[SECTION_B].setFrequency(fc);
+		blockDCFilter[SECTION_C].setFrequency(fc);
 	}
 
 	void process(const ProcessArgs& args) override {
@@ -261,10 +314,10 @@ struct NoisePlethora : Module {
 
 				// set parameters
 				const float freqCV = std::pow(params[CUTOFF_CV_PARAM].getValue(), 2) * inputs[CUTOFF_INPUT].getVoltage();
-				const float pitch = rescale(params[CUTOFF_PARAM].getValue(), 0, 1, -5, +5) + freqCV;
-				const float cutoff = clamp(dsp::FREQ_C4 * std::pow(2.f, pitch), 1.f, 44100. / 4.f);
+				const float pitch = rescale(params[CUTOFF_PARAM].getValue(), 0, 1, -5.5, +5.5) + freqCV;
+				const float cutoff = clamp(dsp::FREQ_C4 * std::pow(2.f, pitch), 1.f, 20000.);
 				const float cutoffNormalised = clamp(cutoff / args.sampleRate, 0.f, 0.49f);
-				const float q = rescale(params[RES_PARAM].getValue(), 0.f, 1.f, M_SQRT1_2, 12.f);
+				const float q = rescale(params[RES_PARAM].getValue(), 0.f, 1.f, M_SQRT1_2, 20.f);
 				const FilterMode mode = typeMappingSVF[(int) params[FILTER_TYPE_PARAM].getValue()];
 				svfFilter[SECTION].setParameters(cutoffNormalised, q);
 
@@ -280,7 +333,7 @@ struct NoisePlethora : Module {
 			}
 		}
 
-		outputs[OUTPUT].setVoltage(out * 5.f);
+		outputs[OUTPUT].setVoltage(Saturator::process(out) * 5.f);
 
 		checkForProgramChangeCV(SECTION, PROG_INPUT);
 	}
@@ -298,25 +351,33 @@ struct NoisePlethora : Module {
 		float whiteNoise = whiteNoiseSource.process();
 		outputs[WHITE_OUTPUT].setVoltage(whiteNoise * 5.f);
 
+		float out = 0.f;
 		if (outputs[FILTERED_OUTPUT].isConnected() && !bypassFilters) {
 
 			const float freqCV = std::pow(params[CUTOFF_CV_C_PARAM].getValue(), 2) * inputs[CUTOFF_C_INPUT].getVoltage();
-			const float pitch = rescale(params[CUTOFF_C_PARAM].getValue(), 0, 1, -6.f, +6.f) + freqCV;
+			const float pitch = rescale(params[CUTOFF_C_PARAM].getValue(), 0, 1, -5.f, +6.4f) + freqCV;
 			const float cutoff = clamp(dsp::FREQ_C4 * std::pow(2.f, pitch), 1.f, 44100. / 2.f);
 			const float cutoffNormalised = clamp(cutoff / args.sampleRate, 0.f, 0.49f);
-			const float Q = rescale(params[RES_C_PARAM].getValue(), 0.f, 1.f, M_SQRT1_2, 12.f);
+			const float Q = rescale(params[RES_C_PARAM].getValue(), 0.f, 1.f, 0.5, 12.f);
 			const FilterMode mode = typeMappingSVF[(int) params[FILTER_TYPE_C_PARAM].getValue()];
 			svfFilterC.setParameters(cutoffNormalised, Q);
 
 			float toFilter = params[SOURCE_C_PARAM].getValue() ? whiteNoise : gritNoise;
-			float filtered = svfFilterC.process(toFilter, mode);
+			out = svfFilterC.process(toFilter, mode);
 
-			outputs[FILTERED_OUTPUT].setVoltage(filtered * 5.f);
+			// assymetric saturator, to get those lovely even harmonics
+			out = Saturator::process(out + 0.33);
+
+			if (blockDC) {
+				// cascaded Biquad (4th order highpass at ~10Hz)
+				out = blockDCFilter[SECTION_C].process(out);
+			}
 		}
 		else if (bypassFilters) {
-			float toBypass = params[SOURCE_C_PARAM].getValue() ? whiteNoise : gritNoise;
-			outputs[FILTERED_OUTPUT].setVoltage(toBypass * 5.f);
+			out = params[SOURCE_C_PARAM].getValue() ? whiteNoise : gritNoise;
 		}
+
+		outputs[FILTERED_OUTPUT].setVoltage(out * 5.f);
 	}
 
 	// set which text NoisePlethoraWidget should display on the 7 segment display
