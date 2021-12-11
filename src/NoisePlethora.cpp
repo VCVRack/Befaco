@@ -317,7 +317,7 @@ struct NoisePlethora : Module {
 				const float pitch = rescale(params[CUTOFF_PARAM].getValue(), 0, 1, -5.5, +5.5) + freqCV;
 				const float cutoff = clamp(dsp::FREQ_C4 * std::pow(2.f, pitch), 1.f, 20000.);
 				const float cutoffNormalised = clamp(cutoff / args.sampleRate, 0.f, 0.49f);
-				const float q = rescale(params[RES_PARAM].getValue(), 0.f, 1.f, M_SQRT1_2, 20.f);
+				const float q = M_SQRT1_2 + std::pow(params[RES_PARAM].getValue(), 2) * 10.f;
 				const FilterMode mode = typeMappingSVF[(int) params[FILTER_TYPE_PARAM].getValue()];
 				svfFilter[SECTION].setParameters(cutoffNormalised, q);
 
@@ -343,7 +343,7 @@ struct NoisePlethora : Module {
 
 		float gritCv = rescale(clamp(inputs[GRIT_INPUT].getVoltage(), -10.f, 10.f), -10.f, 10.f, -1.f, 1.f);
 		float gritAmount = clamp(1.f - params[GRIT_PARAM].getValue() - gritCv, 0.f, 1.f);
-		float gritFrequency = rescale(gritAmount, 0, 1, 0.1, 20000);
+		float gritFrequency = 0.1 + std::pow(gritAmount, 2) * 20000;
 		gritNoiseSource.setDensity(gritFrequency);
 		float gritNoise = gritNoiseSource.process(args.sampleTime);
 		outputs[GRITTY_OUTPUT].setVoltage(gritNoise * 5.f);
@@ -358,7 +358,7 @@ struct NoisePlethora : Module {
 			const float pitch = rescale(params[CUTOFF_C_PARAM].getValue(), 0, 1, -5.f, +6.4f) + freqCV;
 			const float cutoff = clamp(dsp::FREQ_C4 * std::pow(2.f, pitch), 1.f, 44100. / 2.f);
 			const float cutoffNormalised = clamp(cutoff / args.sampleRate, 0.f, 0.49f);
-			const float Q = rescale(params[RES_C_PARAM].getValue(), 0.f, 1.f, 0.5, 12.f);
+			const float Q = 0.5 + std::pow(params[RES_C_PARAM].getValue(), 2) * 20.f;
 			const FilterMode mode = typeMappingSVF[(int) params[FILTER_TYPE_C_PARAM].getValue()];
 			svfFilterC.setParameters(cutoffNormalised, Q);
 
@@ -811,14 +811,12 @@ struct NoisePlethoraWidget : ModuleWidget {
 		addChild(createLightCentered<MediumLight<RedLight>>(mm2px(Vec(30.866, 37.422)), module, NoisePlethora::BANK_LIGHT));
 
 
-		NoisePlethoraLEDDisplay* displayA = new NoisePlethoraLEDDisplay();
-		displayA->box.pos = mm2px(Vec(13.106, 38.172));
+		NoisePlethoraLEDDisplay* displayA = createWidget<NoisePlethoraLEDDisplay>(mm2px(Vec(13.106, 38.172)));		
 		displayA->module = module;
 		displayA->section = NoisePlethora::SECTION_A;
 		addChild(displayA);
 
-		NoisePlethoraLEDDisplay* displayB = new NoisePlethoraLEDDisplay();
-		displayB->box.pos = mm2px(Vec(13.106, 50.712));
+		NoisePlethoraLEDDisplay* displayB = createWidget<NoisePlethoraLEDDisplay>(mm2px(Vec(13.106, 50.712)));		
 		displayB->module = module;
 		displayB->section = NoisePlethora::SECTION_B;
 		addChild(displayB);
