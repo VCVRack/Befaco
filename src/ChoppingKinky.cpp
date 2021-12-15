@@ -81,7 +81,7 @@ struct ChoppingKinky : Module {
 	void onSampleRateChange() override {
 		float sampleRate = APP->engine->getSampleRate();
 		
-		blockDCFilter.setFrequency(10.3f / sampleRate);
+		blockDCFilter.setFrequency(22.05 / sampleRate);
 
 		for (int channel_idx = 0; channel_idx < NUM_CHANNELS; channel_idx++) {
 			oversampler[channel_idx].setOversamplingIndex(oversamplingIndex);

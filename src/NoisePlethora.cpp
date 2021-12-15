@@ -259,11 +259,19 @@ struct NoisePlethora : Module {
 	}
 
 	void onSampleRateChange() override {
-		// set ~10Hz DC blocker
-		const float fc = 10.3f / APP->engine->getSampleRate();
+		// set ~20Hz DC blocker
+		const float fc = 22.05f / APP->engine->getSampleRate();
+
 		blockDCFilter[SECTION_A].setFrequency(fc);
 		blockDCFilter[SECTION_B].setFrequency(fc);
 		blockDCFilter[SECTION_C].setFrequency(fc);
+
+		if (algorithm[SECTION_A]) {
+			algorithm[SECTION_A]->init();
+		}
+		if (algorithm[SECTION_B]) {
+			algorithm[SECTION_B]->init();
+		}
 	}
 
 	void process(const ProcessArgs& args) override {
@@ -811,12 +819,12 @@ struct NoisePlethoraWidget : ModuleWidget {
 		addChild(createLightCentered<MediumLight<RedLight>>(mm2px(Vec(30.866, 37.422)), module, NoisePlethora::BANK_LIGHT));
 
 
-		NoisePlethoraLEDDisplay* displayA = createWidget<NoisePlethoraLEDDisplay>(mm2px(Vec(13.106, 38.172)));		
+		NoisePlethoraLEDDisplay* displayA = createWidget<NoisePlethoraLEDDisplay>(mm2px(Vec(13.106, 38.172)));
 		displayA->module = module;
 		displayA->section = NoisePlethora::SECTION_A;
 		addChild(displayA);
 
-		NoisePlethoraLEDDisplay* displayB = createWidget<NoisePlethoraLEDDisplay>(mm2px(Vec(13.106, 50.712)));		
+		NoisePlethoraLEDDisplay* displayB = createWidget<NoisePlethoraLEDDisplay>(mm2px(Vec(13.106, 50.712)));
 		displayB->module = module;
 		displayB->section = NoisePlethora::SECTION_B;
 		addChild(displayB);
