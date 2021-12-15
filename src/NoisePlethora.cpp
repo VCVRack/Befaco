@@ -116,8 +116,6 @@ private:
 };
 
 
-
-
 struct NoisePlethora : Module {
 	enum ParamIds {
 		// A params
@@ -276,7 +274,7 @@ struct NoisePlethora : Module {
 
 	void process(const ProcessArgs& args) override {
 
-		// we only periodically update the process() call of each algorithm (once per block, ~2.9ms)
+		// we only periodically update parameters of each algorithm (once per block, ~2.9ms at 44100Hz)
 		bool updateParams = false;
 		if (!updateParamsTimer.process(args.sampleTime)) {
 			updateParams = true;
@@ -336,7 +334,7 @@ struct NoisePlethora : Module {
 			}
 
 			if (blockDC) {
-				// cascaded Biquad (4th order highpass at ~10Hz)
+				// cascaded Biquad (4th order highpass at ~20Hz)
 				out = blockDCFilter[SECTION].process(out);
 			}
 		}
@@ -377,7 +375,7 @@ struct NoisePlethora : Module {
 			out = Saturator::process(out + 0.33);
 
 			if (blockDC) {
-				// cascaded Biquad (4th order highpass at ~10Hz)
+				// cascaded Biquad (4th order highpass at ~20Hz)
 				out = blockDCFilter[SECTION_C].process(out);
 			}
 		}
@@ -564,16 +562,24 @@ struct NoisePlethora : Module {
 
 	void dataFromJson(json_t* rootJ) override {
 		json_t* bankAJ = json_object_get(rootJ, "algorithmA");
-		setAlgorithm(SECTION_A, json_string_value(bankAJ));
+		if (bankAJ) {
+			setAlgorithm(SECTION_A, json_string_value(bankAJ));
+		}
 
 		json_t* bankBJ = json_object_get(rootJ, "algorithmB");
-		setAlgorithm(SECTION_B, json_string_value(bankBJ));
+		if (bankBJ) {
+			setAlgorithm(SECTION_B, json_string_value(bankBJ));
+		}
 
 		json_t* bypassFiltersJ = json_object_get(rootJ, "bypassFilters");
-		bypassFilters = json_boolean_value(bypassFiltersJ);
+		if (bypassFiltersJ) {
+			bypassFilters = json_boolean_value(bypassFiltersJ);
+		}
 
 		json_t* blockDCJ = json_object_get(rootJ, "blockDC");
-		blockDC = json_boolean_value(blockDCJ);
+		if (blockDCJ) {
+			blockDC = json_boolean_value(blockDCJ);
+		}
 	}
 
 	json_t* dataToJson() override {
@@ -752,7 +758,6 @@ struct NoisePlethoraLEDDisplay : LightWidget {
 			const bool isSectionDisplayActive = (section == NoisePlethora::SECTION_A) ? module->isDisplayActiveA : module->isDisplayActiveB;
 
 			// active bank dot
-			// nvgCircle(args.vg, 10, 24, 3);
 			nvgBeginPath(args.vg);
 			nvgCircle(args.vg, 18, 26, 1.5);
 			nvgFillColor(args.vg, isSectionDisplayActive ? textColor : nvgTransRGBA(textColor, 18));

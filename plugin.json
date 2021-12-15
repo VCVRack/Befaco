@@ -1,7 +1,7 @@
 {
   "slug": "Befaco",
   "version": "2.0.0",
-  "license": "GPL-3.0-or-later",
+  "license": "GPL-3.0-only",
   "name": "Befaco",
   "brand": "Befaco",
   "author": "VCV, Ewan Hemingway",
@@ -199,8 +199,8 @@
       "manualUrl": "https://www.befaco.org/stmix/",
       "modularGridUrl": "https://www.modulargrid.net/e/befaco-stmix-",
       "tags": [
-        "Hardware clone", 
-        "Mixer",        
+        "Hardware clone",
+        "Mixer",
         "Polyphonic"
       ]
     },
@@ -209,7 +209,7 @@
       "name": "Muxlicer",
       "description": "VC adressable sequential switch and sequencer",
       "manualUrl": "https://www.befaco.org/muxlicer-2/",
-      "modularGridUrl": "https://www.modulargrid.net/e/befaco-muxlicer",      
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-muxlicer",
       "tags": [
         "Clock generator",
         "Hardware clone",
