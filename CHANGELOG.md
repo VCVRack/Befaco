@@ -3,6 +3,8 @@
 ## v2.1.0
   * Added Noise Plethora
   * Chopping Kinky upgraded to use improved DC blocker
+  * Added bypass for Spring Reverb
+  * Minor fix for Kickall trigger
 
 ## v2.0.0
   * update to Rack 2 API (added tooltips, bypass, removed boilerplate etc)
