@@ -1,7 +1,7 @@
 Technical Notes
 ===============
 
-The Noise Plethora module consists of a number of plugins designed to run on the Teensy microcontroller, and specifically using the powerful [Teensy audio library](https://www.pjrc.com/teensy/td_libs_Audio.html).  This consists of a number of oscillators, filters, noise sources, effects etc. Unfortunately these are designed to run directly on the Teensy, and target ARM processors. A small subset of the library that is required for NoisePlethora has been ported, with minor adaptions:
+The Noise Plethora module consists of a number of plugins designed to run on the Teensy microcontroller, and specifically using the powerful [Teensy audio library](https://www.pjrc.com/teensy/td_libs_Audio.html).  This consists of a number of oscillators, filters, noise sources, effects etc. Unfortunately these are designed to run directly on the Teensy, and target ARM processors. A small subset of the library that is required for NoisePlethora has been ported (see `./teensy`), with minor adaptions:
 
 * any parts that only have ARM instructions have been reimplemented (generally with slower versions)
 * Teensy fixes the sample rate at 44100Hz, so parts have been updated to allow arbitrary sample rates

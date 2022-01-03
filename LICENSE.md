@@ -1,6 +1,8 @@
 All **source code** is copyright © 2019-2021 [VCV](https://vcvrack.com/) and contributers.
 
-This program is free software: you can redistribute it and/or modify it under the terms of the [GNU General Public License](https://www.gnu.org/licenses/gpl-3.0.en.html) as published by the [Free Software Foundation](https://www.fsf.org/), either version 3 of the License, or (at your option) any later version.
+This program is free software: you can redistribute it and/or modify it under the terms of the [GNU General Public License](https://www.gnu.org/licenses/gpl-3.0.en.html) as published by the [Free Software Foundation](https://www.fsf.org/), version 3 of the License (GPL-3.0-only).
+
+SPDX-License-Identifier: GPL-3.0-only
 
 The **panel graphics** in the `res/panels/` directory are copyright © [Befaco](https://www.befaco.org/) and are used and distributed with permission.
 
