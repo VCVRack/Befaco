@@ -83,7 +83,7 @@ struct Kickall : Module {
 		// TODO: check values
 		const bool risingEdgeGate = gateTrigger.process(inputs[TRIGG_INPUT].getVoltage() / 2.0f);
 		const bool buttonTriggered = buttonTrigger.process(params[TRIGG_BUTTON_PARAM].getValue());
-		// can be triggered by either rising edge on triger in, or a button press
+		// can be triggered by either rising edge on trigger in, or a button press
 		if (risingEdgeGate || buttonTriggered) {
 			volume.trigger();
 			pitch.trigger();

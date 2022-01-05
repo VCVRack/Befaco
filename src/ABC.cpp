@@ -45,6 +45,17 @@ struct ABC : Module {
 		configParam(C1_LEVEL_PARAM, -1.0, 1.0, 0.0, "C1 Level");
 		configParam(B2_LEVEL_PARAM, -1.0, 1.0, 0.0, "B2 Level");
 		configParam(C2_LEVEL_PARAM, -1.0, 1.0, 0.0, "C2 Level");
+
+		configInput(A1_INPUT, "A1");
+		configInput(B1_INPUT, "B1 (normalled to 5V)");
+		configInput(C1_INPUT, "C1 (normalled to 10V)");
+		configInput(A2_INPUT, "A2");
+		configInput(B2_INPUT, "B2 (normalled to 5V)");
+		configInput(C2_INPUT, "C2 (normalled to 10V)");
+
+		configOutput(OUT1_OUTPUT, "Out 1 (normalled to Out 2)");
+		configOutput(OUT2_OUTPUT, "Out 2");
+
 	}
 
 	void processSection(const ProcessArgs& args, int& lastChannels, float_4* lastOut, ParamIds levelB, ParamIds levelC, InputIds inputA, InputIds inputB, InputIds inputC, OutputIds output, LightIds outLight) {
