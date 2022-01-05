@@ -39,10 +39,17 @@ public:
 		state_bandpass = 0;
 	}
 	void frequency(float freq) {
-		if (freq < 20.0f)
-			freq = 20.0f;
-		else if (freq > APP->engine->getSampleRate() / 2.5f)
-			freq = APP->engine->getSampleRate() / 2.5f;
+		// for reproducibility, max frequency cuts out at 2/5 Teensy sample rate 
+		// (unless we're running at very low sample rates, in which case make sure we don't allow unstable f_c)
+		const float minFrequency = 20.f;
+		const float maxFrequency = std::min(AUDIO_SAMPLE_RATE_EXACT, APP->engine->getSampleRate()) / 2.5f;
+
+		if (freq < minFrequency) {
+			freq = minFrequency;
+		}
+		else if (freq > maxFrequency) {		
+			freq = maxFrequency;
+		}
 		setting_fcenter = (freq * (3.141592654f / (APP->engine->getSampleRate() * 2.0f)))
 		                  * 2147483647.0f;
 		// TODO: should we use an approximation when freq is not a const,

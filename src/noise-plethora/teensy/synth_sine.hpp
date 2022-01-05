@@ -37,10 +37,15 @@ class AudioSynthWaveformSine : public AudioStream {
 public:
 	AudioSynthWaveformSine() : AudioStream(0), magnitude(16384) {}
 	void frequency(float freq) {
+		
+		// for reproducibility, max frequency cuts out at 1/2 Teensy sample rate
+		// (unless we're running at very low sample rates, in which case use those to limit range)
+		const float maxFrequency = std::min(AUDIO_SAMPLE_RATE_EXACT, APP->engine->getSampleRate()) / 2.0f;
+
 		if (freq < 0.0f)
 			freq = 0.0;
-		else if (freq > AUDIO_SAMPLE_RATE_EXACT / 2.0f)
-			freq = AUDIO_SAMPLE_RATE_EXACT / 2.0f;
+		else if (freq > maxFrequency)
+			freq = maxFrequency;
 		phase_increment = freq * (4294967296.0f / APP->engine->getSampleRate());
 	}
 	void phase(float angle) {
@@ -100,10 +105,15 @@ public:
 	// input = +1.0 doubles carrier
 	// input = -1.0 DC output
 	void frequency(float freq) {
+
+		// for reproducibility, max frequency cuts out at 1/4 Teensy sample rate
+		// (unless we're running at very low sample rates, in which case use those to limit range)
+		const float maxFrequency = std::min(AUDIO_SAMPLE_RATE_EXACT, APP->engine->getSampleRate()) / 4.0f;
+
 		if (freq < 0.0f)
 			freq = 0.0f;
-		else if (freq > AUDIO_SAMPLE_RATE_EXACT / 4.0f)
-			freq = AUDIO_SAMPLE_RATE_EXACT / 4.0f;
+		else if (freq > maxFrequency)
+			freq = maxFrequency;
 		phase_increment = freq * (4294967296.0f / APP->engine->getSampleRate());
 	}
 	void phase(float angle) {

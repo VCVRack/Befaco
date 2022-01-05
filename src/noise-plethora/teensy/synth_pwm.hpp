@@ -33,10 +33,16 @@ public:
 	AudioSynthWaveformPWM() : AudioStream(1), magnitude(0), elapsed(0) {}
 	void frequency(float freq) {
 
-		if (freq < 1.0)
+		// for reproducibility, max frequency cuts out at 1/2 Teensy sample rate
+		// (unless we're running at very low sample rates, in which case use those to limit range)
+		const float maxFrequency = std::min(AUDIO_SAMPLE_RATE_EXACT, APP->engine->getSampleRate()) / 4.0f;
+
+		if (freq < 1.0) {
 			freq = 1.0;
-		else if (freq > AUDIO_SAMPLE_RATE_EXACT / 4.0f)
-			freq = AUDIO_SAMPLE_RATE_EXACT / 4.0f;
+		}
+		else if (freq > maxFrequency) {
+			freq = maxFrequency;
+		}
 		//phase_increment = freq * (4294967296.0f / AUDIO_SAMPLE_RATE_EXACT);
 		duration = (APP->engine->getSampleRate() * 65536.0f + freq) / (freq * 2.0f);
 	}
@@ -49,7 +55,7 @@ public:
 	}
 	virtual void update(const audio_block_t* modinput, audio_block_t* block);
 private:
-	uint32_t duration; // samples per half cycle (when 50% duty) * 65536	
+	uint32_t duration; // samples per half cycle (when 50% duty) * 65536
 	int32_t magnitude;
 	uint32_t elapsed;
 };

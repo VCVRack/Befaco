@@ -12,13 +12,18 @@ public:
 	}
 
 	void frequency(float freq) {
+
+		// for reproducibility, max frequency cuts out at 1/2 Teensy sample rate
+		// (unless we're running at very low sample rates, in which case use those to limit range)
+		const float maxFrequency = std::min(AUDIO_SAMPLE_RATE_EXACT, APP->engine->getSampleRate()) / 2.0f;
+
 		if (freq < 0.0f) {
 			freq = 0.0;
 		}
-		else if (freq > AUDIO_SAMPLE_RATE_EXACT / 2.0f) {
-			freq = AUDIO_SAMPLE_RATE_EXACT / 2.0f;
+		else if (freq > maxFrequency) {
+			freq = maxFrequency;
 		}
-		phase_increment = freq * (4294967296.0f / AUDIO_SAMPLE_RATE_EXACT);
+		phase_increment = freq * (4294967296.0f / APP->engine->getSampleRate());
 		if (phase_increment > 0x7FFE0000u)
 			phase_increment = 0x7FFE0000;
 	}
@@ -249,11 +254,16 @@ public:
 	}
 
 	void frequency(float freq) {
+
+		// for reproducibility, max frequency cuts out at 1/2 Teensy sample rate
+		// (unless we're running at very low sample rates, in which case use those to limit range)
+		const float maxFrequency = std::min(AUDIO_SAMPLE_RATE_EXACT, APP->engine->getSampleRate()) / 2.0f;
+
 		if (freq < 0.0f) {
 			freq = 0.0;
 		}
-		else if (freq > AUDIO_SAMPLE_RATE_EXACT / 2.0f) {
-			freq = AUDIO_SAMPLE_RATE_EXACT / 2.0f;
+		else if (freq > maxFrequency) {
+			freq = maxFrequency;
 		}
 		phase_increment = freq * (4294967296.0f / APP->engine->getSampleRate());
 		if (phase_increment > 0x7FFE0000u)
@@ -526,7 +536,7 @@ public:
 	}
 
 private:
-	
+
 	uint32_t phase_accumulator;
 	uint32_t phase_increment;
 	uint32_t modulation_factor;
