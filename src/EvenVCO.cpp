@@ -120,8 +120,10 @@ struct EvenVCO : Module {
 			phase[c / 4] += deltaPhase[c / 4];
 		}
 
-		// the next block can't be done with SIMD instructions:
-		for (int c = 0; c < channels; c++) {
+		// the next block can't be done with SIMD instructions, but should at least be completed with
+		// blocks of 4 (otherwise popping artfifacts are generated from invalid phase/oldPhase/deltaPhase)
+		int channelsRoundedUpNearestFour = std::ceil(channels / 4.f) * 4;
+		for (int c = 0; c < channelsRoundedUpNearestFour; c++) {
 
 			if (oldPhase[c / 4].s[c % 4] < 0.5 && phase[c / 4].s[c % 4] >= 0.5) {
 				float crossing = -(phase[c / 4].s[c % 4] - 0.5) / deltaPhase[c / 4].s[c % 4];
@@ -161,19 +163,12 @@ struct EvenVCO : Module {
 		float_4 square[4] = {};
 		float_4 triOut[4] = {};
 
-		for (int c = 0; c < channels; c++) {
+		for (int c = 0; c < channelsRoundedUpNearestFour; c++) {
 			triSquareMinBlepOut[c / 4].s[c % 4] = triSquareMinBlep[c].process();
 			doubleSawMinBlepOut[c / 4].s[c % 4] = doubleSawMinBlep[c].process();
 			sawMinBlepOut[c / 4].s[c % 4] = sawMinBlep[c].process();
 			squareMinBlepOut[c / 4].s[c % 4] = squareMinBlep[c].process();
 		}
-
-		// Outputs
-		outputs[TRI_OUTPUT].setChannels(channels);
-		outputs[SINE_OUTPUT].setChannels(channels);
-		outputs[EVEN_OUTPUT].setChannels(channels);
-		outputs[SAW_OUTPUT].setChannels(channels);
-		outputs[SQUARE_OUTPUT].setChannels(channels);
 
 		for (int c = 0; c < channels; c += 4) {
 
@@ -208,6 +203,13 @@ struct EvenVCO : Module {
 			outputs[SAW_OUTPUT].setVoltageSimd(saw[c / 4], c);
 			outputs[SQUARE_OUTPUT].setVoltageSimd(square[c / 4], c);
 		}
+
+		// Outputs
+		outputs[TRI_OUTPUT].setChannels(channels);
+		outputs[SINE_OUTPUT].setChannels(channels);
+		outputs[EVEN_OUTPUT].setChannels(channels);
+		outputs[SAW_OUTPUT].setChannels(channels);
+		outputs[SQUARE_OUTPUT].setChannels(channels);
 	}
 };
 
