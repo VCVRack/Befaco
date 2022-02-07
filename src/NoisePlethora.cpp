@@ -654,7 +654,6 @@ struct BefacoTinyKnobSnapPress : BefacoTinyKnobBlack {
 
 // dervied from https://github.com/countmodula/VCVRackPlugins/blob/v2.0.0/src/components/CountModulaLEDDisplay.hpp
 struct NoisePlethoraLEDDisplay : LightWidget {
-	std::shared_ptr<Font> font;
 	float fontSize = 28;
 	Vec textPos = Vec(2, 25);
 	int numChars = 1;
@@ -664,7 +663,6 @@ struct NoisePlethoraLEDDisplay : LightWidget {
 	ui::Tooltip* tooltip;
 
 	NoisePlethoraLEDDisplay() {
-		font = APP->window->loadFont(asset::plugin(pluginInstance, "res/fonts/Segment7Standard.otf"));
 		box.size = mm2px(Vec(7.236, 10));
 	}
 
@@ -724,6 +722,8 @@ struct NoisePlethoraLEDDisplay : LightWidget {
 		nvgStrokeWidth(args.vg, 1.0);
 		nvgStrokeColor(args.vg, borderColor);
 		nvgStroke(args.vg);
+
+		std::shared_ptr<Font> font = APP->window->loadFont(asset::plugin(pluginInstance, "res/fonts/Segment7Standard.otf"));
 
 		if (font && font->handle >= 0) {
 
