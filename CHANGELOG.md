@@ -5,7 +5,8 @@
   * Chopping Kinky upgraded to use improved DC blocker
   * Added bypass for Spring Reverb
   * Bugfix: Kickall trigger input and button can now work independently
-  * Bugfix: remove pop on number of polyphony engines change
+  * Bugfix: EvenVCO remove pop on number of polyphony engines change
+  * Bugfix: Muxlicer chaining using reset now works correctly
 
 ## v2.0.0
   * update to Rack 2 API (added tooltips, bypass, removed boilerplate etc)

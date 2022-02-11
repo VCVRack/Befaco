@@ -173,12 +173,6 @@ struct MultDivClock {
 
 		return multipliedSeconds;
 	}
-
-	void reset() {
-		secondsSinceLastClock = 0.f;
-		dividedProgressSeconds = 0.f;
-		dividerCount = 0;
-	}
 };
 
 static const std::vector<int> clockOptionsQuadratic = {-16, -8, -4, -2, 1, 2, 4, 8, 16};
@@ -261,12 +255,18 @@ struct Muxlicer : Module {
 	uint32_t runIndex; 	// which step are we on (0 to 7)
 	uint32_t addressIndex = 0;
 	bool tapped = false;
+
+	enum ResetStatus {
+		RESET_NOT_REQUESTED,
+		RESET_AND_PLAY_ONCE,
+		RESET_AND_PLAY
+	};
 	// Used to track if a reset has been triggered. Can be from the CV input, or the momentary switch. Note
 	// that behaviour depends on if the Muxlicer is clocked or not. If clocked, the playhead resets but waits
 	// for the next clock tick to start. If not clocked, then the sequence will start immediately (i.e. the
 	// internal clock will be synced at the point where `resetIsRequested` is first true.
-	bool resetIsRequested = false;
-	// used to detect when `resetIsRequested` first becomes true (only used when no external clock)
+	ResetStatus resetRequested = RESET_NOT_REQUESTED;
+	// used to detect when `resetRequested` first becomes active
 	dsp::BooleanTrigger detectResetTrigger;
 
 	// used to track the clock (e.g. if external clock is not connected). NOTE: this clock
@@ -278,7 +278,6 @@ struct Muxlicer : Module {
 	dsp::SchmittTrigger inputClockTrigger;	// to detect incoming clock pulses
 	dsp::BooleanTrigger mainClockTrigger;	// to detect when divided/multiplied version of the clock signal has rising edge
 	dsp::SchmittTrigger resetTrigger; 		// to detect the reset signal
-	dsp::PulseGenerator resetTimer; 		// leave a grace period before advancing the step
 	dsp::PulseGenerator endOfCyclePulse; 	// fire a signal at the end of cycle
 	dsp::BooleanTrigger tapTempoTrigger;	// to only trigger tap tempo when push is first detected
 	MultDivClock mainClockMultDiv;			// to produce a divided/multiplied version of the (internal or external) clock signal
@@ -445,23 +444,17 @@ struct Muxlicer : Module {
 			internalClockProgress = 0.f;
 		}
 
-		// As soon as we get a reset signal (which can come from CV or various modes of the switch)
-		if (detectResetTrigger.process(resetIsRequested)) {
-
-			// prime the main rising edge detector (that drives the whole sequence) to be ready to receive a
-			// clock tick (rising edge) - this is regardless of internal/external clocking. If this isn't reset 
-			// here we can get repeated steps on the first step, see: https://github.com/VCVRack/Befaco/issues/32
-			mainClockTrigger.state = false;
-
-			// If we have an _internal_ clock, we will also immediately start the sequence and sync up all the various clocks, i.e.,
-			// reset also acts as a sequencer sync.
-			if (!usingExternalClock) {
-				// reset various clocks
-				mainClockMultDiv.reset();
-				outputClockMultDiv.reset();
-				multiClock.reset(mainClockMultDiv.getEffectiveClockLength());
-				// set the internal clock to a value that will force a clock tick
-				internalClockProgress = internalClockLength;
+		// If we get a reset signal (which can come from CV or various modes of the switch), and the clock has only
+		// just started to tick (internalClockProgress < 1ms), we assume that the reset signal is slightly delayed
+		// due to the 1 sample delay that Rack introduces. If this is the case, the internal clock trigger detector,
+		// `detectResetTrigger`, which advances the sequence, will not be "primed" to detect a rising edge for another
+		// whole clock tick, meaning the first step is repeated. See: https://github.com/VCVRack/Befaco/issues/32
+		// Also see https://vcvrack.com/manual/VoltageStandards#Timing for 0.001 seconds justification.
+		if (detectResetTrigger.process(resetRequested != RESET_NOT_REQUESTED) && internalClockProgress < 1e-3) {
+			// NOTE: the sequence must also be stopped for this to come into effect. In hardware, if the Nth step Gate Out
+			// is patched back into the reset, that step should complete before the sequence restarts.
+			if (playState == STATE_STOPPED) {
+				mainClockTrigger.state = false;
 			}
 		}
 		tapTime += args.sampleTime;
@@ -484,6 +477,19 @@ struct Muxlicer : Module {
 		const bool dividedMultipliedClockPulseReceived = mainClockTrigger.process(mainClockMultDiv.process(args.sampleTime, clockPulseReceived));
 
 		if (dividedMultipliedClockPulseReceived) {
+
+			if (resetRequested != RESET_NOT_REQUESTED) {
+				runIndex = 7;
+
+				if (resetRequested == RESET_AND_PLAY) {
+					playState = STATE_PLAY;
+				}
+				else if (resetRequested == RESET_AND_PLAY_ONCE) {
+					playState = STATE_PLAY_ONCE;
+
+				}
+			}
+
 			if (isAddressInRunMode && playState != STATE_STOPPED) {
 
 				runIndex++;
@@ -495,8 +501,8 @@ struct Muxlicer : Module {
 					// the sequence resets by placing the play head at the final step (so that the next clock pulse
 					// ticks over onto the first step) - so if we are on the final step _because_ we've reset,
 					// then don't fire EOC, just clear the reset status
-					if (resetIsRequested) {
-						resetIsRequested = false;
+					if (resetRequested != RESET_NOT_REQUESTED) {
+						resetRequested = RESET_NOT_REQUESTED;
 					}
 					// otherwise we've naturally arrived at the last step so do fire EOC etc
 					else {
@@ -599,13 +605,12 @@ struct Muxlicer : Module {
 
 		const bool resetPulseInReceived = resetTrigger.process(rescale(inputs[RESET_INPUT].getVoltage(), 0.1f, 2.f, 0.f, 1.f));
 		if (resetPulseInReceived) {
-			resetIsRequested = true;
-			runIndex = 7;
 
-			if (playState == STATE_STOPPED) {
-				playState = STATE_PLAY_ONCE;
+			switch (playState) {
+				case STATE_STOPPED: resetRequested = RESET_AND_PLAY_ONCE; break;
+				case STATE_PLAY_ONCE: resetRequested = RESET_AND_PLAY_ONCE; break;
+				case STATE_PLAY: resetRequested = RESET_AND_PLAY; break;
 			}
-			resetTimer.trigger();
 		}
 
 		// if the play switch has effectively been activated for the first time,
@@ -616,12 +621,10 @@ struct Muxlicer : Module {
 			// if we were stopped, check for activation (normal, up or one-shot, down)
 			if (playState == STATE_STOPPED) {
 				if (params[PLAY_PARAM].getValue() == STATE_PLAY) {
-					playState = STATE_PLAY;
+					resetRequested = RESET_AND_PLAY;
 				}
 				else if (params[PLAY_PARAM].getValue() == STATE_PLAY_ONCE) {
-					playState = STATE_PLAY_ONCE;
-					runIndex = 7;
-					resetIsRequested = true;
+					resetRequested = RESET_AND_PLAY_ONCE;
 				}
 			}
 			// otherwise we are in play mode (and we've not just held onto the play switch),
@@ -634,8 +637,7 @@ struct Muxlicer : Module {
 				}
 				// bottom will reset
 				else if (params[PLAY_PARAM].getValue() == STATE_PLAY_ONCE) {
-					resetIsRequested = true;
-					runIndex = 7;
+					resetRequested = RESET_AND_PLAY_ONCE;
 				}
 			}
 		}
