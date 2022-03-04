@@ -195,7 +195,6 @@ struct NoisePlethora : Module {
 	DCBlocker blockDCFilter[3];
 
 	ProgramSelector programSelector;
-	float lastCV[2] = {};
 	// UI / UX for A/B
 	std::string textDisplayA = " ", textDisplayB = " ";
 	bool isDisplayActiveA = false, isDisplayActiveB = false;
@@ -258,7 +257,7 @@ struct NoisePlethora : Module {
 		setAlgorithm(SECTION_A, "radioOhNo");
 		onSampleRateChange();
 	}
-		
+
 	void onReset(const ResetEvent& e) override {
 		setAlgorithm(SECTION_B, "radioOhNo");
 		setAlgorithm(SECTION_A, "radioOhNo");
@@ -488,19 +487,23 @@ struct NoisePlethora : Module {
 	void checkForProgramChangeCV(Section section, InputIds sectionCvInputId) {
 		if (inputs[sectionCvInputId].isConnected()) {
 
-			float diffCv = inputs[sectionCvInputId].getVoltage() - lastCV[section];
-			if (std::abs(diffCv) > 0.5) {
-				int delta = (diffCv < 0) ? -1 : +1;
+			const int currentBank = programSelector.getSection(section).getBank();
+			const int numProgramsForCurrentBank = getBankForIndex(currentBank).getSize();
+			const int currentProgram = programSelector.getSection(section).getProgram();
 
-				const int currentBank = programSelector.getSection(section).getBank();
-				const int currentProgram = programSelector.getSection(section).getProgram();
-				const int currentBankSize = getBankForIndex(currentBank).getSize();
+			// work out what the current program is, where 0V-0.5V is 0, 0.5V-1.0V is 1 etc
+			int program = (int)(2 * inputs[sectionCvInputId].getVoltage());
+			// the program selector acts as an offset to this, but make sure this only applies to the currently
+			// active section (i.e. A or B)
+			if (section == programSelector.getMode()) {
+				program += dialResolution * programKnobReferenceState;
+			}
+			const int newProgramFromKnob = unsigned_modulo(program, numProgramsForCurrentBank);
 
-				// modulo operator that works for negative integers
-				const int newProgram = (currentBankSize + ((currentProgram + delta) % currentBankSize)) % currentBankSize;
+			if (currentProgram != newProgramFromKnob)  {
 
-				const std::string newProgramName = getBankForIndex(currentBank).getProgramName(newProgram);
-				programSelector.getSection(section).setProgram(newProgram);
+				const std::string newProgramName = getBankForIndex(currentBank).getProgramName(newProgramFromKnob);
+				programSelector.getSection(section).setProgram(newProgramFromKnob);
 
 				algorithm[section] = MyFactory::Instance()->Create(newProgramName);
 
@@ -510,8 +513,6 @@ struct NoisePlethora : Module {
 				else {
 					DEBUG("WARNING: Failed to initialise %s in programSelector", newProgramName.c_str());
 				}
-
-				lastCV[section] = inputs[sectionCvInputId].getVoltage();
 			}
 		}
 	}

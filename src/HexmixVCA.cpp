@@ -49,6 +49,8 @@ struct HexmixVCA : Module {
 			configInput(CV_INPUT + i, string::f("Gain %d", i + 1));
 			configOutput(OUT_OUTPUT + i, string::f("Channel %d", i + 1));
 
+			getInputInfo(CV_INPUT + i)->description = "Normalled to 10V";
+
 			configBypass(IN_INPUT + i, OUT_OUTPUT + i);
 		}
 		cvDivider.setDivision(16);

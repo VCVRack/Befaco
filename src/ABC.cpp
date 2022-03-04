@@ -52,10 +52,16 @@ struct ABC : Module {
 		configInput(A2_INPUT, "A2");
 		configInput(B2_INPUT, "B2");
 		configInput(C2_INPUT, "C2");
-
+		
+		getInputInfo(B1_INPUT)->description = "Normalled to 5V";
+		getInputInfo(C1_INPUT)->description = "Normalled to 10V";
+		getInputInfo(B2_INPUT)->description = "Normalled to 5V";
+		getInputInfo(C2_INPUT)->description = "Normalled to 10V";
+ 
 		configOutput(OUT1_OUTPUT, "Out 1");
 		configOutput(OUT2_OUTPUT, "Out 2");
-
+		
+		getOutputInfo(OUT1_OUTPUT)->description = "Normalled to Out 2";
 	}
 
 	void processSection(const ProcessArgs& args, int& lastChannels, float_4* lastOut, ParamIds levelB, ParamIds levelC, InputIds inputA, InputIds inputB, InputIds inputC, OutputIds output, LightIds outLight) {
