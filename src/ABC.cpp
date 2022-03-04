@@ -47,13 +47,13 @@ struct ABC : Module {
 		configParam(C2_LEVEL_PARAM, -1.0, 1.0, 0.0, "C2 Level");
 
 		configInput(A1_INPUT, "A1");
-		configInput(B1_INPUT, "B1 (normalled to 5V)");
-		configInput(C1_INPUT, "C1 (normalled to 10V)");
+		configInput(B1_INPUT, "B1");
+		configInput(C1_INPUT, "C1");
 		configInput(A2_INPUT, "A2");
-		configInput(B2_INPUT, "B2 (normalled to 5V)");
-		configInput(C2_INPUT, "C2 (normalled to 10V)");
+		configInput(B2_INPUT, "B2");
+		configInput(C2_INPUT, "C2");
 
-		configOutput(OUT1_OUTPUT, "Out 1 (normalled to Out 2)");
+		configOutput(OUT1_OUTPUT, "Out 1");
 		configOutput(OUT2_OUTPUT, "Out 2");
 
 	}

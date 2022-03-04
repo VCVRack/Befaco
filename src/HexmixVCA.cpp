@@ -46,7 +46,7 @@ struct HexmixVCA : Module {
 			configParam(VOL_PARAM + i, 0.f, 1.f, 1.f, string::f("Channel %d output level", i + 1));
 
 			configInput(IN_INPUT + i, string::f("Channel %d", i + 1));
-			configInput(CV_INPUT + i, string::f("Gain %d (10V normalled)", i + 1));
+			configInput(CV_INPUT + i, string::f("Gain %d", i + 1));
 			configOutput(OUT_OUTPUT + i, string::f("Channel %d", i + 1));
 
 			configBypass(IN_INPUT + i, OUT_OUTPUT + i);

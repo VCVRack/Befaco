@@ -153,6 +153,9 @@ struct Davies1900hLargeLightGreyKnob : Davies1900hKnob {
 	}
 };
 
+inline int unsigned_modulo(int a, int b) {
+	return ((a % b) + b) % b;
+}
 
 template <typename T>
 T sin2pi_pade_05_5_4(T x) {
@@ -226,8 +229,8 @@ private:
 // Creates a Butterworth 2*Nth order highpass filter for blocking DC
 template<int N>
 struct DCBlockerT {
-	
-	DCBlockerT() { 
+
+	DCBlockerT() {
 		setFrequency(0.1f);
 	}
 
@@ -248,9 +251,9 @@ private:
 	// https://www.earlevel.com/main/2016/09/29/cascading-filters/
 	void recalculateCoefficients() {
 
-		float poleInc = M_PI / order;	
+		float poleInc = M_PI / order;
 		float firstAngle = poleInc / 2;
-			
+
 		for (int idx = 0; idx < N; idx++) {
 			float Q = 1.0f / (2.0f * std::cos(firstAngle + idx * poleInc));
 			blockDCFilter[idx].setParameters(dsp::BiquadFilter::HIGHPASS, fc_, Q, 1.0f);

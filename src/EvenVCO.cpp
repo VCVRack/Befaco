@@ -122,7 +122,7 @@ struct EvenVCO : Module {
 
 		// the next block can't be done with SIMD instructions, but should at least be completed with
 		// blocks of 4 (otherwise popping artfifacts are generated from invalid phase/oldPhase/deltaPhase)
-		int channelsRoundedUpNearestFour = std::ceil(channels / 4.f) * 4;
+		const int channelsRoundedUpNearestFour = (1 + (channels - 1) / 4) * 4;
 		for (int c = 0; c < channelsRoundedUpNearestFour; c++) {
 
 			if (oldPhase[c / 4].s[c % 4] < 0.5 && phase[c / 4].s[c % 4] >= 0.5) {

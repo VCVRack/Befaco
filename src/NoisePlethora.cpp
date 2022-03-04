@@ -181,6 +181,10 @@ struct NoisePlethora : Module {
 		BANK_MODE
 	};
 	ProgramKnobMode programKnobMode = PROGRAM_MODE;
+	// one full turn of the program knob corresponds to an increment of dialResolution to the bank/program
+	static constexpr int dialResolution = 8;
+	// variable to store what the program knob was prior to the start of dragging (used to calculate deltas)
+	float programKnobReferenceState = 0.f;
 
 	// section A/B
 	bool bypassFilters = false;
@@ -217,7 +221,7 @@ struct NoisePlethora : Module {
 		configParam(Y_A_PARAM, 0.f, 1.f, 0.5f, "YA");
 		configParam(CUTOFF_CV_A_PARAM, 0.f, 1.f, 0.f, "Cutoff CV A");
 		configSwitch(FILTER_TYPE_A_PARAM, 0.f, 2.f, 0.f, "Filter type", {"Lowpass", "Bandpass", "Highpass"});
-		configParam(PROGRAM_PARAM, 0.f, 9.f, 0.f, "Program/Bank selection");
+		configParam(PROGRAM_PARAM, -INFINITY, +INFINITY, 0.f, "Program/Bank selection");
 		configSwitch(FILTER_TYPE_B_PARAM, 0.f, 2.f, 0.f, "Filter type", {"Lowpass", "Bandpass", "Highpass"});
 		configParam(CUTOFF_CV_B_PARAM, 0.f, 1.f, 0.f, "Cutoff B");
 		configParam(X_B_PARAM, 0.f, 1.f, 0.5f, "XB");
@@ -230,7 +234,6 @@ struct NoisePlethora : Module {
 		configParam(RES_C_PARAM, 0.f, 1.f, 0.f, "Resonance C");
 		configParam(CUTOFF_CV_C_PARAM, 0.f, 1.f, 0.f, "Cutoff CV C");
 		configSwitch(SOURCE_C_PARAM, 0.f, 1.f, 0.f, "Filter source", {"Gritty", "White"});
-
 
 		configInput(X_A_INPUT, "XA CV");
 		configInput(Y_A_INPUT, "YA CV");
@@ -254,6 +257,12 @@ struct NoisePlethora : Module {
 		setAlgorithm(SECTION_B, "radioOhNo");
 		setAlgorithm(SECTION_A, "radioOhNo");
 		onSampleRateChange();
+	}
+		
+	void onReset(const ResetEvent& e) override {
+		setAlgorithm(SECTION_B, "radioOhNo");
+		setAlgorithm(SECTION_A, "radioOhNo");
+		Module::onReset(e);
 	}
 
 	void onSampleRateChange() override {
@@ -410,17 +419,27 @@ struct NoisePlethora : Module {
 	void processProgramBankKnobLogic(const ProcessArgs& args) {
 
 		// program knob will either change program for current bank...
-		if (programKnobMode == PROGRAM_MODE) {
-			const int currentProgramFromKnob = params[PROGRAM_PARAM].getValue();
-			if (currentProgramFromKnob != programSelector.getCurrent().getProgram()) {
-				setAlgorithmViaProgram(currentProgramFromKnob);
+		if (programButtonDragged) {
+			// work out the change (in discrete increments) since the program/bank knob started being dragged
+			const int delta = (int)(dialResolution * (params[PROGRAM_PARAM].getValue() - programKnobReferenceState));
+
+			if (programKnobMode == PROGRAM_MODE) {
+				const int numProgramsForCurrentBank = getBankForIndex(programSelector.getCurrent().getBank()).getSize();
+
+				if (delta != 0) {
+					const int newProgramFromKnob = unsigned_modulo(programSelector.getCurrent().getProgram() + delta, numProgramsForCurrentBank);
+					programKnobReferenceState = params[PROGRAM_PARAM].getValue();
+					setAlgorithmViaProgram(newProgramFromKnob);
+				}
 			}
-		}
-		// ...or change bank, (trying to) keep program the same
-		else {
-			const int currentBankFromKnob = params[PROGRAM_PARAM].getValue();
-			if (currentBankFromKnob != programSelector.getCurrent().getBank()) {
-				setAlgorithmViaBank(currentBankFromKnob);
+			// ...or change bank, (trying to) keep program the same
+			else {
+
+				if (delta != 0) {
+					const int newBankFromKnob = unsigned_modulo(programSelector.getCurrent().getBank() + delta, numBanks);
+					programKnobReferenceState = params[PROGRAM_PARAM].getValue();
+					setAlgorithmViaBank(newBankFromKnob);
+				}
 			}
 		}
 
@@ -445,11 +464,9 @@ struct NoisePlethora : Module {
 
 					if (programKnobMode == PROGRAM_MODE) {
 						programKnobMode = BANK_MODE;
-						params[PROGRAM_PARAM].setValue(programSelector.getCurrent().getBank());
 					}
 					else {
 						programKnobMode = PROGRAM_MODE;
-						params[PROGRAM_PARAM].setValue(programSelector.getCurrent().getProgram());
 					}
 
 					lights[BANK_LIGHT].setBrightness(programKnobMode == BANK_MODE);
@@ -460,14 +477,11 @@ struct NoisePlethora : Module {
 			else if (programHoldTimer.time > 0.f) {
 				programSelector.setMode(!programSelector.getMode());
 				programHoldTimer.reset();
-
-				if (programKnobMode == PROGRAM_MODE) {
-					params[PROGRAM_PARAM].setValue(programSelector.getCurrent().getProgram());
-				}
-				else {
-					params[PROGRAM_PARAM].setValue(programSelector.getCurrent().getBank());
-				}
 			}
+		}
+
+		if (!programButtonDragged) {
+			programKnobReferenceState = params[PROGRAM_PARAM].getValue();
 		}
 	}
 
@@ -487,11 +501,6 @@ struct NoisePlethora : Module {
 
 				const std::string newProgramName = getBankForIndex(currentBank).getProgramName(newProgram);
 				programSelector.getSection(section).setProgram(newProgram);
-
-				// update program selection dial if CV is for currently active mode
-				if (programKnobMode == PROGRAM_MODE && section == programSelector.getMode()) {
-					params[PROGRAM_PARAM].setValue(newProgram);
-				}
 
 				algorithm[section] = MyFactory::Instance()->Create(newProgramName);
 
@@ -539,9 +548,6 @@ struct NoisePlethora : Module {
 					programSelector.setMode(section);
 					programSelector.getCurrent().setBank(bank);
 					programSelector.getCurrent().setProgram(program);
-
-					// update dial
-					params[PROGRAM_PARAM].setValue(programKnobMode == PROGRAM_MODE ? program : bank);
 
 					algorithm[section] = MyFactory::Instance()->Create(algorithmName);
 
@@ -597,11 +603,7 @@ struct NoisePlethora : Module {
 
 
 struct BefacoTinyKnobSnapPress : BefacoTinyKnobBlack {
-	BefacoTinyKnobSnapPress() {
-		snap = true;
-		minAngle = -0.80 * M_PI;
-		maxAngle = 0.80 * M_PI;
-	}
+	BefacoTinyKnobSnapPress() {	}
 
 	// this seems convoluted but I can't see how to achieve the following (say) with onAction:
 	// a) need to support standard knob dragging behaviour
