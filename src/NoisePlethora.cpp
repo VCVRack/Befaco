@@ -188,13 +188,16 @@ struct NoisePlethora : Module {
 
 	// section A/B
 	bool bypassFilters = false;
-	std::shared_ptr<NoisePlethoraPlugin> algorithm[2];
+	std::shared_ptr<NoisePlethoraPlugin> algorithm[2]; 		// pointer to actual algorithm
+	std::string algorithmName[2];							// variable to cache which algorithm is active (after program CV applied)
+
 	// filters for A/B
 	StateVariableFilter2ndOrder svfFilter[2];
 	bool blockDC = true;
 	DCBlocker blockDCFilter[3];
 
-	ProgramSelector programSelector;
+	ProgramSelector programSelector; 		// tracks banks and programs for both sections A/B, including which is the "active" section
+	ProgramSelector programSelectorWithCV; 	// as above, but also with CV for program applied as an offset - works like Plaits Model CV input
 	// UI / UX for A/B
 	std::string textDisplayA = " ", textDisplayB = " ";
 	bool isDisplayActiveA = false, isDisplayActiveB = false;
@@ -253,6 +256,9 @@ struct NoisePlethora : Module {
 
 		configLight(BANK_LIGHT, "Bank mode");
 
+		getInputInfo(PROG_A_INPUT)->description = "CV sums with active program (0.5V increments)";
+		getInputInfo(PROG_B_INPUT)->description = "CV sums with active program (0.5V increments)";
+
 		setAlgorithm(SECTION_B, "radioOhNo");
 		setAlgorithm(SECTION_A, "radioOhNo");
 		onSampleRateChange();
@@ -303,13 +309,52 @@ struct NoisePlethora : Module {
 		processProgramBankKnobLogic(args);
 	}
 
+	// process CV for section, specifically: work out the offset relative to the current
+	// program and see if this is a new algorithm
+	void processCVOffsets(Section SECTION, InputIds PROG_INPUT) {
+
+		const int offset = 2 * inputs[PROG_INPUT].getVoltage();
+
+		const int bank = programSelector.getSection(SECTION).getBank();
+		const int numProgramsForBank = getBankForIndex(bank).getSize();
+
+		const int programWithoutCV = programSelector.getSection(SECTION).getProgram();
+		const int programWithCV = unsigned_modulo(programWithoutCV + offset, numProgramsForBank);
+
+		// duplicate key settings to programSelectorWithCV (expect modified program)
+		programSelectorWithCV.setMode(programSelector.getMode());
+		programSelectorWithCV.getSection(SECTION).setBank(bank);
+		programSelectorWithCV.getSection(SECTION).setProgram(programWithCV);
+
+		const std::string newAlgorithmName = programSelectorWithCV.getSection(SECTION).getCurrentProgramName();
+
+		// this is just a caching check to avoid constantly re-initialisating the algorithms
+		if (newAlgorithmName != algorithmName[SECTION]) {
+
+			algorithm[SECTION] = MyFactory::Instance()->Create(newAlgorithmName);
+			algorithmName[SECTION] = newAlgorithmName;
+
+			if (algorithm[SECTION]) {
+				algorithm[SECTION]->init();
+			}
+			else {
+				DEBUG("WARNING: Failed to initialise %s in programSelector", newAlgorithmName.c_str());
+			}
+		}
+	}
+
 	// exactly the same for A and B
 	void processTopSection(Section SECTION, ParamIds X_PARAM, ParamIds Y_PARAM, ParamIds FILTER_TYPE_PARAM,
 	                       ParamIds CUTOFF_PARAM, ParamIds CUTOFF_CV_PARAM, ParamIds RES_PARAM,
 	                       InputIds PROG_INPUT, InputIds X_INPUT, InputIds Y_INPUT, InputIds CUTOFF_INPUT, OutputIds OUTPUT,
 	                       const ProcessArgs& args, bool updateParams) {
-		float out = 0.f;
 
+		// periodically work out how CV should modify the current sections algorithm
+		if (updateParams) {
+			processCVOffsets(SECTION, PROG_INPUT);
+		}
+
+		float out = 0.f;
 		if (algorithm[SECTION] && outputs[OUTPUT].isConnected()) {
 			float cvX = params[X_PARAM].getValue() + rescale(inputs[X_INPUT].getVoltage(), -10.f, +10.f, -1.f, 1.f);
 			float cvY = params[Y_PARAM].getValue() + rescale(inputs[Y_INPUT].getVoltage(), -10.f, +10.f, -1.f, 1.f);
@@ -321,7 +366,7 @@ struct NoisePlethora : Module {
 			// process the audio graph
 			out = algorithm[SECTION]->processGraph();
 			// each algorithm has a specific gain factor
-			out = out * programSelector.getSection(SECTION).getCurrentProgramGain();
+			out = out * programSelectorWithCV.getSection(SECTION).getCurrentProgramGain();
 
 			// if filters are active
 			if (!bypassFilters) {
@@ -348,8 +393,6 @@ struct NoisePlethora : Module {
 		}
 
 		outputs[OUTPUT].setVoltage(Saturator::process(out) * 5.f);
-
-		checkForProgramChangeCV(SECTION, PROG_INPUT);
 	}
 
 	// process section C
@@ -398,20 +441,20 @@ struct NoisePlethora : Module {
 	void updateDataForLEDDisplay() {
 
 		if (programKnobMode == PROGRAM_MODE) {
-			textDisplayA = std::to_string(programSelector.getA().getProgram());
+			textDisplayA = std::to_string(programSelectorWithCV.getA().getProgram());
 		}
 		else if (programKnobMode == BANK_MODE) {
-			textDisplayA = 'A' + programSelector.getA().getBank();
+			textDisplayA = 'A' + programSelectorWithCV.getA().getBank();
 		}
-		isDisplayActiveA = programSelector.getMode() == SECTION_A;
+		isDisplayActiveA = programSelectorWithCV.getMode() == SECTION_A;
 
 		if (programKnobMode == PROGRAM_MODE) {
-			textDisplayB = std::to_string(programSelector.getB().getProgram());
+			textDisplayB = std::to_string(programSelectorWithCV.getB().getProgram());
 		}
 		else if (programKnobMode == BANK_MODE) {
-			textDisplayB = 'A' + programSelector.getB().getBank();
+			textDisplayB = 'A' + programSelectorWithCV.getB().getBank();
 		}
-		isDisplayActiveB = programSelector.getMode() == SECTION_B;
+		isDisplayActiveB = programSelectorWithCV.getMode() == SECTION_B;
 	}
 
 	// handle convoluted logic for the multifunction Program knob
@@ -484,39 +527,6 @@ struct NoisePlethora : Module {
 		}
 	}
 
-	void checkForProgramChangeCV(Section section, InputIds sectionCvInputId) {
-		if (inputs[sectionCvInputId].isConnected()) {
-
-			const int currentBank = programSelector.getSection(section).getBank();
-			const int numProgramsForCurrentBank = getBankForIndex(currentBank).getSize();
-			const int currentProgram = programSelector.getSection(section).getProgram();
-
-			// work out what the current program is, where 0V-0.5V is 0, 0.5V-1.0V is 1 etc
-			int program = (int)(2 * inputs[sectionCvInputId].getVoltage());
-			// the program selector acts as an offset to this, but make sure this only applies to the currently
-			// active section (i.e. A or B)
-			if (section == programSelector.getMode()) {
-				program += dialResolution * programKnobReferenceState;
-			}
-			const int newProgramFromKnob = unsigned_modulo(program, numProgramsForCurrentBank);
-
-			if (currentProgram != newProgramFromKnob)  {
-
-				const std::string newProgramName = getBankForIndex(currentBank).getProgramName(newProgramFromKnob);
-				programSelector.getSection(section).setProgram(newProgramFromKnob);
-
-				algorithm[section] = MyFactory::Instance()->Create(newProgramName);
-
-				if (algorithm[section]) {
-					algorithm[section]->init();
-				}
-				else {
-					DEBUG("WARNING: Failed to initialise %s in programSelector", newProgramName.c_str());
-				}
-			}
-		}
-	}
-
 	void setAlgorithmViaProgram(int newProgram) {
 
 		const int currentBank = programSelector.getCurrent().getBank();
@@ -549,15 +559,6 @@ struct NoisePlethora : Module {
 					programSelector.setMode(section);
 					programSelector.getCurrent().setBank(bank);
 					programSelector.getCurrent().setProgram(program);
-
-					algorithm[section] = MyFactory::Instance()->Create(algorithmName);
-
-					if (algorithm[section]) {
-						algorithm[section]->init();
-					}
-					else {
-						DEBUG("WARNING: Failed to initialise %s in programSelector", algorithmName.c_str());
-					}
 
 					return;
 				}
@@ -716,7 +717,15 @@ struct NoisePlethoraLEDDisplay : LightWidget {
 		// Background
 		NVGcolor backgroundColor = nvgRGB(0x24, 0x14, 0x14);
 		NVGcolor borderColor = nvgRGB(0x10, 0x10, 0x10);
-		NVGcolor textColor = nvgRGB(0xff, 0x10, 0x10);
+		NVGcolor textColor = nvgRGB(0xff, 0x40, 0x40);
+
+		// use slightly different LED colour if CV is connected as visual cue
+		if (module) {
+			NoisePlethora::InputIds inputId = (section == NoisePlethora::SECTION_A) ? NoisePlethora::PROG_A_INPUT : NoisePlethora::PROG_B_INPUT;
+			if (module->inputs[inputId].isConnected()) {
+				textColor = nvgRGB(0xaa, 0x20, 0x20);
+			}
+		}
 
 		nvgBeginPath(args.vg);
 		nvgRoundedRect(args.vg, 0.0, 0.0, box.size.x, box.size.y, 2.0);
@@ -754,6 +763,7 @@ struct NoisePlethoraLEDDisplay : LightWidget {
 
 			// render the "on segments"
 			nvgFillColor(args.vg, textColor);
+
 			nvgText(args.vg, textPos.x, textPos.y, buffer, NULL);
 		}
 

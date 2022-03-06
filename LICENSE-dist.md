@@ -30,4 +30,6 @@
 
  ```
 
+## Befaco
 
+Original Noise Plethora plugins were licensed under GPL v3 or later, see LICENSE-GPLv3.txt.
