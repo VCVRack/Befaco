@@ -717,13 +717,13 @@ struct NoisePlethoraLEDDisplay : LightWidget {
 		// Background
 		NVGcolor backgroundColor = nvgRGB(0x24, 0x14, 0x14);
 		NVGcolor borderColor = nvgRGB(0x10, 0x10, 0x10);
-		NVGcolor textColor = nvgRGB(0xff, 0x40, 0x40);
+		NVGcolor textColor = nvgRGB(0xaa, 0x20, 0x20);
 
 		// use slightly different LED colour if CV is connected as visual cue
 		if (module) {
 			NoisePlethora::InputIds inputId = (section == NoisePlethora::SECTION_A) ? NoisePlethora::PROG_A_INPUT : NoisePlethora::PROG_B_INPUT;
 			if (module->inputs[inputId].isConnected()) {
-				textColor = nvgRGB(0xaa, 0x20, 0x20);
+				textColor = nvgRGB(0xff, 0x40, 0x40);
 			}
 		}
 
