@@ -24,7 +24,7 @@ extern Model* modelADSR;
 extern Model* modelSTMix;
 extern Model* modelMuxlicer;
 extern Model* modelMex;
-
+extern Model* modelNoisePlethora;
 
 struct Knurlie : SvgScrew {
 	Knurlie() {
@@ -106,7 +106,7 @@ using BefacoInputPort = BananutBlack;
 struct CKSSNarrow : app::SvgSwitch {
 	CKSSNarrow() {
 		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchNarrow_0.svg")));
-		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchNarrow_1.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchNarrow_2.svg")));
 	}
 };
 
@@ -131,6 +131,31 @@ struct BefacoSwitchHorizontal : app::SvgSwitch {
 	}
 };
 
+struct CKSSHoriz2 : app::SvgSwitch {
+	CKSSHoriz2() {
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchNarrowHoriz_0.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchNarrowHoriz_1.svg")));
+	}
+};
+
+struct CKSSNarrow3 : app::SvgSwitch {
+	CKSSNarrow3() {
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchNarrow_0.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchNarrow_1.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchNarrow_2.svg")));
+	}
+};
+
+struct Davies1900hLargeLightGreyKnob : Davies1900hKnob {
+	Davies1900hLargeLightGreyKnob() {
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hLargeLightGrey.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hLargeLightGrey_bg.svg")));
+	}
+};
+
+inline int unsigned_modulo(int a, int b) {
+	return ((a % b) + b) % b;
+}
 
 template <typename T>
 T sin2pi_pade_05_5_4(T x) {
@@ -199,4 +224,71 @@ struct ADEnvelope {
 
 private:
 	float envLinear = 0.f;
+};
+
+// Creates a Butterworth 2*Nth order highpass filter for blocking DC
+template<int N>
+struct DCBlockerT {
+
+	DCBlockerT() {
+		setFrequency(0.1f);
+	}
+
+	// set frequency (in normalised units, 0 < fc < 1)
+	void setFrequency(float fc) {
+		fc_ = fc;
+		recalculateCoefficients();
+	}
+
+	float process(float x) {
+
+		x = blockDCFilter[0].process(x);
+		return blockDCFilter[1].process(x);
+	}
+
+private:
+
+	// https://www.earlevel.com/main/2016/09/29/cascading-filters/
+	void recalculateCoefficients() {
+
+		float poleInc = M_PI / order;
+		float firstAngle = poleInc / 2;
+
+		for (int idx = 0; idx < N; idx++) {
+			float Q = 1.0f / (2.0f * std::cos(firstAngle + idx * poleInc));
+			blockDCFilter[idx].setParameters(dsp::BiquadFilter::HIGHPASS, fc_, Q, 1.0f);
+		}
+	}
+
+	float fc_;
+	static const int order = 2 * N;
+
+	dsp::BiquadFilter blockDCFilter[N];
+};
+
+typedef DCBlockerT<2> DCBlocker;
+
+/** When triggered, holds a high value for a specified time before going low again */
+struct PulseGenerator_4 {
+	simd::float_4 remaining = 0.f;
+
+	/** Immediately disables the pulse */
+	void reset() {
+		remaining = 0.f;
+	}
+
+	/** Advances the state by `deltaTime`. Returns whether the pulse is in the HIGH state. */
+	simd::float_4 process(float deltaTime) {
+
+		simd::float_4 mask = (remaining > 0.f);
+
+		remaining -= ifelse(mask, deltaTime, 0.f);
+		return ifelse(mask, simd::float_4::mask(), 0.f);
+	}
+
+	/** Begins a trigger with the given `duration`. */
+	void trigger(simd::float_4 mask, float duration = 1e-3f) {
+		// Keep the previous pulse if the existing pulse will be held longer than the currently requested one.
+		remaining = ifelse(mask & (duration > remaining), duration, remaining);
+	}
 };

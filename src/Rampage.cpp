@@ -1,5 +1,4 @@
 #include "plugin.hpp"
-#include "PulseGenerator_4.hpp"
 
 using simd::float_4;
 

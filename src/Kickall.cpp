@@ -40,7 +40,8 @@ struct Kickall : Module {
 	ADEnvelope volume;
 	ADEnvelope pitch;
 
-	dsp::SchmittTrigger trigger;
+	dsp::SchmittTrigger gateTrigger;
+	dsp::BooleanTrigger buttonTrigger;
 
 	static const int UPSAMPLE = 8;
 	chowdsp::Oversampling<UPSAMPLE> oversampler;
@@ -69,7 +70,7 @@ struct Kickall : Module {
 
 		configOutput(OUT_OUTPUT, "Kick");
 		configLight(ENV_LIGHT, "Volume envelope");
-		
+
 		// calculate up/downsampling rates
 		onSampleRateChange();
 	}
@@ -80,7 +81,10 @@ struct Kickall : Module {
 
 	void process(const ProcessArgs& args) override {
 		// TODO: check values
-		if (trigger.process(inputs[TRIGG_INPUT].getVoltage() / 2.0f + params[TRIGG_BUTTON_PARAM].getValue() * 10.0)) {
+		const bool risingEdgeGate = gateTrigger.process(inputs[TRIGG_INPUT].getVoltage() / 2.0f);
+		const bool buttonTriggered = buttonTrigger.process(params[TRIGG_BUTTON_PARAM].getValue());
+		// can be triggered by either rising edge on trigger in, or a button press
+		if (risingEdgeGate || buttonTriggered) {
 			volume.trigger();
 			pitch.trigger();
 		}

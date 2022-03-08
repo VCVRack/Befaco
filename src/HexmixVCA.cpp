@@ -42,8 +42,16 @@ struct HexmixVCA : Module {
 	HexmixVCA() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 		for (int i = 0; i < numRows; ++i) {
-			configParam(SHAPE_PARAM + i, -1.f, 1.f, 0.f, string::f("Channel %d VCA response", i));
-			configParam(VOL_PARAM + i, 0.f, 1.f, 1.f, string::f("Channel %d output level", i));
+			configParam(SHAPE_PARAM + i, -1.f, 1.f, 0.f, string::f("Channel %d VCA response", i + 1));
+			configParam(VOL_PARAM + i, 0.f, 1.f, 1.f, string::f("Channel %d output level", i + 1));
+
+			configInput(IN_INPUT + i, string::f("Channel %d", i + 1));
+			configInput(CV_INPUT + i, string::f("Gain %d", i + 1));
+			configOutput(OUT_OUTPUT + i, string::f("Channel %d", i + 1));
+
+			getInputInfo(CV_INPUT + i)->description = "Normalled to 10V";
+
+			configBypass(IN_INPUT + i, OUT_OUTPUT + i);
 		}
 		cvDivider.setDivision(16);
 

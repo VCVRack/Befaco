@@ -71,6 +71,16 @@ struct SpringReverb : Module {
 		delete convolver;
 	}
 
+	void processBypass(const ProcessArgs& args) override {
+		float in1 = inputs[IN1_INPUT].getVoltageSum();
+		float in2 = inputs[IN2_INPUT].getVoltageSum();
+
+		float dry = clamp(in1 + in2, -10.0f, 10.0f);
+
+		outputs[WET_OUTPUT].setVoltage(dry);
+		outputs[MIX_OUTPUT].setVoltage(dry);
+	}
+
 	void process(const ProcessArgs& args) override {
 		float in1 = inputs[IN1_INPUT].getVoltageSum();
 		float in2 = inputs[IN2_INPUT].getVoltageSum();
@@ -129,9 +139,9 @@ struct SpringReverb : Module {
 		outputs[WET_OUTPUT].setVoltage(clamp(wet, -10.0f, 10.0f));
 		outputs[MIX_OUTPUT].setVoltage(clamp(mix, -10.0f, 10.0f));
 
-		// process VU lights		
+		// process VU lights
 		vuFilter.process(args.sampleTime, wet);
-		// process peak light		
+		// process peak light
 		lightFilter.process(args.sampleTime, dry * 50.0);
 
 		if (lightRefreshClock.process()) {

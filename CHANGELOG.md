@@ -1,9 +1,24 @@
 # Change Log
 
-## v2.0.0 (unreleased)
-  * update to Rack 2 API (added tooltips, bypass, removed boilerplate etc)
+## v2.1.0
+  * Noise Plethora
+    * Initial release
+  * Chopping Kinky
+    * Upgraded to use improved DC blocker
+  * Spring Reverb
+    * Added bypass
+  * Kickall
+    * Allow trigger input and button to work independently
+  * EvenVCO
+    * Fix to remove pop when number of polyphony engines changes
+  * Muxlicer
+    * Chaining using reset now works correctly
 
-## v1.2.0 (unreleased)
+## v2.0.0
+  * update to Rack 2 API (added tooltips, bypass, removed boilerplate etc)
+  * UI overhaul
+
+## v1.2.0
 
   * Released new modules: Muxlicer, Mex, Morphader, VC ADSR, Sampling Modulator, ST Mix
   * Removed DC offset from EvenVCO pulse output

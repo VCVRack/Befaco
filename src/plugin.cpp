@@ -23,4 +23,5 @@ void init(rack::Plugin *p) {
 	p->addModel(modelSTMix);
 	p->addModel(modelMuxlicer);
 	p->addModel(modelMex);
+	p->addModel(modelNoisePlethora);
 }
