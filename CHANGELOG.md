@@ -1,5 +1,9 @@
 # Change Log
 
+## v2.1.1
+  * Noise Plethora
+    * Grit quantity knob behaviour updated to match production hardware version
+
 ## v2.1.0
   * Noise Plethora
     * Initial release

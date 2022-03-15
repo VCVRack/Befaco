@@ -399,7 +399,7 @@ struct NoisePlethora : Module {
 	void processBottomSection(const ProcessArgs& args) {
 
 		float gritCv = rescale(clamp(inputs[GRIT_INPUT].getVoltage(), -10.f, 10.f), -10.f, 10.f, -1.f, 1.f);
-		float gritAmount = clamp(1.f - params[GRIT_PARAM].getValue() - gritCv, 0.f, 1.f);
+		float gritAmount = clamp(params[GRIT_PARAM].getValue() + gritCv, 0.f, 1.f);
 		float gritFrequency = 0.1 + std::pow(gritAmount, 2) * 20000;
 		gritNoiseSource.setDensity(gritFrequency);
 		float gritNoise = gritNoiseSource.process(args.sampleTime);
