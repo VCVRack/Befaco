@@ -10,34 +10,6 @@ enum FilterMode {
 };
 
 
-// Zavalishin 2018, "The Art of VA Filter Design", http://www.native-instruments.com/fileadmin/ni_media/downloads/pdf/VAFilterDesign_2.0.0a.pdf
-// Section 6.7, adopted from BogAudio Saturator https://github.com/bogaudio/BogaudioModules/blob/master/src/dsp/signal.cpp
-struct Saturator {
-
-	// saturate input at around ~[-1, +1] with soft clipping
-	static float process(float sample) {
-
-		if (sample < 0.0f) {
-			return -saturation(-sample);
-		}
-		return saturation(sample);
-	}
-private:
-
-	static float saturation(float sample) {
-
-		const float limit = 1.05f;
-		const float y1 = 0.98765f; // (2*x - 1)/x**2 where x is 0.9.
-		// correction so that saturation(0) = 0
-		const float offset = 0.0062522; // -0.5f + sqrtf(0.5f * 0.5f) / y1;
-
-		float x = sample / limit;
-		float x1 = (x + 1.0f) * 0.5f;
-
-		return limit * (offset + x1 - std::sqrt(x1 * x1 - y1 * x) * (1.0f / y1));
-	}
-};
-
 // based on Chapter 4 of THE ART OF VA FILTER DESIGN and
 // Chap 12.4 of "Designing Audio Effect Plugins in C++" Will Pirkle
 class StateVariableFilter2ndOrder {
@@ -392,7 +364,7 @@ struct NoisePlethora : Module {
 			}
 		}
 
-		outputs[OUTPUT].setVoltage(Saturator::process(out) * 5.f);
+		outputs[OUTPUT].setVoltage(Saturator<float>::process(out) * 5.f);
 	}
 
 	// process section C
@@ -423,7 +395,7 @@ struct NoisePlethora : Module {
 			out = svfFilterC.process(toFilter, mode);
 
 			// assymetric saturator, to get those lovely even harmonics
-			out = Saturator::process(out + 0.33);
+			out = Saturator<float>::process(out + 0.33);
 
 			if (blockDC) {
 				// cascaded Biquad (4th order highpass at ~20Hz)

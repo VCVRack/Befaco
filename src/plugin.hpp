@@ -25,6 +25,7 @@ extern Model* modelSTMix;
 extern Model* modelMuxlicer;
 extern Model* modelMex;
 extern Model* modelNoisePlethora;
+extern Model* modelChannelStrip;
 
 struct Knurlie : SvgScrew {
 	Knurlie() {
@@ -150,6 +151,18 @@ struct Davies1900hLargeLightGreyKnob : Davies1900hKnob {
 	Davies1900hLargeLightGreyKnob() {
 		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hLargeLightGrey.svg")));
 		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hLargeLightGrey_bg.svg")));
+	}
+};
+
+struct BefacoSlidePotSmall : app::SvgSlider {
+	BefacoSlidePotSmall() {
+		math::Vec margin = math::Vec(3.5, 3.5);
+		maxHandlePos = math::Vec(-2, -2).plus(margin);
+		minHandlePos = math::Vec(-2, 60).plus(margin);
+		setBackgroundSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoSlidePotSmall.svg")));
+		setHandleSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoSlidePotHandleSmall.svg")));
+		background->box.pos = margin;
+		box.size = background->box.size.plus(margin.mult(2));
 	}
 };
 
@@ -290,5 +303,30 @@ struct PulseGenerator_4 {
 	void trigger(simd::float_4 mask, float duration = 1e-3f) {
 		// Keep the previous pulse if the existing pulse will be held longer than the currently requested one.
 		remaining = ifelse(mask & (duration > remaining), duration, remaining);
+	}
+};
+
+// Zavalishin 2018, "The Art of VA Filter Design", http://www.native-instruments.com/fileadmin/ni_media/downloads/pdf/VAFilterDesign_2.0.0a.pdf
+// Section 6.7, adopted from BogAudio Saturator https://github.com/bogaudio/BogaudioModules/blob/master/src/dsp/signal.cpp
+template <class T>
+struct Saturator {
+
+	// saturate input at around ~[-1, +1] V with soft clipping
+	static T process(T sample) {
+		return simd::ifelse(sample < 0.f, -saturation(-sample), saturation(sample));
+	}
+private:
+
+	static T saturation(T sample) {
+
+		const float limit = 1.05f;
+		const float y1 = 0.98765f; // (2*x - 1)/x**2 where x is 0.9.
+		// correction so that saturation(0) = 0
+		const float offset = 0.0062522; // -0.5f + sqrtf(0.5f * 0.5f) / y1;
+
+		T x = sample / limit;
+		T x1 = (x + 1.0f) * 0.5f;
+
+		return limit * (offset + x1 - simd::sqrt(x1 * x1 - y1 * x) * (1.0f / y1));
 	}
 };
