@@ -1,5 +1,10 @@
 # Change Log
 
+## v2.2.0
+
+  * StereoStrip
+    * Initial release
+
 ## v2.1.1
   * Noise Plethora
     * Grit quantity knob behaviour updated to match production hardware version
