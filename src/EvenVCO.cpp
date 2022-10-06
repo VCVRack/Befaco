@@ -36,8 +36,6 @@ struct EvenVCO : Module {
 	bool halfPhase[PORT_MAX_CHANNELS] = {};
 
 	dsp::MinBlepGenerator<16, 32> triSquareMinBlep[PORT_MAX_CHANNELS];
-	dsp::MinBlepGenerator<16, 32> triMinBlep[PORT_MAX_CHANNELS];
-	dsp::MinBlepGenerator<16, 32> sineMinBlep[PORT_MAX_CHANNELS];
 	dsp::MinBlepGenerator<16, 32> doubleSawMinBlep[PORT_MAX_CHANNELS];
 	dsp::MinBlepGenerator<16, 32> sawMinBlep[PORT_MAX_CHANNELS];
 	dsp::MinBlepGenerator<16, 32> squareMinBlep[PORT_MAX_CHANNELS];

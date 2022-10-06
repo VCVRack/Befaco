@@ -25,4 +25,5 @@ void init(rack::Plugin *p) {
 	p->addModel(modelMex);
 	p->addModel(modelNoisePlethora);
 	p->addModel(modelChannelStrip);
+	p->addModel(modelPonyVCO);
 }

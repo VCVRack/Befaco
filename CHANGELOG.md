@@ -1,5 +1,9 @@
 # Change Log
 
+## v2.3.0
+  * PonyVCO
+    * Initial release
+
 ## v2.2.0
 
   * StereoStrip

@@ -26,6 +26,7 @@ extern Model* modelMuxlicer;
 extern Model* modelMex;
 extern Model* modelNoisePlethora;
 extern Model* modelChannelStrip;
+extern Model* modelPonyVCO;
 
 struct Knurlie : SvgScrew {
 	Knurlie() {
@@ -136,6 +137,27 @@ struct CKSSHoriz2 : app::SvgSwitch {
 	CKSSHoriz2() {
 		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchNarrowHoriz_0.svg")));
 		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchNarrowHoriz_1.svg")));
+	}
+};
+
+struct CKSSHoriz4 : app::SvgSwitch {
+	CKSSHoriz4() {
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchWideHoriz_0.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchWideHoriz_1.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchWideHoriz_2.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchWideHoriz_3.svg")));
+	}
+};
+
+struct CKSSVert7 : app::SvgSwitch {
+	CKSSVert7() {
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchTallVert_0.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchTallVert_1.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchTallVert_2.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchTallVert_3.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchTallVert_4.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchTallVert_5.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchTallVert_6.svg")));
 	}
 };
 
@@ -254,9 +276,10 @@ struct DCBlockerT {
 	}
 
 	float process(float x) {
-
-		x = blockDCFilter[0].process(x);
-		return blockDCFilter[1].process(x);
+		for (int idx = 0; idx < N; idx++) {
+			x = blockDCFilter[idx].process(x);
+		}
+		return x;
 	}
 
 private:
