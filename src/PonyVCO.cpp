@@ -140,7 +140,7 @@ struct PonyVCO : Module {
 	};
 
 	float range[4] = {8.f, 1.f, 1.f / 12.f, 10.f};
-	chowdsp::VariableOversampling<> oversampler;
+	chowdsp::VariableOversampling<6> oversampler; 	// uses a 2*6=12th order Butterworth filter
 	int oversamplingIndex = 1; 	// default is 2^oversamplingIndex == x2 oversampling
 
 	DCBlocker blockOutputDCFilter;
@@ -409,7 +409,7 @@ struct PonyVCOWidget : ModuleWidget {
 		menu->addChild(createBoolPtrMenuItem("Naive implementation", "", &module->naiveImplementation));
 
 		menu->addChild(createIndexSubmenuItem("Oversampling",
-		{"Off", "x2", "x4", "x8", "x16"},
+		{"Off", "x2", "x4", "x8"},
 		[ = ]() {
 			return module->oversamplingIndex;
 		},

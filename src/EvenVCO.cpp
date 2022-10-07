@@ -34,6 +34,7 @@ struct EvenVCO : Module {
 	/** The outputs */
 	/** Whether we are past the pulse width already */
 	bool halfPhase[PORT_MAX_CHANNELS] = {};
+	bool removePulseDC = true;
 
 	dsp::MinBlepGenerator<16, 32> triSquareMinBlep[PORT_MAX_CHANNELS];
 	dsp::MinBlepGenerator<16, 32> doubleSawMinBlep[PORT_MAX_CHANNELS];
@@ -192,6 +193,7 @@ struct EvenVCO : Module {
 
 			square[c / 4] = simd::ifelse((phase[c / 4] < pw[c / 4]),  -1.f, +1.f);
 			square[c / 4] += squareMinBlepOut[c / 4];
+			square[c / 4] += removePulseDC * 2.f * (pw[c / 4] - 0.5f);
 			square[c / 4] *= 5.f;
 
 			// Set outputs
@@ -208,6 +210,20 @@ struct EvenVCO : Module {
 		outputs[EVEN_OUTPUT].setChannels(channels);
 		outputs[SAW_OUTPUT].setChannels(channels);
 		outputs[SQUARE_OUTPUT].setChannels(channels);
+	}
+
+
+	json_t* dataToJson() override {
+		json_t* rootJ = json_object();
+		json_object_set_new(rootJ, "removePulseDC", json_boolean(removePulseDC));
+		return rootJ;
+	}
+
+	void dataFromJson(json_t* rootJ) override {
+		json_t* pulseDCJ = json_object_get(rootJ, "removePulseDC");
+		if (pulseDCJ) {
+			removePulseDC = json_boolean_value(pulseDCJ);
+		}
 	}
 };
 
@@ -238,6 +254,14 @@ struct EvenVCOWidget : ModuleWidget {
 		addOutput(createOutput<BefacoOutputPort>(Vec(48, 306), module, EvenVCO::EVEN_OUTPUT));
 		addOutput(createOutput<BefacoOutputPort>(Vec(10, 327), module, EvenVCO::SAW_OUTPUT));
 		addOutput(createOutput<BefacoOutputPort>(Vec(87, 327), module, EvenVCO::SQUARE_OUTPUT));
+	}
+
+	void appendContextMenu(Menu* menu) override {
+		EvenVCO* module = dynamic_cast<EvenVCO*>(this->module);
+		assert(module);
+
+		menu->addChild(new MenuSeparator());
+		menu->addChild(createBoolPtrMenuItem("Remove DC from pulse", "", &module->removePulseDC));
 	}
 };
 

@@ -47,7 +47,7 @@ struct ChoppingKinky : Module {
 	bool outputAToChopp = false;
 	float previousA = 0.0;
 
-	chowdsp::VariableOversampling<> oversampler[NUM_CHANNELS];
+	chowdsp::VariableOversampling<6> oversampler[NUM_CHANNELS]; 	// uses a 2*6=12th order Butterworth filter
 	int oversamplingIndex = 2; 	// default is 2^oversamplingIndex == x4 oversampling
 
 	DCBlocker blockDCFilter;
@@ -345,21 +345,16 @@ struct ChoppingKinkyWidget : ModuleWidget {
 
 		menu->addChild(createMenuLabel("Oversampling mode"));
 
-		struct ModeItem : MenuItem {
-			ChoppingKinky* module;
-			int oversamplingIndex;
-			void onAction(const event::Action& e) override {
-				module->oversamplingIndex = oversamplingIndex;
-				module->onSampleRateChange();
-			}
-		};
-		for (int i = 0; i < 5; i++) {
-			ModeItem* modeItem = createMenuItem<ModeItem>(string::f("%dx", int (1 << i)));
-			modeItem->rightText = CHECKMARK(module->oversamplingIndex == i);
-			modeItem->module = module;
-			modeItem->oversamplingIndex = i;
-			menu->addChild(modeItem);
+		menu->addChild(createIndexSubmenuItem("Oversampling",
+		{"Off", "x2", "x4", "x8", "x16"},
+		[ = ]() {
+			return module->oversamplingIndex;
+		},
+		[ = ](int mode) {
+			module->oversamplingIndex = mode;
+			module->onSampleRateChange();
 		}
+		                                     ));
 	}
 };
 
