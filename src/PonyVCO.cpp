@@ -143,9 +143,6 @@ struct PonyVCO : Module {
 	chowdsp::VariableOversampling<6> oversampler; 	// uses a 2*6=12th order Butterworth filter
 	int oversamplingIndex = 1; 	// default is 2^oversamplingIndex == x2 oversampling
 
-	DCBlocker blockOutputDCFilter;
-	bool blockOutputDC = false;
-
 	DCBlocker blockTZFMDCFilter;
 	bool blockTZFMDC = true;
 
@@ -154,7 +151,6 @@ struct PonyVCO : Module {
 
 	dsp::SchmittTrigger syncTrigger;
 
-	bool naiveImplementation = false;
 	FoldStage1 stage1;
 	FoldStage2 stage2;
 
@@ -179,7 +175,6 @@ struct PonyVCO : Module {
 	void onSampleRateChange() override {
 		float sampleRate = APP->engine->getSampleRate();
 		blockTZFMDCFilter.setFrequency(5. / sampleRate);
-		blockOutputDCFilter.setFrequency(11.025 / sampleRate);
 		oversampler.setOversamplingIndex(oversamplingIndex);
 		oversampler.reset(sampleRate);
 	}
@@ -252,35 +247,18 @@ struct PonyVCO : Module {
 
 				switch (waveform) {
 					case WAVE_TRI: {
-
-						if (naiveImplementation) {
-							osBuffer[i] = 4.f * std::fabs(phase - std::round(phase)) - 1.f;
-						}
-						else {
-							osBuffer[i] = aliasSuppressedTri() * denominator;
-						}
+						osBuffer[i] = aliasSuppressedTri() * denominator;
 						break;
 					}
 					case WAVE_SAW: {
-						if (naiveImplementation) {
-							osBuffer[i] = -1.f + 2.f * phase;
-						}
-						else {
-							osBuffer[i] = aliasSuppressedSaw() * denominator;
-						}
+						osBuffer[i] = aliasSuppressedSaw() * denominator;
 						break;
 					}
 					case WAVE_PULSE: {
+						double saw = aliasSuppressedSaw();
+						double sawOffset = aliasSuppressedOffsetSaw(pw);
 
-						if (naiveImplementation) {
-							osBuffer[i] = (phase < pw) ?  -1.f : +1.f;
-						}
-						else {
-							double saw = aliasSuppressedSaw();
-							double sawOffset = aliasSuppressedOffsetSaw(pw);
-
-							osBuffer[i] = (sawOffset - saw) * denominator;
-						}
+						osBuffer[i] = (sawOffset - saw) * denominator;
 						break;
 					}
 					default: break;
@@ -292,11 +270,8 @@ struct PonyVCO : Module {
 			}
 		}
 
-		// downsample, optionally remove DC
-		float out = (oversamplingRatio > 1) ? oversampler.downsample() : osBuffer[0];
-		if (blockOutputDC) {
-			out = blockOutputDCFilter.process(out);
-		}
+		// downsample (if required)
+		const float out = (oversamplingRatio > 1) ? oversampler.downsample() : osBuffer[0];
 
 		// end of chain VCA
 		const float gain = std::max(0.f, inputs[VCA_INPUT].getNormalVoltage(10.f) / 10.f);
@@ -332,28 +307,17 @@ struct PonyVCO : Module {
 	}
 
 	float wavefolder(float x, float xt) {
-		if (naiveImplementation) {
-			return FoldStage2::f(FoldStage1::f(x, xt));
-		}
-		else {
-			return stage2.process(stage1.process(x, xt));
-		}
+		return stage2.process(stage1.process(x, xt));
 	}
 
 	json_t* dataToJson() override {
 		json_t* rootJ = json_object();
 		json_object_set_new(rootJ, "blockTZFMDC", json_boolean(blockTZFMDC));
-		json_object_set_new(rootJ, "blockOutputDC", json_boolean(blockOutputDC));
 		json_object_set_new(rootJ, "oversamplingIndex", json_integer(oversampler.getOversamplingIndex()));
-		json_object_set_new(rootJ, "naiveImplementation", json_boolean(naiveImplementation));
 		return rootJ;
 	}
 
 	void dataFromJson(json_t* rootJ) override {
-		json_t* blockOutputDCJ = json_object_get(rootJ, "blockOutputDC");
-		if (blockOutputDCJ) {
-			blockOutputDC = json_boolean_value(blockOutputDCJ);
-		}
 
 		json_t* blockTZFMDCJ = json_object_get(rootJ, "blockTZFMDC");
 		if (blockTZFMDCJ) {
@@ -364,11 +328,6 @@ struct PonyVCO : Module {
 		if (oversamplingIndexJ) {
 			oversamplingIndex = json_integer_value(oversamplingIndexJ);
 			onSampleRateChange();
-		}
-
-		json_t* naiveJ = json_object_get(rootJ, "naiveImplementation");
-		if (naiveJ) {
-			naiveImplementation = json_boolean_value(naiveJ);
 		}
 	}
 };
@@ -404,9 +363,7 @@ struct PonyVCOWidget : ModuleWidget {
 
 		menu->addChild(new MenuSeparator());
 		menu->addChild(createBoolPtrMenuItem("Block TZFM DC", "", &module->blockTZFMDC));
-		menu->addChild(createBoolPtrMenuItem("Block Output DC", "", &module->blockOutputDC));
 		menu->addChild(createBoolPtrMenuItem("Limit square PW (5\%->95\%)", "", &module->limitPW));
-		menu->addChild(createBoolPtrMenuItem("Naive implementation", "", &module->naiveImplementation));
 
 		menu->addChild(createIndexSubmenuItem("Oversampling",
 		{"Off", "x2", "x4", "x8"},
@@ -421,6 +378,5 @@ struct PonyVCOWidget : ModuleWidget {
 
 	}
 };
-
 
 Model* modelPonyVCO = createModel<PonyVCO, PonyVCOWidget>("PonyVCO");
