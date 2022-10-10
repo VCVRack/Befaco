@@ -140,24 +140,56 @@ struct CKSSHoriz2 : app::SvgSwitch {
 	}
 };
 
-struct CKSSHoriz4 : app::SvgSwitch {
-	CKSSHoriz4() {
-		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchWideHoriz_0.svg")));
-		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchWideHoriz_1.svg")));
-		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchWideHoriz_2.svg")));
-		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchWideHoriz_3.svg")));
+struct CKSSVert7 : app::SvgSlider {
+	CKSSVert7() {
+		math::Vec margin = math::Vec(3.5, 3.5);
+		maxHandlePos = math::Vec(1, 1).plus(margin);
+		minHandlePos = math::Vec(1, 45).plus(margin);
+		setBackgroundSvg(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchTallVert_bg.svg")));
+		setHandleSvg(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchTallVert_fg.svg")));
+		background->box.pos = margin;
+		box.size = background->box.size.plus(margin.mult(2));
+	}
+
+	// disable double click as this messes with click to advance
+	void onDoubleClick(const event::DoubleClick& e) override { }
+
+	// cycle through the values (with reset) on click only (not drag)
+	void onAction(const ActionEvent& e) override {
+		ParamQuantity* paramQuantity = getParamQuantity();
+		float range = paramQuantity->maxValue - paramQuantity->minValue;
+		float newValue = paramQuantity->getValue() + 1.f;
+		if (newValue > paramQuantity->maxValue) {
+			newValue -= range + 1.f;
+		}
+		paramQuantity->setValue(newValue);
 	}
 };
 
-struct CKSSVert7 : app::SvgSwitch {
-	CKSSVert7() {
-		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchTallVert_0.svg")));
-		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchTallVert_1.svg")));
-		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchTallVert_2.svg")));
-		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchTallVert_3.svg")));
-		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchTallVert_4.svg")));
-		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchTallVert_5.svg")));
-		addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchTallVert_6.svg")));
+struct CKSSHoriz4 : app::SvgSlider {
+	CKSSHoriz4() {
+		setBackgroundSvg(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchWideHoriz_bg.svg")));
+		setHandleSvg(Svg::load(asset::plugin(pluginInstance, "res/components/SwitchWideHoriz_fg.svg")));
+		minHandlePos = mm2px(Vec(0.3f, 0.3f));
+		maxHandlePos = mm2px(Vec(6.3f, 0.3f));
+		horizontal = true;
+		math::Vec margin = math::Vec(0, 0);
+		background->box.pos = margin;
+		box.size = background->box.size.plus(margin.mult(2));
+	}
+
+	// disable double click as this messes with click to advance
+	void onDoubleClick(const event::DoubleClick& e) override { }
+
+	// cycle through the values (with reset) on click only (not drag)
+	void onAction(const ActionEvent& e) override {
+		ParamQuantity* paramQuantity = getParamQuantity();
+		float range = paramQuantity->maxValue - paramQuantity->minValue;
+		float newValue = paramQuantity->getValue() + 1.f;
+		if (newValue > paramQuantity->maxValue) {
+			newValue -= range + 1.f;
+		}
+		paramQuantity->setValue(newValue);
 	}
 };
 

@@ -157,10 +157,16 @@ struct PonyVCO : Module {
 	PonyVCO() {
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
 		configParam(FREQ_PARAM, -0.5f, 0.5f, 0.0f, "Frequency");
-		configSwitch(RANGE_PARAM, 0.f, 3.f, 0.f, "Range", {"VCO: Full", "VCO: Octave", "VCO: Semitone", "LFO"});
+		auto rangeParam = configSwitch(RANGE_PARAM, 0.f, 3.f, 0.f, "Range", {"VCO: Full", "VCO: Octave", "VCO: Semitone", "LFO"});
+		rangeParam->snapEnabled = true;
+
 		configParam(TIMBRE_PARAM, 0.f, 1.f, 0.f, "Timbre");
-		configSwitch(OCT_PARAM, 0.f, 6.f, 4.f, "Octave", {"C1", "C2", "C3", "C4", "C5", "C6", "C7"});
-		configSwitch(WAVE_PARAM, 0.f, 3.f, 0.f, "Wave", {"Sin", "Triangle", "Sawtooth", "Pulse"});
+		auto octParam = configSwitch(OCT_PARAM, 0.f, 6.f, 4.f, "Octave", {"C1", "C2", "C3", "C4", "C5", "C6", "C7"});
+		octParam->snapEnabled = true;
+
+		auto waveParam = configSwitch(WAVE_PARAM, 0.f, 3.f, 0.f, "Wave", {"Sin", "Triangle", "Sawtooth", "Pulse"});
+		waveParam->snapEnabled = true;
+
 		configInput(TZFM_INPUT, "Through-zero FM");
 		configInput(TIMBRE_INPUT, "Timber (wavefolder/PWM)");
 		configInput(VOCT_INPUT, "Volt per octave");
@@ -344,7 +350,7 @@ struct PonyVCOWidget : ModuleWidget {
 		addParam(createParamCentered<Davies1900hDarkGreyKnob>(mm2px(Vec(10.0, 14.999)), module, PonyVCO::FREQ_PARAM));
 		addParam(createParam<CKSSHoriz4>(mm2px(Vec(5.498, 27.414)), module, PonyVCO::RANGE_PARAM));
 		addParam(createParam<BefacoSlidePotSmall>(mm2px(Vec(12.65, 37.0)), module, PonyVCO::TIMBRE_PARAM));
-		addParam(createParam<CKSSVert7>(mm2px(Vec(3.8, 41.304)), module, PonyVCO::OCT_PARAM));
+		addParam(createParam<CKSSVert7>(mm2px(Vec(3.8, 40.54)), module, PonyVCO::OCT_PARAM));
 		addParam(createParam<CKSSHoriz4>(mm2px(Vec(5.681, 74.436)), module, PonyVCO::WAVE_PARAM));
 
 		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(5.014, 87.455)), module, PonyVCO::TZFM_INPUT));
@@ -355,7 +361,6 @@ struct PonyVCOWidget : ModuleWidget {
 
 		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(15.0, 113.363)), module, PonyVCO::OUT_OUTPUT));
 	}
-
 
 	void appendContextMenu(Menu* menu) override {
 		PonyVCO* module = dynamic_cast<PonyVCO*>(this->module);
