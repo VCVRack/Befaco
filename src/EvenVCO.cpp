@@ -182,13 +182,20 @@ struct EvenVCO : Module {
 
 			sine[c / 4] = 5.f * simd::cos(2 * M_PI * phase[c / 4]);
 
+			// minBlep adds a small amount of DC that becomes significant at higher frequencies,
+			// this subtracts DC based on empirical observvations about the scaling relationship
+			const float sawCorrect = -5.7;
+			const float_4 sawDCComp = deltaPhase[c / 4] * sawCorrect;
+
 			doubleSaw[c / 4] = simd::ifelse((phase[c / 4] < 0.5), (-1.f + 4.f * phase[c / 4]), (-1.f + 4.f * (phase[c / 4] - 0.5f)));
 			doubleSaw[c / 4] += doubleSawMinBlepOut[c / 4];
+			doubleSaw[c / 4] += 2.f * sawDCComp;
 			doubleSaw[c / 4] *= 5.f;
 
 			even[c / 4] = 0.55 * (doubleSaw[c / 4] + 1.27 * sine[c / 4]);
 			saw[c / 4] = -1.f + 2.f * phase[c / 4];
 			saw[c / 4] += sawMinBlepOut[c / 4];
+			saw[c / 4] += sawDCComp;
 			saw[c / 4] *= 5.f;
 
 			square[c / 4] = simd::ifelse((phase[c / 4] < pw[c / 4]),  -1.f, +1.f);
