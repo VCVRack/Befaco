@@ -3,6 +3,8 @@
 ## v2.3.0
   * PonyVCO
     * Initial release
+  * EvenVCO
+    * Optionally remove DC from pulse wave output
 
 ## v2.2.0
 

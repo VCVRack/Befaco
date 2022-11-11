@@ -268,7 +268,11 @@ struct EvenVCOWidget : ModuleWidget {
 		assert(module);
 
 		menu->addChild(new MenuSeparator());
-		menu->addChild(createBoolPtrMenuItem("Remove DC from pulse", "", &module->removePulseDC));
+		menu->addChild(createSubmenuItem("Hardware compatibility", "",
+			[ = ](Menu * menu) {
+			menu->addChild(createBoolPtrMenuItem("Remove DC from pulse", "", &module->removePulseDC));
+			}
+		));
 	}
 };
 

@@ -149,6 +149,9 @@ struct PonyVCO : Module {
 	// hardware doesn't limit PW but some user might want to (to 5%->95%)
 	bool limitPW = true;
 
+	// hardware has DC for non-50% duty cycle, optionally add/remove it
+	bool removePulseDC = true;
+
 	dsp::SchmittTrigger syncTrigger;
 
 	FoldStage1 stage1;
@@ -222,6 +225,9 @@ struct PonyVCO : Module {
 		if (limitPW) {
 			pw = clamp(pw, 0.05, 0.95);
 		}
+		// pulsewave waveform doesn't have DC even for non 50% duty cycles, but Befaco team would like the option
+		// for it to be added back in for hardware compatibility reasons
+		const float pulseDCOffset = (!removePulseDC) * 2.f * (0.5f - pw);
 
 		// hard sync
 		if (syncTrigger.process(inputs[SYNC_INPUT].getVoltage())) {
@@ -265,6 +271,7 @@ struct PonyVCO : Module {
 						double sawOffset = aliasSuppressedOffsetSaw(pw);
 
 						osBuffer[i] = (sawOffset - saw) * denominator;
+						osBuffer[i] += pulseDCOffset;
 						break;
 					}
 					default: break;
@@ -319,6 +326,7 @@ struct PonyVCO : Module {
 	json_t* dataToJson() override {
 		json_t* rootJ = json_object();
 		json_object_set_new(rootJ, "blockTZFMDC", json_boolean(blockTZFMDC));
+		json_object_set_new(rootJ, "removePulseDC", json_boolean(removePulseDC));
 		json_object_set_new(rootJ, "oversamplingIndex", json_integer(oversampler.getOversamplingIndex()));
 		return rootJ;
 	}
@@ -328,6 +336,11 @@ struct PonyVCO : Module {
 		json_t* blockTZFMDCJ = json_object_get(rootJ, "blockTZFMDC");
 		if (blockTZFMDCJ) {
 			blockTZFMDC = json_boolean_value(blockTZFMDCJ);
+		}
+
+		json_t* removePulseDCJ = json_object_get(rootJ, "removePulseDC");
+		if (removePulseDCJ) {
+			removePulseDC = json_boolean_value(removePulseDCJ);
 		}
 
 		json_t* oversamplingIndexJ = json_object_get(rootJ, "oversamplingIndex");
@@ -367,8 +380,13 @@ struct PonyVCOWidget : ModuleWidget {
 		assert(module);
 
 		menu->addChild(new MenuSeparator());
-		menu->addChild(createBoolPtrMenuItem("Block TZFM DC", "", &module->blockTZFMDC));
-		menu->addChild(createBoolPtrMenuItem("Limit square PW (5\%->95\%)", "", &module->limitPW));
+		menu->addChild(createSubmenuItem("Hardware compatibility", "",
+		[ = ](Menu * menu) {
+			menu->addChild(createBoolPtrMenuItem("Filter TZFM DC", "", &module->blockTZFMDC));
+			menu->addChild(createBoolPtrMenuItem("Limit pulsewidth (5\%-95\%)", "", &module->limitPW));
+			menu->addChild(createBoolPtrMenuItem("Remove pulse DC", "", &module->removePulseDC));
+		}
+		                                ));
 
 		menu->addChild(createIndexSubmenuItem("Oversampling",
 		{"Off", "x2", "x4", "x8"},
