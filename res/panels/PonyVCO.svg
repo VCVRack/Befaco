@@ -27,10 +27,10 @@
      inkscape:pageopacity="1"
      inkscape:pageshadow="2"
      inkscape:zoom="5.3576448"
-     inkscape:cx="-12.318846"
-     inkscape:cy="156.87863"
+     inkscape:cx="19.784813"
+     inkscape:cy="273.90767"
      inkscape:document-units="mm"
-     inkscape:current-layer="layer2"
+     inkscape:current-layer="layer3"
      inkscape:document-rotation="0"
      showgrid="false"
      showborder="false"
@@ -208,13 +208,13 @@
      inkscape:label="Panel"
      style="display:inline">
     <path
-       sodipodi:nodetypes="ccccccccsssccccssscccccsssccccssscc"
+       sodipodi:nodetypes="ccccc"
        inkscape:export-ydpi="600"
        inkscape:export-xdpi="600"
        inkscape:export-filename="/home/befaco/Escritorio/tretwetwety"
        inkscape:connector-curvature="0"
        id="path5860"
-       d="M 0.0816,0.0816 V 128.4184 H 19.91841 V 0.0816 Z m 6.47717,1.45567 h 1.83164 v 0.009 c 0.008,-2.8e-4 0.0157,0 0.0235,0 0.53169,0 0.96277,0.65062 0.96277,1.44684 0,0.79622 -0.43108,1.43802 -0.96277,1.43802 h -0.0235 v 0.009 H 6.55877 v -0.009 h -0.0235 c -0.5317,0 -0.96278,-0.6418 -0.96278,-1.43802 0,-0.79622 0.43108,-1.44684 0.96278,-1.44684 0.008,0 0.0153,-2.8e-4 0.0235,0 z m -0.005,122.52295 h 1.83164 v 0.009 c 0.008,-2.6e-4 0.0157,0 0.0235,0 0.5317,0 0.96278,0.65063 0.96278,1.44685 0,0.79622 -0.43108,1.43802 -0.96278,1.43802 h -0.0235 v 0.009 H 6.55377 v -0.009 h -0.0235 c -0.5317,0 -0.96278,-0.6418 -0.96278,-1.43802 0,-0.79622 0.43108,-1.44685 0.96278,-1.44685 0.008,0 0.0153,-2.6e-4 0.0235,0 z"
+       d="M 0.0816,0.0816 V 128.4184 H 19.91841 V 0.0816 Z"
        style="display:inline;fill:#171717;fill-opacity:1;stroke:#000000;stroke-width:0.1632;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
   </g>
   <g
