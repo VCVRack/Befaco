@@ -126,7 +126,6 @@ struct PonyVCO : Module {
 	};
 	enum OutputId {
 		OUT_OUTPUT,
-		OUT2_OUTPUT,
 		OUTPUTS_LEN
 	};
 	enum LightId {
