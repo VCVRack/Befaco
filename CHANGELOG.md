@@ -5,6 +5,8 @@
     * Initial release
   * EvenVCO
     * Optionally remove DC from pulse wave output
+  * StereoStrip
+    * Address high CPU usage when using EQ sliders
 
 ## v2.2.0
 
