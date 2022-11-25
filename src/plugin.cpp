@@ -26,4 +26,5 @@ void init(rack::Plugin *p) {
 	p->addModel(modelNoisePlethora);
 	p->addModel(modelChannelStrip);
 	p->addModel(modelPonyVCO);
+	p->addModel(modelMotionMTR);
 }

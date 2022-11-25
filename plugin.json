@@ -269,6 +269,19 @@
         "Oscillator",
         "Waveshaper"
       ]
+    },
+    {
+      "slug": "MotionMTR",
+      "name": "MotionMTR",
+      "description": "CV and audio utility / realtime visualizer",
+      "manualUrl": "https://www.befaco.org/motion_mtr/",
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-motion-mtr",
+      "tags": [
+        "Attenuator",
+        "Hardware clone",
+        "Mixer",
+        "Visual"
+      ]
     }
   ]
 }

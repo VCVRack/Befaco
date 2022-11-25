@@ -27,6 +27,7 @@ extern Model* modelMex;
 extern Model* modelNoisePlethora;
 extern Model* modelChannelStrip;
 extern Model* modelPonyVCO;
+extern Model* modelMotionMTR;
 
 struct Knurlie : SvgScrew {
 	Knurlie() {
