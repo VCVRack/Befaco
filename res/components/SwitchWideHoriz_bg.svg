@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   version="1.0"
+   id="svg56722"
+   inkscape:version="1.2.1 (9c6d41e, 2022-07-14)"
+   x="0px"
+   y="0px"
+   width="9mm"
+   height="3.46mm"
+   viewBox="0 0 34.015748 13.077166"
+   enable-background="new 0 0 10 20.64111"
+   xml:space="preserve"
+   sodipodi:docname="SwitchWideHoriz_bg.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/"><metadata
+   id="metadata32"><rdf:RDF><cc:Work
+       rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
+         rdf:resource="http://purl.org/dc/dcmitype/StillImage" /></cc:Work></rdf:RDF></metadata><defs
+   id="defs30"><linearGradient
+     inkscape:collect="always"
+     id="linearGradient2486"><stop
+       style="stop-color:#404040;stop-opacity:1;"
+       offset="0"
+       id="stop2482" /><stop
+       style="stop-color:#202020;stop-opacity:1;"
+       offset="1"
+       id="stop2484" /></linearGradient><linearGradient
+     inkscape:collect="always"
+     xlink:href="#linearGradient2486"
+     id="linearGradient2488"
+     x1="16.68667"
+     y1="10.886667"
+     x2="16.664148"
+     y2="1.7359135"
+     gradientUnits="userSpaceOnUse" /></defs>
+<sodipodi:namedview
+   bordercolor="#666666"
+   borderopacity="1.0"
+   fit-margin-bottom="0"
+   fit-margin-left="0"
+   fit-margin-right="0"
+   fit-margin-top="0"
+   id="base"
+   inkscape:current-layer="svg56722"
+   inkscape:cx="17.108046"
+   inkscape:cy="5.2105723"
+   inkscape:document-rotation="0"
+   inkscape:document-units="mm"
+   inkscape:pageopacity="0.0"
+   inkscape:pageshadow="2"
+   inkscape:window-height="1094"
+   inkscape:window-maximized="0"
+   inkscape:window-width="2264"
+   inkscape:window-x="295"
+   inkscape:window-y="187"
+   inkscape:zoom="34.54515"
+   pagecolor="#ffffff"
+   showgrid="false"
+   units="px"
+   inkscape:showpageshadow="2"
+   inkscape:pagecheckerboard="0"
+   inkscape:deskcolor="#d1d1d1">
+	</sodipodi:namedview>
+
+
+
+
+<rect
+   x="15.30993"
+   y="-2.0567799"
+   fill="none"
+   width="0.68290001"
+   height="0.89523"
+   id="rect12"
+   transform="rotate(90)" />
+<rect
+   style="fill:url(#linearGradient2488);fill-opacity:1;stroke:#000000;stroke-width:1.13395;stroke-miterlimit:1.5;stroke-dasharray:none;stroke-opacity:1"
+   id="rect852"
+   width="32.881798"
+   height="11.963581"
+   x="0.56697619"
+   y="0.56697619"
+   ry="2.10818" /><rect
+   x="1.0889899"
+   y="-32.968193"
+   opacity="0.3"
+   width="1.1500931"
+   height="32.342274"
+   id="rect14"
+   style="stroke-width:1.64574"
+   transform="rotate(90)" /></svg>

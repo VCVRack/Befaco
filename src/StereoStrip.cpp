@@ -229,6 +229,8 @@ struct StereoStrip : Module {
 	// for processing mutes
 	dsp::SlewLimiter clickFilter;
 
+	dsp::ClockDivider sliderUpdate;
+
 	StereoStrip() {
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
 		configParam(HIGH_PARAM, -15.0f, 15.0f, 0.0f, "High shelf (2000 Hz) gain", " dB");
@@ -259,6 +261,9 @@ struct StereoStrip : Module {
 
 		clickFilter.rise = 50.f; // Hz
 		clickFilter.fall = 50.f; // Hz
+
+		// only poll EQ sliders every 16 samples
+		sliderUpdate.setDivision(16);
 	}
 
 	void onSampleRateChange() override {
@@ -321,7 +326,9 @@ struct StereoStrip : Module {
 			const float switchGains = (params[IN_BOOST_PARAM].getValue() ? 2.0f : 1.0f) * (params[OUT_CUT_PARAM].getValue() ? 0.5f : 1.0f);
 			const float preVCAGain = switchGains * muteGain * std::pow(10, params[LEVEL_PARAM].getValue() / 20.0f);
 
-			updateEQsIfChanged();
+			if (sliderUpdate.process()) {
+				updateEQsIfChanged();
+			}
 
 			for (int c = 0; c < numPolyphonyEngines; c += 4) {
 

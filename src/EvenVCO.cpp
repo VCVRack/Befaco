@@ -34,10 +34,9 @@ struct EvenVCO : Module {
 	/** The outputs */
 	/** Whether we are past the pulse width already */
 	bool halfPhase[PORT_MAX_CHANNELS] = {};
+	bool removePulseDC = true;
 
 	dsp::MinBlepGenerator<16, 32> triSquareMinBlep[PORT_MAX_CHANNELS];
-	dsp::MinBlepGenerator<16, 32> triMinBlep[PORT_MAX_CHANNELS];
-	dsp::MinBlepGenerator<16, 32> sineMinBlep[PORT_MAX_CHANNELS];
 	dsp::MinBlepGenerator<16, 32> doubleSawMinBlep[PORT_MAX_CHANNELS];
 	dsp::MinBlepGenerator<16, 32> sawMinBlep[PORT_MAX_CHANNELS];
 	dsp::MinBlepGenerator<16, 32> squareMinBlep[PORT_MAX_CHANNELS];
@@ -183,17 +182,25 @@ struct EvenVCO : Module {
 
 			sine[c / 4] = 5.f * simd::cos(2 * M_PI * phase[c / 4]);
 
+			// minBlep adds a small amount of DC that becomes significant at higher frequencies,
+			// this subtracts DC based on empirical observvations about the scaling relationship
+			const float sawCorrect = -5.7;
+			const float_4 sawDCComp = deltaPhase[c / 4] * sawCorrect;
+
 			doubleSaw[c / 4] = simd::ifelse((phase[c / 4] < 0.5), (-1.f + 4.f * phase[c / 4]), (-1.f + 4.f * (phase[c / 4] - 0.5f)));
 			doubleSaw[c / 4] += doubleSawMinBlepOut[c / 4];
+			doubleSaw[c / 4] += 2.f * sawDCComp;
 			doubleSaw[c / 4] *= 5.f;
 
 			even[c / 4] = 0.55 * (doubleSaw[c / 4] + 1.27 * sine[c / 4]);
 			saw[c / 4] = -1.f + 2.f * phase[c / 4];
 			saw[c / 4] += sawMinBlepOut[c / 4];
+			saw[c / 4] += sawDCComp;
 			saw[c / 4] *= 5.f;
 
 			square[c / 4] = simd::ifelse((phase[c / 4] < pw[c / 4]),  -1.f, +1.f);
 			square[c / 4] += squareMinBlepOut[c / 4];
+			square[c / 4] += removePulseDC * 2.f * (pw[c / 4] - 0.5f);
 			square[c / 4] *= 5.f;
 
 			// Set outputs
@@ -210,6 +217,20 @@ struct EvenVCO : Module {
 		outputs[EVEN_OUTPUT].setChannels(channels);
 		outputs[SAW_OUTPUT].setChannels(channels);
 		outputs[SQUARE_OUTPUT].setChannels(channels);
+	}
+
+
+	json_t* dataToJson() override {
+		json_t* rootJ = json_object();
+		json_object_set_new(rootJ, "removePulseDC", json_boolean(removePulseDC));
+		return rootJ;
+	}
+
+	void dataFromJson(json_t* rootJ) override {
+		json_t* pulseDCJ = json_object_get(rootJ, "removePulseDC");
+		if (pulseDCJ) {
+			removePulseDC = json_boolean_value(pulseDCJ);
+		}
 	}
 };
 
@@ -240,6 +261,18 @@ struct EvenVCOWidget : ModuleWidget {
 		addOutput(createOutput<BefacoOutputPort>(Vec(48, 306), module, EvenVCO::EVEN_OUTPUT));
 		addOutput(createOutput<BefacoOutputPort>(Vec(10, 327), module, EvenVCO::SAW_OUTPUT));
 		addOutput(createOutput<BefacoOutputPort>(Vec(87, 327), module, EvenVCO::SQUARE_OUTPUT));
+	}
+
+	void appendContextMenu(Menu* menu) override {
+		EvenVCO* module = dynamic_cast<EvenVCO*>(this->module);
+		assert(module);
+
+		menu->addChild(new MenuSeparator());
+		menu->addChild(createSubmenuItem("Hardware compatibility", "",
+			[ = ](Menu * menu) {
+			menu->addChild(createBoolPtrMenuItem("Remove DC from pulse", "", &module->removePulseDC));
+			}
+		));
 	}
 };
 

@@ -251,7 +251,7 @@ public:
 	 * @param osRatio: The oversampling ratio at which the filter is being used
 	 */
 	void reset(float sampleRate, int osRatio) {
-		float fc = 0.98f * (sampleRate / 2.0f);
+		float fc = 0.85f * (sampleRate / 2.0f);
 		auto Qs = calculateButterQs(2 * N);
 
 		for (int i = 0; i < N; ++i)
