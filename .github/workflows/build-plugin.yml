@@ -16,17 +16,17 @@ jobs:
       matrix:
         config:
           - os: ubuntu-latest
-            arch: lin
+            arch: lin-x64
             compiler: cc
             install-dependencies: |
               sudo apt-get update && sudo apt-get install -y libglu-dev
           - os: macos-latest
-            arch: mac
+            arch: mac-x64
             compiler: cc
             install-dependencies: |
               brew install mesa
           - os: windows-latest
-            arch: win
+            arch: win-x64
             compiler: gcc
             install-dependencies: |
               choco install --no-progress -y zip
