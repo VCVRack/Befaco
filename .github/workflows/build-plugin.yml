@@ -31,7 +31,7 @@ jobs:
             install-dependencies: |
               choco install --no-progress -y zip
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
       - name: Install Rack SDK
@@ -48,7 +48,7 @@ jobs:
         run: |
           make dist
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           path: dist
           name: ${{ matrix.config.arch }}.zip
@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-18.04
     needs: build
     steps:
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           path: _artifacts
       - uses: "marvinpinto/action-automatic-releases@latest"

@@ -39,33 +39,48 @@ struct MotionMTR : Module {
 		LIGHTS_LEN
 	};
 
-	dsp::VuMeter vuBar[3];
+	struct Map {
+		float dbValue;
+		long ledNumber;
+	};
+
+	const Map lut[20] = {
+		{ -30.5, 1},  { -30, 2},  { -30, 3},  { -26, 4},  { -25, 5}, { -24, 6}, { -23, 7 }, { -22, 8 }, { -21, 9}, { -20, 10},
+		{ -19, 11}, { -18, 12}, { -16, 13}, { -14, 14},  { -12, 15},  { -10, 16}, { -8, 17}, { -6, 18}, { -4, 19}, { -2, 20}
+	};
+
+	dsp::VuMeter2 vuBar[3];
 
 	const int updateLEDRate = 16;
 	dsp::ClockDivider sliderUpdate;
 
 	MotionMTR() {
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
-		configSwitch(MODE1_PARAM, 0.f, 2.f, 0.f, "Channel 1 mode", modeLabels);
+		configSwitch(MODE1_PARAM, 0.f, 2.f, 1.f, "Channel 1 mode", modeLabels);
 		configParam(CTRL_1_PARAM, 0.f, 1.f, 0.f, "Channel 1 gain");
-		configSwitch(MODE2_PARAM, 0.f, 2.f, 0.f, "Channel 2 mode", modeLabels);
+		configSwitch(MODE2_PARAM, 0.f, 2.f, 1.f, "Channel 2 mode", modeLabels);
 		configParam(CTRL_2_PARAM, 0.f, 1.f, 0.f, "Channel 2 gain");
-		configSwitch(MODE3_PARAM, 0.f, 2.f, 0.f, "Channel 3 mode", modeLabels);
+		configSwitch(MODE3_PARAM, 0.f, 2.f, 1.f, "Channel 3 mode", modeLabels);
 		configParam(CTRL_3_PARAM, 0.f, 1.f, 0.f, "Channel 3 gain");
 		auto in1 = configInput(IN1_INPUT, "Channel 1");
-		in1->description = "Normalled to 10V";
+		in1->description = "Normalled to 10V (except in audio mode)";
 		auto in2 = configInput(IN2_INPUT, "Channel 2");
-		in2->description = "Normalled to 10V";
+		in2->description = "Normalled to 10V (except in audio mode)";
 		auto in3 = configInput(IN3_INPUT, "Channel 3");
-		in3->description = "Normalled to 10V";
+		in3->description = "Normalled to 10V (except in audio mode)";
 
 		configOutput(OUT1_OUTPUT, "Channel 1");
 		configOutput(OUT2_OUTPUT, "Channel 2");
 		configOutput(OUT3_OUTPUT, "Channel 3 (Mix)");
 
-		vuBar[0].dBInterval = 3;
-		vuBar[1].dBInterval = 3;
-		vuBar[2].dBInterval = 3;
+		for (int i = 1; i < NUM_LIGHTS_PER_DIAL; ++i) {
+			configLight(LIGHT_1 + i * 3, string::f("%g to %g dB", lut[i - 1].dbValue, lut[i].dbValue));
+		}
+
+		for (int i = 0; i < 3; ++i) {
+			vuBar[i].mode = dsp::VuMeter2::PEAK;
+			vuBar[i].lambda = 10.f * updateLEDRate;
+		}
 
 		// only poll EQ sliders every 16 samples
 		sliderUpdate.setDivision(updateLEDRate);
@@ -73,13 +88,13 @@ struct MotionMTR : Module {
 
 	void process(const ProcessArgs& args) override {
 
-		const float in1 = inputs[IN1_INPUT].getNormalVoltage(10.f);
-		const float in2 = inputs[IN2_INPUT].getNormalVoltage(10.f);
-		const float in3 = inputs[IN3_INPUT].getNormalVoltage(10.f);
-
 		const LightDisplayType mode1 = (LightDisplayType) params[MODE1_PARAM].getValue();
 		const LightDisplayType mode2 = (LightDisplayType) params[MODE2_PARAM].getValue();
 		const LightDisplayType mode3 = (LightDisplayType) params[MODE3_PARAM].getValue();
+
+		const float in1 = inputs[IN1_INPUT].getNormalVoltage(10.f * (mode1 != AUDIO));
+		const float in2 = inputs[IN2_INPUT].getNormalVoltage(10.f * (mode2 != AUDIO));
+		const float in3 = inputs[IN3_INPUT].getNormalVoltage(10.f * (mode3 != AUDIO));
 
 		const float out1 = in1 * params[CTRL_1_PARAM].getValue() * (mode1 == CV_INV ? -1 : +1);
 		const float out2 = in2 * params[CTRL_2_PARAM].getValue() * (mode2 == CV_INV ? -1 : +1);
@@ -103,10 +118,15 @@ struct MotionMTR : Module {
 		outputs[OUT3_OUTPUT].setVoltage(out3);
 	}
 
-	void setLightRGB(int lightId, const ProcessArgs& args, float R, float G, float B) {
+	void setLightRGB(int lightId, float R, float G, float B) {
+		lights[lightId + 0].setBrightness(R);
+		lights[lightId + 1].setBrightness(G);
+		lights[lightId + 2].setBrightness(B);
+	}
+
+	void setLightRGBSmooth(int lightId, const ProcessArgs& args, float R, float G, float B) {
 		// inverse time constant for LED smoothing
 		const float lambda = 10.f * updateLEDRate;
-
 		lights[lightId + 0].setBrightnessSmooth(R, args.sampleTime, lambda);
 		lights[lightId + 1].setBrightnessSmooth(G, args.sampleTime, lambda);
 		lights[lightId + 2].setBrightnessSmooth(B, args.sampleTime, lambda);
@@ -115,40 +135,40 @@ struct MotionMTR : Module {
 	void lightsForSignal(LightDisplayType type, const LightId lightId, float signal, const ProcessArgs& args, const int channel) {
 
 		if (type == AUDIO) {
-			setLightRGB(lightId, args, 0.f, 1.0f, 0.f);
+			setLightRGB(lightId, 0.f, 1.0f, 0.f);
 
-			vuBar[channel].setValue(signal / 10.0f);
+			vuBar[channel].process(args.sampleTime * updateLEDRate, signal / 10.f);
 
 			for (int i = 1; i < NUM_LIGHTS_PER_DIAL; i++) {
-				const float value = vuBar[channel].getBrightness(NUM_LIGHTS_PER_DIAL - i);
+				const float value = vuBar[channel].getBrightness(lut[i - 1].dbValue, lut[i].dbValue);
 				if (i < 15) {
 					// green
-					setLightRGB(lightId + 3 * i, args, 0.f, value, 0.f);
+					setLightRGB(lightId + 3 * i, 0.f, value, 0.f);
 				}
 				else if (i < NUM_LIGHTS_PER_DIAL - 1) {
 					// yellow
-					setLightRGB(lightId + 3 * i, args, value, 0.65 * value, 0.f);
+					setLightRGB(lightId + 3 * i, value, 0.65 * value, 0.f);
 				}
 				else {
 					// red
-					setLightRGB(lightId + 3 * i, args, value, 0.f, 0.f);
+					setLightRGB(lightId + 3 * i, value, 0.f, 0.f);
 				}
 			}
 		}
 		else {
-			setLightRGB(lightId, args, 0.82f, 0.0f, 0.82f);
+			setLightRGBSmooth(lightId, args, 0.82f, 0.0f, 0.82f);
 
 			if (signal >= 0) {
 				for (int i = 1; i < NUM_LIGHTS_PER_DIAL; ++i) {
 					float value = 0.5f * (signal > (10 * (i + 1.) / (NUM_LIGHTS_PER_DIAL + 1)));
 					// purple
-					setLightRGB(lightId + 3 * i, args, 0.82f * value, 0.0f, 0.82f * value);
+					setLightRGBSmooth(lightId + 3 * i, args, 0.82f * value, 0.0f, 0.82f * value);
 				}
 			}
 			else {
 				for (int i = 1; i < NUM_LIGHTS_PER_DIAL; ++i) {
 					float value = (signal < (-10 * (NUM_LIGHTS_PER_DIAL - i + 1.) / (NUM_LIGHTS_PER_DIAL + 1.)));
-					setLightRGB(lightId + 3 * i, args, value, 0.65f * value, 0.f);
+					setLightRGBSmooth(lightId + 3 * i, args, value, 0.65f * value, 0.f);
 				}
 			}
 		}
