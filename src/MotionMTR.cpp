@@ -54,6 +54,9 @@ struct MotionMTR : Module {
 	const int updateLEDRate = 16;
 	dsp::ClockDivider sliderUpdate;
 
+	bool startingUp = true;
+	dsp::Timer startupTimer;
+
 	MotionMTR() {
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
 		configSwitch(MODE1_PARAM, 0.f, 2.f, 1.f, "Channel 1 mode", modeLabels);
@@ -75,6 +78,8 @@ struct MotionMTR : Module {
 
 		for (int i = 1; i < NUM_LIGHTS_PER_DIAL; ++i) {
 			configLight(LIGHT_1 + i * 3, string::f("%g to %g dB", lut[i - 1].dbValue, lut[i].dbValue));
+			configLight(LIGHT_2 + i * 3, string::f("%g to %g dB", lut[i - 1].dbValue, lut[i].dbValue));
+			configLight(LIGHT_3 + i * 3, string::f("%g to %g dB", lut[i - 1].dbValue, lut[i].dbValue));
 		}
 
 		for (int i = 0; i < 3; ++i) {
@@ -84,9 +89,22 @@ struct MotionMTR : Module {
 
 		// only poll EQ sliders every 16 samples
 		sliderUpdate.setDivision(updateLEDRate);
+		// timer for startup animation
+		startupTimer.reset();
+	}
+
+	void onReset(const ResetEvent& e) override {
+		startingUp = true;
+		startupTimer.reset();
+		Module::onReset(e);
 	}
 
 	void process(const ProcessArgs& args) override {
+
+		if (startingUp) {
+			processStartup(args);
+			return;
+		}
 
 		const LightDisplayType mode1 = (LightDisplayType) params[MODE1_PARAM].getValue();
 		const LightDisplayType mode2 = (LightDisplayType) params[MODE2_PARAM].getValue();
@@ -118,6 +136,29 @@ struct MotionMTR : Module {
 		outputs[OUT3_OUTPUT].setVoltage(out3);
 	}
 
+	void processStartup(const ProcessArgs& args) {
+		float time = startupTimer.process(args.sampleTime);
+		const float ringTime = 0.4;
+
+		if (time < ringTime) {
+			int light = floor(NUM_LIGHTS_PER_DIAL * time / ringTime);
+			setLightHSBSmooth(LIGHT_1 + 3 * light, args, 360 * time / ringTime, 1., 1.);
+		}
+		else if (time < 2 * ringTime) {
+			time -= ringTime;
+			int light = floor(NUM_LIGHTS_PER_DIAL * time / ringTime);
+			setLightHSBSmooth(LIGHT_2 + 3 * light, args, 360 * time / ringTime, 1., 1.);
+		}
+		else if (time < 3 * ringTime) {
+			time -= 2 * ringTime;
+			int light = floor(NUM_LIGHTS_PER_DIAL * time / ringTime);
+			setLightHSBSmooth(LIGHT_3 + 3 * light, args, 360 * time / ringTime, 1., 1.);
+		}
+		else {
+			startingUp = false;
+		}
+	}
+
 	void setLightRGB(int lightId, float R, float G, float B) {
 		lights[lightId + 0].setBrightness(R);
 		lights[lightId + 1].setBrightness(G);
@@ -130,6 +171,39 @@ struct MotionMTR : Module {
 		lights[lightId + 0].setBrightnessSmooth(R, args.sampleTime, lambda);
 		lights[lightId + 1].setBrightnessSmooth(G, args.sampleTime, lambda);
 		lights[lightId + 2].setBrightnessSmooth(B, args.sampleTime, lambda);
+	}
+
+	// hue: 0 - 360
+	void setLightHSBSmooth(int lightId, const ProcessArgs& args, float H, float S, float V) {
+
+		float C = S * V;
+		float X = C * (1 - std::abs(std::fmod(H / 60.0, 2) - 1));
+		float m = V - C;
+		float r, g, b;
+		if (H >= 0 && H < 60) {
+			r = C, g = X, b = 0;
+		}
+		else if (H >= 60 && H < 120) {
+			r = X, g = C, b = 0;
+		}
+		else if (H >= 120 && H < 180) {
+			r = 0, g = C, b = X;
+		}
+		else if (H >= 180 && H < 240) {
+			r = 0, g = X, b = C;
+		}
+		else if (H >= 240 && H < 300) {
+			r = X, g = 0, b = C;
+		}
+		else {
+			r = C, g = 0, b = X;
+		}
+
+		float R = (r + m);
+		float G = (g + m);
+		float B = (b + m);
+
+		setLightRGBSmooth(lightId, args, R, G, B);
 	}
 
 	void lightsForSignal(LightDisplayType type, const LightId lightId, float signal, const ProcessArgs& args, const int channel) {
