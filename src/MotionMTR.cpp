@@ -101,11 +101,6 @@ struct MotionMTR : Module {
 
 	void process(const ProcessArgs& args) override {
 
-		if (startingUp) {
-			processStartup(args);
-			return;
-		}
-
 		const LightDisplayType mode1 = (LightDisplayType) params[MODE1_PARAM].getValue();
 		const LightDisplayType mode2 = (LightDisplayType) params[MODE2_PARAM].getValue();
 		const LightDisplayType mode3 = (LightDisplayType) params[MODE3_PARAM].getValue();
@@ -125,7 +120,12 @@ struct MotionMTR : Module {
 			out3 += out2;
 		}
 
-		if (sliderUpdate.process()) {
+		// special light pattern when starting up :)
+		if (startingUp) {
+			processStartup(args);
+		}
+		// otherwise (periodically) update LEDS according to value
+		else if (sliderUpdate.process()) {
 			lightsForSignal(mode1, LIGHT_1, out1, args, 0);
 			lightsForSignal(mode2, LIGHT_2, out2, args, 1);
 			lightsForSignal(mode3, LIGHT_3, out3, args, 2);
