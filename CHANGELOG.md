@@ -1,5 +1,12 @@
 # Change Log
 
+## v2.4.0
+  * MotionMTR
+    * Initial release
+  * Muxlicer
+    * Fix gate labels
+    * Improve docs
+
 ## v2.3.0
   * PonyVCO
     * Initial release

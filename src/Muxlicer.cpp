@@ -322,7 +322,10 @@ struct Muxlicer : Module {
 						return "No gate";
 					}
 					else if (gate == 0) {
-						return "1/2 gate";
+						return "1 gate (100\% duty)";
+					}
+					else if (gate == 1) {
+						return "1 gate (50\% duty)";
 					}
 					else {
 						return string::f("%d gate(s)", gate);

@@ -17,7 +17,7 @@ We have tried to make the VCV implementations as authentic as possible, however 
 
 * Chopping Kinky hardward is DC coupled, but we add the option (default disabled) to remove this offset.
 
-* The hardware Muxlicer assigns multiple functions to the "Speed Div/Mult" dial, that cannot be reproduced with a single mouse click. Some of these have been moved to the context menu, specifically: quadratic gates, the "All In" normalled voltage, and the input/output clock division/mult. The "Speed Div/Mult" dial remains only for main clock div/mult.
+* See [docs/Muxlicer.md](docs/Muxlicer.md)
 
 * The Noise Plethora filters self-oscillate on the hardware version but not the software version. 
 
