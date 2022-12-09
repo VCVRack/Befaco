@@ -21,9 +21,11 @@ We have tried to make the VCV implementations as authentic as possible, however 
 
 * The Noise Plethora filters self-oscillate on the hardware version but not the software version. 
 
-* EvenVCO has the option (default true) to remove DC from the pulse waveform output (hardware contains DC for non-50% duty cycles)
+* EvenVCO has the option (default true) to remove DC from the pulse waveform output (hardware contains DC for non-50% duty cycles).
 
 * PonyVCO optionally allows the user:
   * to filter DC from the TZFM input signal (hardware filters below 15mHz)
   * to limit the pulsewidth from 5% to 95% (hardware is full range)
   * to remove DC from the pulse waveform output (hardware contains DC for non-50% duty cycles)
+
+* MotionMTR optionally doesn't use the 10V normalling on inputs if in audio mode to avoid acidentally adding unwanted DC to audio signals, see context menu. E.g. if you temporarily unpatch an audio source whilst using it it mixer mode, you get 10V DC suddenly and a nasty pop.

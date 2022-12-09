@@ -57,20 +57,29 @@ struct MotionMTR : Module {
 	bool startingUp = true;
 	dsp::Timer startupTimer;
 
+	bool break10VNormalForAudioMode = true;
+
 	MotionMTR() {
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
-		configSwitch(MODE1_PARAM, 0.f, 2.f, 1.f, "Channel 1 mode", modeLabels);
+
+		auto mode1 = configSwitch(MODE1_PARAM, 0.f, 2.f, 1.f, "Channel 1 mode", modeLabels);
+		mode1->snapEnabled = true;
 		configParam(CTRL_1_PARAM, 0.f, 1.f, 0.f, "Channel 1 gain");
-		configSwitch(MODE2_PARAM, 0.f, 2.f, 1.f, "Channel 2 mode", modeLabels);
+
+		auto mode2 = configSwitch(MODE2_PARAM, 0.f, 2.f, 1.f, "Channel 2 mode", modeLabels);
+		mode2->snapEnabled = true;
 		configParam(CTRL_2_PARAM, 0.f, 1.f, 0.f, "Channel 2 gain");
-		configSwitch(MODE3_PARAM, 0.f, 2.f, 1.f, "Channel 3 mode", modeLabels);
+
+		auto mode3 = configSwitch(MODE3_PARAM, 0.f, 2.f, 1.f, "Channel 3 mode", modeLabels);
+		mode3->snapEnabled = true;
 		configParam(CTRL_3_PARAM, 0.f, 1.f, 0.f, "Channel 3 gain");
+
 		auto in1 = configInput(IN1_INPUT, "Channel 1");
-		in1->description = "Normalled to 10V (except in audio mode)";
+		in1->description = "Normalled to 10V (except optionally in audio mode)";
 		auto in2 = configInput(IN2_INPUT, "Channel 2");
-		in2->description = "Normalled to 10V (except in audio mode)";
+		in2->description = "Normalled to 10V (except optionally in audio mode)";
 		auto in3 = configInput(IN3_INPUT, "Channel 3");
-		in3->description = "Normalled to 10V (except in audio mode)";
+		in3->description = "Normalled to 10V (except optionally in audio mode)";
 
 		configOutput(OUT1_OUTPUT, "Channel 1");
 		configOutput(OUT2_OUTPUT, "Channel 2");
@@ -105,9 +114,9 @@ struct MotionMTR : Module {
 		const LightDisplayType mode2 = (LightDisplayType) params[MODE2_PARAM].getValue();
 		const LightDisplayType mode3 = (LightDisplayType) params[MODE3_PARAM].getValue();
 
-		const float in1 = inputs[IN1_INPUT].getNormalVoltage(10.f * (mode1 != AUDIO));
-		const float in2 = inputs[IN2_INPUT].getNormalVoltage(10.f * (mode2 != AUDIO));
-		const float in3 = inputs[IN3_INPUT].getNormalVoltage(10.f * (mode3 != AUDIO));
+		const float in1 = inputs[IN1_INPUT].getNormalVoltage(10.f * (mode1 != AUDIO || !break10VNormalForAudioMode));
+		const float in2 = inputs[IN2_INPUT].getNormalVoltage(10.f * (mode2 != AUDIO || !break10VNormalForAudioMode));
+		const float in3 = inputs[IN3_INPUT].getNormalVoltage(10.f * (mode3 != AUDIO || !break10VNormalForAudioMode));
 
 		const float out1 = in1 * params[CTRL_1_PARAM].getValue() * (mode1 == CV_INV ? -1 : +1);
 		const float out2 = in2 * params[CTRL_2_PARAM].getValue() * (mode2 == CV_INV ? -1 : +1);
@@ -234,7 +243,7 @@ struct MotionMTR : Module {
 
 			if (signal >= 0) {
 				for (int i = 1; i < NUM_LIGHTS_PER_DIAL; ++i) {
-					float value = 0.5f * (signal > (10 * (i + 1.) / (NUM_LIGHTS_PER_DIAL + 1)));
+					float value = (signal > (10 * (i + 1.) / (NUM_LIGHTS_PER_DIAL + 1)));
 					// purple
 					setLightRGBSmooth(lightId + 3 * i, args, 0.82f * value, 0.0f, 0.82f * value);
 				}
@@ -242,12 +251,52 @@ struct MotionMTR : Module {
 			else {
 				for (int i = 1; i < NUM_LIGHTS_PER_DIAL; ++i) {
 					float value = (signal < (-10 * (NUM_LIGHTS_PER_DIAL - i + 1.) / (NUM_LIGHTS_PER_DIAL + 1.)));
-					setLightRGBSmooth(lightId + 3 * i, args, value, 0.65f * value, 0.f);
+					// orange
+					setLightRGBSmooth(lightId + 3 * i, args, value, 0.4f * value, 0.f);
 				}
 			}
 		}
 	}
 
+	json_t* dataToJson() override {
+		json_t* rootJ = json_object();
+		json_object_set_new(rootJ, "break10VNormalForAudioMode", json_boolean(break10VNormalForAudioMode));
+		return rootJ;
+	}
+
+	void dataFromJson(json_t* rootJ) override {
+		json_t* break10VNormalAudioJ = json_object_get(rootJ, "break10VNormalForAudioMode");
+		
+		if (break10VNormalAudioJ) {
+			break10VNormalForAudioMode = json_boolean_value(break10VNormalAudioJ);
+		}
+	}
+};
+
+struct CKSSThreeDragable : app::SvgSlider {
+	CKSSThreeDragable() {
+		math::Vec margin = math::Vec(0, 0);
+		maxHandlePos = math::Vec(1, 1).plus(margin);
+		minHandlePos = math::Vec(1, 18).plus(margin);
+		setBackgroundSvg(Svg::load(asset::plugin(pluginInstance, "res/components/CKSSThree_bg.svg")));
+		setHandleSvg(Svg::load(asset::plugin(pluginInstance, "res/components/CKSSThree_fg.svg")));
+		background->box.pos = margin;
+		box.size = background->box.size.plus(margin.mult(2));
+	}
+
+	// disable double click as this messes with click to advance
+	void onDoubleClick(const event::DoubleClick& e) override { 	}
+
+	// cycle through the values (with reset) on click only (not drag)
+	void onAction(const ActionEvent& e) override {
+		ParamQuantity* paramQuantity = getParamQuantity();
+		float range = paramQuantity->maxValue - paramQuantity->minValue;
+		float newValue = paramQuantity->getValue() + 1.f;
+		if (newValue > paramQuantity->maxValue) {
+			newValue -= range + 1.f;
+		}
+		paramQuantity->setValue(newValue);
+	}
 };
 
 
@@ -259,11 +308,11 @@ struct MotionMTRWidget : ModuleWidget {
 		addChild(createWidget<Knurlie>(Vec(RACK_GRID_WIDTH, 0)));
 		addChild(createWidget<Knurlie>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-		addParam(createParam<CKSSThree>(mm2px(Vec(1.298, 17.851)), module, MotionMTR::MODE1_PARAM));
+		addParam(createParam<CKSSThreeDragable>(mm2px(Vec(1.298, 17.851)), module, MotionMTR::MODE1_PARAM));
 		addParam(createParamCentered<Davies1900hBlackKnob>(mm2px(Vec(18.217, 22.18)), module, MotionMTR::CTRL_1_PARAM));
-		addParam(createParam<CKSSThree>(mm2px(Vec(23.762, 46.679)), module, MotionMTR::MODE2_PARAM));
+		addParam(createParam<CKSSThreeDragable>(mm2px(Vec(23.762, 46.679)), module, MotionMTR::MODE2_PARAM));
 		addParam(createParamCentered<Davies1900hBlackKnob>(mm2px(Vec(11.777, 50.761)), module, MotionMTR::CTRL_2_PARAM));
-		addParam(createParam<CKSSThree>(mm2px(Vec(1.34, 74.461)), module, MotionMTR::MODE3_PARAM));
+		addParam(createParam<CKSSThreeDragable>(mm2px(Vec(1.34, 74.461)), module, MotionMTR::MODE3_PARAM));
 		addParam(createParamCentered<Davies1900hBlackKnob>(mm2px(Vec(18.31, 78.89)), module, MotionMTR::CTRL_3_PARAM));
 
 		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(5.008, 100.315)), module, MotionMTR::IN1_INPUT));
@@ -295,6 +344,21 @@ struct MotionMTRWidget : ModuleWidget {
 				addChild(createLightCentered<SmallLight<RedGreenBlueLight>>(mm2px(Vec(x, y)), module, detailForRing.startingId + 3 * i));
 			}
 		}
+	}
+
+
+	void appendContextMenu(Menu* menu) override {
+		MotionMTR* module = dynamic_cast<MotionMTR*>(this->module);
+		assert(module);
+
+		menu->addChild(new MenuSeparator());
+		menu->addChild(createSubmenuItem("Hardware compatibility", "",
+		[ = ](Menu * menu) {
+			menu->addChild(createBoolPtrMenuItem("Disable 10V normal in audio mode", "", &module->break10VNormalForAudioMode));
+		}
+		                                ));
+
+
 	}
 };
 
