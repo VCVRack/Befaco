@@ -69,7 +69,7 @@ jobs:
   publish:
     name: Publish plugin
     runs-on: ubuntu-18.04
-    needs: build, build-mac
+    needs: [build, build-mac]
     steps:
       - uses: actions/download-artifact@v3
         with:
