@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Generator: Adobe Illustrator 25.2.3, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+
+<svg
+   version="1.0"
+   id="svg258108"
+   sodipodi:docname="CKSSThree_bg.svg"
+   x="0px"
+   y="0px"
+   width="13.457px"
+   height="28.34766px"
+   viewBox="0 0 13.457 28.34766"
+   enable-background="new 0 0 13.457 28.34766"
+   xml:space="preserve"
+   inkscape:version="1.2.1 (9c6d41e, 2022-07-14)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"><defs
+   id="defs158" />
+<sodipodi:namedview
+   bordercolor="#666666"
+   borderopacity="1.0"
+   fit-margin-bottom="0"
+   fit-margin-left="0"
+   fit-margin-right="0"
+   fit-margin-top="0"
+   id="base"
+   inkscape:current-layer="svg258108"
+   inkscape:cx="3.8392857"
+   inkscape:cy="16.964286"
+   inkscape:document-units="mm"
+   inkscape:pageopacity="0.0"
+   inkscape:pageshadow="2"
+   inkscape:window-height="882"
+   inkscape:window-maximized="0"
+   inkscape:window-width="1600"
+   inkscape:window-x="0"
+   inkscape:window-y="25"
+   inkscape:zoom="11.2"
+   pagecolor="#ffffff"
+   showgrid="false"
+   inkscape:showpageshadow="2"
+   inkscape:pagecheckerboard="0"
+   inkscape:deskcolor="#d1d1d1">
+	</sodipodi:namedview>
+<path
+   id="path243332"
+   inkscape:connector-curvature="0"
+   d="M0,1.41795c0-0.78124,0.6406-1.41797,1.41793-1.41797h10.62499  c0.77739,0,1.4141,0.63671,1.4141,1.41797v25.51173c0,0.77735-0.63669,1.41797-1.4141,1.41797H1.41793  C0.6406,28.34765,0,27.70702,0,26.92968V1.41795z" />
+<linearGradient
+   id="path243334_1_"
+   gradientUnits="userSpaceOnUse"
+   x1="6.73046"
+   y1="1.26953"
+   x2="6.73046"
+   y2="27.07812">
+	<stop
+   offset="0"
+   style="stop-color:#3B3B3B"
+   id="stop134" />
+	<stop
+   offset="1"
+   style="stop-color:#242424"
+   id="stop136" />
+</linearGradient>
+<path
+   id="path243334"
+   inkscape:connector-curvature="0"
+   opacity="0.54"
+   fill="url(#path243334_1_)"
+   d="M11.3242,1.26953H2.13671  c-0.48326,0-0.87501,0.39176-0.87501,0.87501v24.05857c0,0.48326,0.39176,0.87501,0.87501,0.87501h9.18749  c0.48326,0,0.87501-0.39176,0.87501-0.87501V2.14454C12.19921,1.66128,11.80746,1.26953,11.3242,1.26953z" />
+<rect
+   x="-19.43386"
+   y="19.77311"
+   fill="none"
+   width="0.6829"
+   height="0.89523"
+   id="rect140" />
+<rect
+   x="0.73033"
+   y="0.80507"
+   opacity="0.3"
+   width="12.00026"
+   height="1.71664"
+   id="rect142" />
+
+</svg>

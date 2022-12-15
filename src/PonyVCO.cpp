@@ -49,6 +49,11 @@ public:
 			return x * x / 2.f;
 		}
 	}
+
+	void reset() {
+		xPrev = 0.f;
+	}
+
 private:
 	float xPrev = 0.f;
 };
@@ -101,6 +106,10 @@ public:
 		}
 	}
 
+	void reset() {
+		xPrev = 0.f;
+	}
+
 private:
 	float xPrev = 0.f;
 	static constexpr float c = 0.1;
@@ -142,7 +151,7 @@ struct PonyVCO : Module {
 	chowdsp::VariableOversampling<6> oversampler; 	// uses a 2*6=12th order Butterworth filter
 	int oversamplingIndex = 1; 	// default is 2^oversamplingIndex == x2 oversampling
 
-	DCBlocker blockTZFMDCFilter;
+	dsp::RCFilter blockTZFMDCFilter;
 	bool blockTZFMDC = true;
 
 	// hardware doesn't limit PW but some user might want to (to 5%->95%)
@@ -182,9 +191,12 @@ struct PonyVCO : Module {
 
 	void onSampleRateChange() override {
 		float sampleRate = APP->engine->getSampleRate();
-		blockTZFMDCFilter.setFrequency(5. / sampleRate);
+		blockTZFMDCFilter.setCutoffFreq(5.0 / sampleRate);
 		oversampler.setOversamplingIndex(oversamplingIndex);
 		oversampler.reset(sampleRate);
+
+		stage1.reset();
+		stage2.reset();
 	}
 
 	// implementation taken from "Alias-Suppressed Oscillators Based on Differentiated Polynomial Waveforms",
@@ -209,7 +221,8 @@ struct PonyVCO : Module {
 
 		float tzfmVoltage = inputs[TZFM_INPUT].getVoltage();
 		if (blockTZFMDC) {
-			tzfmVoltage = blockTZFMDCFilter.process(tzfmVoltage);
+			blockTZFMDCFilter.process(tzfmVoltage);
+			tzfmVoltage = blockTZFMDCFilter.highpass();
 		}
 
 		const double pitch = inputs[VOCT_INPUT].getVoltage() + params[FREQ_PARAM].getValue() * range[rangeIndex];
