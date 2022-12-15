@@ -17,13 +17,15 @@ We have tried to make the VCV implementations as authentic as possible, however 
 
 * Chopping Kinky hardward is DC coupled, but we add the option (default disabled) to remove this offset.
 
-* The hardware Muxlicer assigns multiple functions to the "Speed Div/Mult" dial, that cannot be reproduced with a single mouse click. Some of these have been moved to the context menu, specifically: quadratic gates, the "All In" normalled voltage, and the input/output clock division/mult. The "Speed Div/Mult" dial remains only for main clock div/mult.
+* See [docs/Muxlicer.md](docs/Muxlicer.md)
 
 * The Noise Plethora filters self-oscillate on the hardware version but not the software version. 
 
-* EvenVCO has the option (default true) to remove DC from the pulse waveform output (hardware contains DC for non-50% duty cycles)
+* EvenVCO has the option (default true) to remove DC from the pulse waveform output (hardware contains DC for non-50% duty cycles).
 
 * PonyVCO optionally allows the user:
   * to filter DC from the TZFM input signal (hardware filters below 15mHz)
   * to limit the pulsewidth from 5% to 95% (hardware is full range)
   * to remove DC from the pulse waveform output (hardware contains DC for non-50% duty cycles)
+
+* MotionMTR optionally doesn't use the 10V normalling on inputs if in audio mode to avoid acidentally adding unwanted DC to audio signals, see context menu. E.g. if you temporarily unpatch an audio source whilst using it it mixer mode, you get 10V DC suddenly and a nasty pop.
