@@ -6,6 +6,9 @@
   * Muxlicer
     * Fix gate labels
     * Improve docs
+  * PonyVCO
+    * Fix NaNs when TZFM input is used at very high sample rates
+    * Fix pitch wobble when disconnecting TZFM voltage source
 
 ## v2.3.0
   * PonyVCO
