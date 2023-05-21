@@ -225,7 +225,7 @@ typedef TBiquadFilter<> BiquadFilter;
     Currently uses an 2*N-th order Butterworth filter.
     source: https://github.com/jatinchowdhury18/ChowDSP-VCV/blob/master/src/shared/AAFilter.hpp
 */
-template<int N>
+template<int N, typename T>
 class AAFilter {
 public:
 	AAFilter() = default;
@@ -255,10 +255,10 @@ public:
 		auto Qs = calculateButterQs(2 * N);
 
 		for (int i = 0; i < N; ++i)
-			filters[i].setParameters(BiquadFilter::Type::LOWPASS, fc / (osRatio * sampleRate), Qs[i], 1.0f);
+			filters[i].setParameters(TBiquadFilter<T>::Type::LOWPASS, fc / (osRatio * sampleRate), Qs[i], 1.0f);
 	}
 
-	inline float process(float x) noexcept {
+	inline T process(T x) noexcept {
 		for (int i = 0; i < N; ++i)
 			x = filters[i].process(x);
 
@@ -266,14 +266,16 @@ public:
 	}
 
 private:
-	BiquadFilter filters[N];
+	TBiquadFilter<T> filters[N];
 };
+
 
 
 /**
  * Base class for oversampling of any order
  * source: https://github.com/jatinchowdhury18/ChowDSP-VCV/blob/master/src/shared/oversampling.hpp
  */
+template<typename T>
 class BaseOversampling {
 public:
 	BaseOversampling() = default;
@@ -283,13 +285,13 @@ public:
 	virtual void reset(float /*baseSampleRate*/) = 0;
 
 	/** Upsample a single input sample and update the oversampled buffer */
-	virtual void upsample(float) noexcept = 0;
+	virtual void upsample(T) noexcept = 0;
 
 	/** Output a downsampled output sample from the current oversampled buffer */
-	virtual float downsample() noexcept = 0;
+	virtual T downsample() noexcept = 0;
 
 	/** Returns a pointer to the oversampled buffer */
-	virtual float* getOSBuffer() noexcept = 0;
+	virtual T* getOSBuffer() noexcept = 0;
 };
 
 
@@ -305,8 +307,8 @@ public:
     float y = oversample.downsample();
     @endcode
 */
-template<int ratio, int filtN = 4>
-class Oversampling : public BaseOversampling {
+template<int ratio, int filtN = 4, typename T = float>
+class Oversampling : public BaseOversampling<T> {
 public:
 	Oversampling() = default;
 	virtual ~Oversampling() {}
@@ -317,7 +319,7 @@ public:
 		std::fill(osBuffer, &osBuffer[ratio], 0.0f);
 	}
 
-	inline void upsample(float x) noexcept override {
+	inline void upsample(T x) noexcept override {
 		osBuffer[0] = ratio * x;
 		std::fill(&osBuffer[1], &osBuffer[ratio], 0.0f);
 
@@ -325,25 +327,26 @@ public:
 			osBuffer[k] = aiFilter.process(osBuffer[k]);
 	}
 
-	inline float downsample() noexcept override {
-		float y = 0.0f;
+	inline T downsample() noexcept override {
+		T y = 0.0f;
 		for (int k = 0; k < ratio; k++)
 			y = aaFilter.process(osBuffer[k]);
 
 		return y;
 	}
 
-	inline float* getOSBuffer() noexcept override {
+	inline T* getOSBuffer() noexcept override {
 		return osBuffer;
 	}
 
-	float osBuffer[ratio];
+	T osBuffer[ratio];
 
 private:
-	AAFilter<filtN> aaFilter; // anti-aliasing filter
-	AAFilter<filtN> aiFilter; // anti-imaging filter
+	AAFilter<filtN, T> aaFilter; // anti-aliasing filter
+	AAFilter<filtN, T> aiFilter; // anti-imaging filter
 };
 
+typedef Oversampling<1, 4, simd::float_4> OversamplingSIMD;
 
 
 /**
@@ -362,7 +365,7 @@ private:
 
 	source (modified): https://github.com/jatinchowdhury18/ChowDSP-VCV/blob/master/src/shared/VariableOversampling.hpp
 */
-template<int filtN = 4>
+template<int filtN = 4, typename T = float>
 class VariableOversampling {
 public:
 	VariableOversampling() = default;
@@ -384,17 +387,17 @@ public:
 	}
 
 	/** Upsample a single input sample and update the oversampled buffer */
-	inline void upsample(float x) noexcept {
+	inline void upsample(T x) noexcept {
 		oss[osIdx]->upsample(x);
 	}
 
 	/** Output a downsampled output sample from the current oversampled buffer */
-	inline float downsample() noexcept {
+	inline T downsample() noexcept {
 		return oss[osIdx]->downsample();
 	}
 
 	/** Returns a pointer to the oversampled buffer */
-	inline float* getOSBuffer() noexcept {
+	inline T* getOSBuffer() noexcept {
 		return oss[osIdx]->getOSBuffer();
 	}
 
@@ -411,12 +414,12 @@ private:
 
 	int osIdx = 0;
 
-	Oversampling < 1 << 0, filtN > os0; // 1x
-	Oversampling < 1 << 1, filtN > os1; // 2x
-	Oversampling < 1 << 2, filtN > os2; // 4x
-	Oversampling < 1 << 3, filtN > os3; // 8x
-	Oversampling < 1 << 4, filtN > os4; // 16x
-	BaseOversampling* oss[NumOS] = { &os0, &os1, &os2, &os3, &os4 };
+	Oversampling < 1 << 0, filtN, T > os0; // 1x
+	Oversampling < 1 << 1, filtN, T > os1; // 2x
+	Oversampling < 1 << 2, filtN, T > os2; // 4x
+	Oversampling < 1 << 3, filtN, T > os3; // 8x
+	Oversampling < 1 << 4, filtN, T > os4; // 16x
+	BaseOversampling<T>* oss[NumOS] = { &os0, &os1, &os2, &os3, &os4 };
 };
 
 } // namespace chowdsp
