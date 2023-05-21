@@ -1,8 +1,19 @@
 #include "plugin.hpp"
 #include <pffft.h>
 
-BINARY(src_SpringReverbIR_pcm);
+static std::vector<uint8_t> ir;
 
+static void initIR() {
+	if (!ir.empty())
+		return;
+
+	try {
+		ir = system::readFile(asset::plugin(pluginInstance, "res/SpringReverbIR.f32"));
+	}
+	catch (std::exception& e) {
+		WARN("Cannot load IR: %s", e.what());
+	}
+}
 
 static const size_t BLOCK_SIZE = 1024;
 
@@ -55,10 +66,12 @@ struct SpringReverb : Module {
 		configParam(LEVEL2_PARAM, 0.0, 1.0, 0.0, "In 2 level", "%", 0, 100);
 		configParam(HPF_PARAM, 0.0, 1.0, 0.5, "High pass filter cutoff");
 
+		initIR();
+
 		convolver = new dsp::RealTimeConvolver(BLOCK_SIZE);
 
-		const float* kernel = (const float*) BINARY_START(src_SpringReverbIR_pcm);
-		size_t kernelLen = BINARY_SIZE(src_SpringReverbIR_pcm) / sizeof(float);
+		const float* kernel = (const float*) ir.data();
+		size_t kernelLen = ir.size() / sizeof(float);
 		convolver->setKernel(kernel, kernelLen);
 
 		vuFilter.mode = dsp::VuMeter2::PEAK;
