@@ -1,5 +1,11 @@
 # Change Log
 
+## v2.5.0
+  * Burst
+    * Initial release
+  * PonyVCO
+    * Now polyphonic
+
 ## v2.4.0
   * MotionMTR
     * Initial release

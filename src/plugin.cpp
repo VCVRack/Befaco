@@ -27,4 +27,5 @@ void init(rack::Plugin *p) {
 	p->addModel(modelChannelStrip);
 	p->addModel(modelPonyVCO);
 	p->addModel(modelMotionMTR);
+	p->addModel(modelBurst);
 }
