@@ -24,6 +24,18 @@
       ]
     },
     {
+      "slug": "EvenVCO2",
+      "name": "Even VCO (beta)",
+      "description": "Oscillator including even-harmonic waveform",
+      "manualUrl": "https://www.befaco.org/even-vco/",
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-even-vco-",
+      "tags": [
+        "VCO",
+        "Hardware clone",
+        "Polyphonic"
+      ]
+    },
+    {
       "slug": "Rampage",
       "name": "Rampage",
       "description": "Dual ramp generator",

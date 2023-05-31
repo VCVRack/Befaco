@@ -8,6 +8,7 @@ using namespace rack;
 extern Plugin* pluginInstance;
 
 extern Model* modelEvenVCO;
+extern Model* modelEvenVCO2;
 extern Model* modelRampage;
 extern Model* modelABC;
 extern Model* modelSpringReverb;

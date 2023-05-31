@@ -7,6 +7,7 @@ void init(rack::Plugin *p) {
 	pluginInstance = p;
 
 	p->addModel(modelEvenVCO);
+	p->addModel(modelEvenVCO2);
 	p->addModel(modelRampage);
 	p->addModel(modelABC);
 	p->addModel(modelSpringReverb);

@@ -251,9 +251,8 @@ struct PonyVCO : Module {
 							break;
 						}
 						case WAVE_PULSE: {
-
-							float_4 dpwOrder1 = simd::ifelse(phase[c / 4] < pw, -1.0, +1.0);
-							dpwOrder1 -= simd::ifelse(removePulseDC, 2.f * (0.5f - pw), 0.f);
+							float_4 dpwOrder1 = simd::ifelse(phase[c / 4] < 1. - pw, +1.0, -1.0);
+							dpwOrder1 -= removePulseDC ? 2.f * (0.5f - pw) : 0.f;
 
 							float_4 saw = aliasSuppressedSaw(phases);
 							float_4 sawOffset = aliasSuppressedOffsetSaw(phases, pw);
