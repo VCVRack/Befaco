@@ -240,8 +240,9 @@ struct Rampage : Module {
 				float shape = params[SHAPE_A_PARAM + part].getValue();
 				out[part][c / 4] += shapeDelta(delta, rate, shape) * args.sampleTime;
 
-				float_4 rising  = (in[c / 4] - out[part][c / 4]) > 1e-3f;
-				float_4 falling = (in[c / 4] - out[part][c / 4]) < -1e-3f;
+				float_4 rising  = simd::ifelse(delta_gt_0, (in[c / 4] - out[part][c / 4]) > 1e-3f, float_4::zero());
+				float_4 falling = simd::ifelse(delta_lt_0, (in[c / 4] - out[part][c / 4]) < -1e-3f, float_4::zero());
+
 				float_4 end_of_cycle = simd::andnot(falling, delta_lt_0);
 
 				endOfCyclePulse[part][c / 4].trigger(end_of_cycle, 1e-3);
