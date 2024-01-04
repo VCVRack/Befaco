@@ -81,7 +81,7 @@ struct Kickall : Module {
 
 	void process(const ProcessArgs& args) override {
 		// TODO: check values
-		const bool risingEdgeGate = gateTrigger.process(inputs[TRIGG_INPUT].getVoltage() / 2.0f);
+		const bool risingEdgeGate = gateTrigger.process(inputs[TRIGG_INPUT].getVoltage() / 2.0f, 0.1, 2.0);
 		const bool buttonTriggered = buttonTrigger.process(params[TRIGG_BUTTON_PARAM].getValue());
 		// can be triggered by either rising edge on trigger in, or a button press
 		if (risingEdgeGate || buttonTriggered) {

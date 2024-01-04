@@ -220,7 +220,7 @@ struct Rampage : Module {
 			for (int c = 0; c < channels[part]; c += 4) {
 
 				// process SchmittTriggers
-				float_4 trig_mask = trigger_4[part][c / 4].process(in_trig[c / 4] / 2.0);
+				float_4 trig_mask = trigger_4[part][c / 4].process(in_trig[c / 4] / 2.0, 0.1, 2.0);
 				gate[part][c / 4] = ifelse(trig_mask, float_4::mask(), gate[part][c / 4]);
 				in[c / 4] = ifelse(gate[part][c / 4], 10.0f, in[c / 4]);
 
