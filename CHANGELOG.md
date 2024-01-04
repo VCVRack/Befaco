@@ -1,5 +1,9 @@
 # Change Log
 
+## v2.4.1
+  * Rampage
+    * Fix SIMD bug
+
 ## v2.4.0
   * MotionMTR
     * Initial release

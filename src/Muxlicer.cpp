@@ -1120,7 +1120,7 @@ struct Mex : Module {
 					// gate in will convert non-gate signals to gates (via schmitt trigger)
 					// if input is present
 					if (inputs[GATE_IN_INPUT].isConnected()) {
-						gateInTrigger.process(inputs[GATE_IN_INPUT].getVoltage());
+						gateInTrigger.process(inputs[GATE_IN_INPUT].getVoltage(), 0.1, 2.0);
 						gate = gateInTrigger.isHigh();
 					}
 					// otherwise the main Muxlicer output clock (including divisions/multiplications)
