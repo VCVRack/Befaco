@@ -5,6 +5,12 @@
     * Initial release
   * PonyVCO
     * Now polyphonic
+  * Misc
+    * Fix trigger inputs to follow Rack voltage standards (Kickall, Muxlicer, Rampage)
+
+## v2.4.1
+  * Rampage
+    * Fix SIMD bug
 
 ## v2.4.0
   * MotionMTR
