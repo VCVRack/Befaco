@@ -30,6 +30,8 @@ extern Model* modelChannelStrip;
 extern Model* modelPonyVCO;
 extern Model* modelMotionMTR;
 extern Model* modelBurst;
+extern Model* modelMidiThing;
+extern Model* modelVoltio;
 
 struct Knurlie : SvgScrew {
 	Knurlie() {
@@ -220,6 +222,14 @@ struct BefacoSlidePotSmall : app::SvgSlider {
 		setHandleSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoSlidePotHandleSmall.svg")));
 		background->box.pos = margin;
 		box.size = background->box.size.plus(margin.mult(2));
+	}
+};
+
+struct BefacoButton : app::SvgSwitch {
+	BefacoButton() {
+		momentary = true;
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/components/BefacoButton_0.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/components/BefacoButton_1.svg")));
 	}
 };
 

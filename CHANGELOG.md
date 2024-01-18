@@ -3,6 +3,10 @@
 ## v2.5.0
   * Burst
     * Initial release
+  * Midi Thing 2
+    * Initial release
+  * Voltio
+    * Initial release
   * PonyVCO
     * Now polyphonic
   * Misc
