@@ -124,8 +124,9 @@ struct MidiThing : Module {
 		// Midi spec is zeroo indexed
 		uint8_t predefToSend = predef - 1;
 		msg.bytes = {0xF0, 0x7D, 0x17, 0x00, 0x00, 0x02, 0x00, predefToSend, 0xF7};
+		midiOut.setChannel(0);
 		midiOut.sendMessage(msg);
-		DEBUG("Predef %d msg request sent", predef);
+		// DEBUG("Predef %d msg request sent: %s", predef, msg.toString().c_str());
 	}
 
 	uint8_t port = 0;
@@ -141,7 +142,7 @@ struct MidiThing : Module {
 		// and m is the volt output mode to select from:
 		msg.bytes = {0xF0, 0x7D, 0x17, static_cast<unsigned char>(32 + port), 0x02, 0x02, 0x00, portModes[port], 0xF7};
 		midiOut.sendMessage(msg);
-		DEBUG("Voltage mode msg sent: port %d (%d), mode %d", port, static_cast<unsigned char>(32 + port), portModes[port]);
+		// DEBUG("Voltage mode msg sent: port %d (%d), mode %d", port, static_cast<unsigned char>(32 + port), portModes[port]);
 	}
 
 
@@ -163,7 +164,7 @@ struct MidiThing : Module {
 		uint8_t pp = 2;
 		msg.bytes = {0xF0, 0x7D, 0x17, 0x00, 0x01, 0x03, 0x00, static_cast<uint8_t>(n + m), pp, 0xF7};
 		midiOut.sendMessage(msg);
-		DEBUG("API request mode msg sent: port %d, pp %s", port, msg.toString().c_str());
+		// DEBUG("API request mode msg sent: port %d, pp %s", port, msg.toString().c_str());
 	}
 
 	int getVoltageMode(uint8_t row, uint8_t col) {
@@ -203,15 +204,15 @@ struct MidiThing : Module {
 	PORTMODE_t portModes[NUM_INPUTS] = {};
 	void process(const ProcessArgs& args) override {
 
-		if (buttonTrigger.process(params[REFRESH_PARAM].getValue())) {
-			DEBUG("Refreshing config over SysEx...");
+		if (buttonTrigger.process(params[REFRESH_PARAM].getValue())) {			
+			setPredef(4);
 			refreshConfig();
 		}
 
 		midi::Message msg;
 		uint8_t outData[32] = {};
 		while (inputQueue.tryPop(&msg, args.frame)) {
-			DEBUG("msg (size: %d): %s", msg.getSize(), msg.toString().c_str());
+			// DEBUG("msg (size: %d): %s", msg.getSize(), msg.toString().c_str());
 
 			uint8_t outLen = decodeSysEx(&msg.bytes[0], outData, msg.bytes.size(), false);
 			if (outLen > 3) {
@@ -221,10 +222,7 @@ struct MidiThing : Module {
 				if (channel >= 0 && channel < NUM_INPUTS) {
 					if (outData[outLen - 1] < LASTPORTMODE) {
 						portModes[channel] = (PORTMODE_t) outData[outLen - 1];
-						DEBUG("Channel %d, %d: mode %d (%s)", outData[2], channel, portModes[channel], cfgPortModeNames[portModes[channel]]);
-					}
-					else {
-						DEBUG("Error got %d, out of range", outData[outLen - 1]);
+						// DEBUG("Channel %d, %d: mode %d (%s)", outData[2], channel, portModes[channel], cfgPortModeNames[portModes[channel]]);
 					}
 
 				}
@@ -563,7 +561,6 @@ struct MidiThingWidget : ModuleWidget {
 
 		void setMidiPort(midi::Port* port) {
 
-			DEBUG("Entering setMidiPort");
 			clearChildren();
 			math::Vec pos;
 
@@ -588,8 +585,6 @@ struct MidiThingWidget : ModuleWidget {
 			addChild(deviceChoice);
 			pos = deviceChoice->box.getBottomLeft();
 			this->deviceChoice = deviceChoice;
-
-			DEBUG("Leaving setMidiPort");
 		}
 	};
 
@@ -629,8 +624,6 @@ struct MidiThingWidget : ModuleWidget {
 
 			}
 		}
-
-		DEBUG("MidiThingWidget construction complete!");
 	}
 
 	void appendContextMenu(Menu* menu) override {
@@ -663,8 +656,9 @@ struct MidiThingWidget : ModuleWidget {
 							module->inputQueue.setChannel(0); // TODO update
 
 							module->refreshConfig();
-							DEBUG("Updating Output MIDI settings - driver: %s, device: %s",
-							      driver->getName().c_str(), driver->getOutputDeviceName(deviceId).c_str());
+							
+							// DEBUG("Updating Output MIDI settings - driver: %s, device: %s",
+							//        driver->getName().c_str(), driver->getOutputDeviceName(deviceId).c_str());
 						}));
 					}
 				}));
@@ -672,12 +666,16 @@ struct MidiThingWidget : ModuleWidget {
 		}));
 
 
-		menu->addChild(createMenuItem("Request Bridge Mode", "",
+		menu->addChild(createIndexSubmenuItem("Select Hardware Preset",
+		{"Predef 1", "Predef 2", "Predef 3", "Predef 4 (VCV Mode)"},
 		[ = ]() {
-			module->setPredef(MidiThing::VCV_BRIDGE_PREDEF);
+			return -1;
+		},
+		[ = ](int mode) {
+			module->setPredef(mode + 1);
 			module->refreshConfig();
 		}
-		                             ));
+		                                     ));
 
 	}
 };
