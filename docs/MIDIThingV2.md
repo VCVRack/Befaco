@@ -8,7 +8,7 @@ The VCV counterpart is designed to allow users to quickly get up and running wit
 
 ## Setup 
 
-To use, first ensure the MIDI Thing v2 is plugged into your computer, and visible as a MIDI device. Then select it, either from the top of the module, or the right click context menu. Then select "Request Bridge Mode" from the context menu - this puts the MIDI Thing into a preset designed to work with VCV Rack. See below for details.
+To use, first ensure the MIDI Thing v2 is plugged into your computer, and visible as a MIDI device. Then select it, either from the top of the module, or the right click context menu. Then click "SYNC" - this puts the MIDI Thing into a preset designed to work with VCV Rack, and syncronises settings/voltage ranges etc. 
 
 ![MIDI Thing Config](img/MidiThingV2.png "MIDI Thing v2 Setup")
 

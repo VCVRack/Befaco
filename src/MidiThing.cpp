@@ -37,7 +37,40 @@ unsigned decodeSysEx(const uint8_t* inSysEx,
 	return count;
 }
 
+struct RoundRobinProcessor {
+	// if a channel (0 - 11) should be updated, return it's index, otherwise return -1
+	int process(float sampleTime, float period, int numActiveChannels) {
 
+		if (numActiveChannels == 0 || period <= 0) {
+			return -1;
+		}
+
+		time += sampleTime;
+
+		if (time > period) {
+			time -= period;
+
+			// special case: when there's only one channel, the below logic (which looks for when active channel changes)
+			// wont fire. as we've completed a period, return an "update channel 0" value
+			if (numActiveChannels == 1) {
+				return 0;
+			}
+		}
+
+		int currentActiveChannel = numActiveChannels * time / period;
+
+		if (currentActiveChannel != previousActiveChannel) {
+			previousActiveChannel = currentActiveChannel;
+			return currentActiveChannel;
+		}
+
+		// if we've got this far, no updates needed (-1)
+		return -1;
+	}
+private:
+	float time = 0.f;
+	int previousActiveChannel = -1;
+};
 
 
 struct MidiThing : Module {
@@ -88,10 +121,15 @@ struct MidiThing : Module {
 		""
 	};
 
+	const std::vector<float> updateRates = {200., 1000., 4000., 16000.};
+	const std::vector<std::string> updateRateNames = {"200hz", "1khz", "4khz", "16khz"};
+	int updateRateIdx = 1;
+
 	// use Pre-def 4 for bridge mode
 	const static int VCV_BRIDGE_PREDEF = 4;
 
 	midi::Output midiOut;
+	RoundRobinProcessor roundRobinProcessor;
 
 	MidiThing() {
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
@@ -199,20 +237,30 @@ struct MidiThing : Module {
 		}
 	}
 
+	// debug only
+	bool setFrame = true;
+
 	dsp::BooleanTrigger buttonTrigger;
 	dsp::Timer rateLimiterTimer;
 	PORTMODE_t portModes[NUM_INPUTS] = {};
 	void process(const ProcessArgs& args) override {
 
-		if (buttonTrigger.process(params[REFRESH_PARAM].getValue())) {			
+		if (buttonTrigger.process(params[REFRESH_PARAM].getValue())) {
+			
+			// currently this sets the predef to 4, which will reset ranges etc
+			// TODO: figure this out!
 			setPredef(4);
 			refreshConfig();
 		}
 
+		//DEBUG("inputDriver id: %d, outMidi id: %d", inputQueue.getDriverId(), midiOut.getDriverId());
+		//DEBUG("inputDevice id: %d, outMidi id: %d", inputQueue.getDeviceId(), midiOut.getDeviceId());
+		//DEBUG("inputChannel: %d, outChannel: %d", inputQueue.getChannel(), midiOut.getChannel());
+
 		midi::Message msg;
 		uint8_t outData[32] = {};
 		while (inputQueue.tryPop(&msg, args.frame)) {
-			// DEBUG("msg (size: %d): %s", msg.getSize(), msg.toString().c_str());
+			DEBUG("msg (size: %d): %s", msg.getSize(), msg.toString().c_str());
 
 			uint8_t outLen = decodeSysEx(&msg.bytes[0], outData, msg.bytes.size(), false);
 			if (outLen > 3) {
@@ -222,48 +270,67 @@ struct MidiThing : Module {
 				if (channel >= 0 && channel < NUM_INPUTS) {
 					if (outData[outLen - 1] < LASTPORTMODE) {
 						portModes[channel] = (PORTMODE_t) outData[outLen - 1];
-						// DEBUG("Channel %d, %d: mode %d (%s)", outData[2], channel, portModes[channel], cfgPortModeNames[portModes[channel]]);
+						DEBUG("Channel %d, %d: mode %d (%s)", outData[2], channel, portModes[channel], cfgPortModeNames[portModes[channel]]);
 					}
 
 				}
 			}
 		}
 
+		std::vector<int> activeChannels;
+		for (int c = 0; c < NUM_INPUTS; ++c) {
+			if (inputs[A1_INPUT + c].isConnected()) {
+				activeChannels.push_back(c);
+			}
+		}
+		const int numActiveChannels = activeChannels.size();
+		// we're done if no channels are active
+		if (numActiveChannels == 0) {
+			return;
+		}
+
+		//DEBUG("updateRateIdx: %d", updateRateIdx);
+		const float updateRateHz = updateRates[updateRateIdx];
+		//DEBUG("updateRateHz: %f", updateRateHz);
+		const int maxCCMessagesPerSecondPerChannel = updateRateHz / numActiveChannels;
 
 		// MIDI baud rate is 31250 b/s, or 3125 B/s.
 		// CC messages are 3 bytes, so we can send a maximum of 1041 CC messages per second.
-		// Since multiple CCs can be generated, play it safe and limit the CC rate to 200 Hz.
-		const float rateLimiterPeriod = 1 / 200.f;
-		bool rateLimiterTriggered = (rateLimiterTimer.process(args.sampleTime) >= rateLimiterPeriod);
-		if (rateLimiterTriggered)
-			rateLimiterTimer.time -= rateLimiterPeriod;
+		// The refresh rate period (i.e. how often we can send X channels of data is:
+		const float rateLimiterPeriod = 1.f / maxCCMessagesPerSecondPerChannel;
 
-		if (rateLimiterTriggered) {
+		// this returns -1 if no channel should be updated, or the index of the channel that should be updated
+		// it distributes update times in a round robin fashion
+		int channelIdxToUpdate = roundRobinProcessor.process(args.sampleTime, rateLimiterPeriod, numActiveChannels);
 
-			for (int c = 0; c < NUM_INPUTS; ++c) {
+		if (channelIdxToUpdate >= 0 && channelIdxToUpdate < numActiveChannels) {
+			int c = activeChannels[channelIdxToUpdate];
 
-				if (!inputs[A1_INPUT + c].isConnected()) {
-					continue;
-				}
-				const float channelVoltage = inputs[A1_INPUT + c].getVoltage();
-				uint16_t pw = rescaleVoltageForChannel(c, channelVoltage);
-				isClipping[c] = !checkIsVoltageWithinRange(c, channelVoltage);
-				midi::Message m;
-				m.setStatus(0xe);
-				m.setNote(pw & 0x7f);
-				m.setValue((pw >> 7) & 0x7f);
+			const float channelVoltage = inputs[A1_INPUT + c].getVoltage();
+			uint16_t pw = rescaleVoltageForChannel(c, channelVoltage);
+			isClipping[c] = !checkIsVoltageWithinRange(c, channelVoltage);
+			midi::Message m;
+			m.setStatus(0xe);
+			m.setNote(pw & 0x7f);
+			m.setValue((pw >> 7) & 0x7f);
+
+			if (setFrame) {
 				m.setFrame(args.frame);
-
-				midiOut.setChannel(c);
-				midiOut.sendMessage(m);
 			}
+
+			midiOut.setChannel(c);
+			midiOut.sendMessage(m);
 		}
 	}
+
 
 	json_t* dataToJson() override {
 		json_t* rootJ = json_object();
 		json_object_set_new(rootJ, "midiOutput", midiOut.toJson());
 		json_object_set_new(rootJ, "inputQueue", inputQueue.toJson());
+
+		json_object_set_new(rootJ, "setFrame", json_boolean(setFrame));
+		json_object_set_new(rootJ, "updateRateIdx", json_integer(updateRateIdx));
 
 		return rootJ;
 	}
@@ -277,6 +344,16 @@ struct MidiThing : Module {
 		json_t* midiInputQueueJ = json_object_get(rootJ, "inputQueue");
 		if (midiInputQueueJ) {
 			inputQueue.fromJson(midiInputQueueJ);
+		}
+
+		json_t* setFrameJ = json_object_get(rootJ, "setFrame");
+		if (setFrameJ) {
+			setFrame = json_boolean_value(setFrameJ);
+		}
+
+		json_t* updateRateIdxJ = json_object_get(rootJ, "updateRateIdx");
+		if (updateRateIdxJ) {
+			updateRateIdx = json_integer_value(updateRateIdxJ);
 		}
 
 		refreshConfig();
@@ -504,17 +581,18 @@ struct MidiThingWidget : ModuleWidget {
 	};
 
 	struct MidiDeviceItem : ui::MenuItem {
-		midi::Port* port;
+		midi::Port* outPort, *inPort;
 		int deviceId;
 		void onAction(const event::Action& e) override {
-			port->setDeviceId(deviceId);
+			outPort->setDeviceId(deviceId);
+			inPort->setDeviceId(deviceId);
 		}
 	};
 
 	struct MidiDeviceChoice : LedDisplayCenterChoiceEx {
-		midi::Port* port;
+		midi::Port* outPort, *inPort;
 		void onAction(const event::Action& e) override {
-			if (!port)
+			if (!outPort || !inPort)
 				return;
 			createContextMenu();
 		}
@@ -524,25 +602,27 @@ struct MidiThingWidget : ModuleWidget {
 			menu->addChild(createMenuLabel("MIDI device"));
 			{
 				MidiDeviceItem* item = new MidiDeviceItem;
-				item->port = port;
+				item->outPort = outPort;
+				item->inPort = inPort;
 				item->deviceId = -1;
 				item->text = "(No device)";
-				item->rightText = CHECKMARK(item->deviceId == port->deviceId);
+				item->rightText = CHECKMARK(item->deviceId == outPort->deviceId);
 				menu->addChild(item);
 			}
-			for (int deviceId : port->getDeviceIds()) {
+			for (int deviceId : outPort->getDeviceIds()) {
 				MidiDeviceItem* item = new MidiDeviceItem;
-				item->port = port;
+				item->outPort = outPort;
+				item->inPort = inPort;
 				item->deviceId = deviceId;
-				item->text = port->getDeviceName(deviceId);
-				item->rightText = CHECKMARK(item->deviceId == port->deviceId);
+				item->text = outPort->getDeviceName(deviceId);
+				item->rightText = CHECKMARK(item->deviceId == outPort->deviceId);
 				menu->addChild(item);
 			}
 			return menu;
 		}
 
 		void step() override {
-			text = port ? port->getDeviceName(port->deviceId) : "";
+			text = outPort ? outPort->getDeviceName(outPort->deviceId) : "";
 			if (text.empty()) {
 				text = "(No device)";
 				color.a = 0.5f;
@@ -559,7 +639,7 @@ struct MidiThingWidget : ModuleWidget {
 		MidiDeviceChoice* deviceChoice;
 		LedDisplaySeparator* deviceSeparator;
 
-		void setMidiPort(midi::Port* port) {
+		void setMidiPorts(midi::Port* outPort, midi::Port* inPort) {
 
 			clearChildren();
 			math::Vec pos;
@@ -568,7 +648,8 @@ struct MidiThingWidget : ModuleWidget {
 			driverChoice->box.size = Vec(box.size.x, 20.f);
 			//driverChoice->textOffset = Vec(6.f, 14.7f);
 			driverChoice->color = nvgRGB(0xf0, 0xf0, 0xf0);
-			driverChoice->port = port;
+			driverChoice->port = outPort;
+
 			addChild(driverChoice);
 			pos = driverChoice->box.getBottomLeft();
 			this->driverChoice = driverChoice;
@@ -581,7 +662,8 @@ struct MidiThingWidget : ModuleWidget {
 			deviceChoice->box.size = Vec(box.size.x, 21.f);
 			//deviceChoice->textOffset = Vec(6.f, 14.7f);
 			deviceChoice->color = nvgRGB(0xf0, 0xf0, 0xf0);
-			deviceChoice->port = port;
+			deviceChoice->outPort = outPort;
+			deviceChoice->inPort = inPort;
 			addChild(deviceChoice);
 			pos = deviceChoice->box.getBottomLeft();
 			this->deviceChoice = deviceChoice;
@@ -598,7 +680,12 @@ struct MidiThingWidget : ModuleWidget {
 
 		MidiWidget* midiInputWidget = createWidget<MidiWidget>(Vec(1.5f, 36.4f)); //mm2px(Vec(0.5f, 10.f)));
 		midiInputWidget->box.size = mm2px(Vec(5.08 * 6 - 1, 13.5f));
-		midiInputWidget->setMidiPort(module ? &module->midiOut : NULL);
+		if (module) {
+			midiInputWidget->setMidiPorts(&module->midiOut, &module->inputQueue);
+		}
+		else {
+			midiInputWidget->setMidiPorts(nullptr, nullptr);
+		}
 		addChild(midiInputWidget);
 
 		addParam(createParamCentered<BefacoButton>(mm2px(Vec(21.12, 57.32)), module, MidiThing::REFRESH_PARAM));
@@ -656,7 +743,7 @@ struct MidiThingWidget : ModuleWidget {
 							module->inputQueue.setChannel(0); // TODO update
 
 							module->refreshConfig();
-							
+
 							// DEBUG("Updating Output MIDI settings - driver: %s, device: %s",
 							//        driver->getName().c_str(), driver->getOutputDeviceName(deviceId).c_str());
 						}));
@@ -674,9 +761,14 @@ struct MidiThingWidget : ModuleWidget {
 		[ = ](int mode) {
 			module->setPredef(mode + 1);
 			module->refreshConfig();
-		}
-		                                     ));
+		}));
 
+
+		menu->addChild(createIndexPtrSubmenuItem("MIDI Rate Limiting",
+		               module->updateRateNames,
+		               &module->updateRateIdx));
+
+		menu->addChild(createBoolPtrMenuItem("Set frame", "", &module->setFrame));
 	}
 };
 
