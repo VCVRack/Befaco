@@ -239,7 +239,7 @@ struct MidiThing : Module {
 
 	// debug only
 	bool setFrame = true;
-
+	int numActiveChannels = 0;
 	dsp::BooleanTrigger buttonTrigger;
 	dsp::Timer rateLimiterTimer;
 	PORTMODE_t portModes[NUM_INPUTS] = {};
@@ -283,7 +283,7 @@ struct MidiThing : Module {
 				activeChannels.push_back(c);
 			}
 		}
-		const int numActiveChannels = activeChannels.size();
+		numActiveChannels = activeChannels.size();
 		// we're done if no channels are active
 		if (numActiveChannels == 0) {
 			return;
@@ -769,6 +769,9 @@ struct MidiThingWidget : ModuleWidget {
 		               &module->updateRateIdx));
 
 		menu->addChild(createBoolPtrMenuItem("Set frame", "", &module->setFrame));
+
+		float updateRate = module->updateRates[module->updateRateIdx] / module->numActiveChannels;
+		menu->addChild(createMenuLabel(string::f("Midi Update rate: %.3g Hz", updateRate)));
 	}
 };
 
