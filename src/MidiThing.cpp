@@ -122,7 +122,8 @@ struct MidiThing : Module {
 	};
 
 	const std::vector<float> updateRates = {200., 1000., 4000., 16000.};
-	const std::vector<std::string> updateRateNames = {"200hz", "1khz", "4khz", "16khz"};
+	const std::vector<std::string> updateRateNames = {"200 Hz (fewest active channels, slowest, lowest-cpu)", "1 kHz", "4 kHz",
+		"16 kHz (most active channels, fast, highest-cpu)"};
 	int updateRateIdx = 1;
 
 	// use Pre-def 4 for bridge mode
@@ -771,7 +772,7 @@ struct MidiThingWidget : ModuleWidget {
 		menu->addChild(createBoolPtrMenuItem("Set frame", "", &module->setFrame));
 
 		float updateRate = module->updateRates[module->updateRateIdx] / module->numActiveChannels;
-		menu->addChild(createMenuLabel(string::f("Midi Update rate: %.3g Hz", updateRate)));
+		menu->addChild(createMenuLabel(string::f("Per-channel MIDI rate: %.3g Hz", updateRate)));
 	}
 };
 
