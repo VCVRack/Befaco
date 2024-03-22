@@ -61,6 +61,9 @@ struct Voltio : Module {
 		}
 
 		outputs[OUT_OUTPUT].setChannels(channels);
+
+		lights[PLUSMINUS5_LIGHT].setBrightness(params[RANGE_PARAM].getValue() ? 1.f : 0.f);
+		lights[ZEROTOTEN_LIGHT].setBrightness(params[RANGE_PARAM].getValue() ? 0.f : 1.f);
 	}
 
 };
