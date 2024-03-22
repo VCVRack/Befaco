@@ -1,5 +1,15 @@
 # Change Log
 
+## v2.5.0
+  * Burst
+    * Initial release
+  * Voltio
+    * Initial release
+  * PonyVCO
+    * Now polyphonic
+  * Misc
+    * Fix trigger inputs to follow Rack voltage standards (Kickall, Muxlicer, Rampage)
+
 ## v2.4.1
   * Rampage
     * Fix SIMD bug

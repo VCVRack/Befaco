@@ -1,0 +1,56 @@
+ M     M    I    SSS     OOO
+ MM   MM    I   S   S   O   O
+ M M M M    I    S      O   O
+ M  M  M    I     S     O   O
+ M     M    I      S    O   O
+ M     M    I   S   S   O   O
+ M     M    I    SSS     OOO
+
+---------------------------------------
+MISO is an architectural lettering font
+completed in 2006 by Mårten Nettelbladt.
+---------------------------------------
+MISO is available in three weights
+(Light, Regular, Bold) 
+in TrueType and OpenType format.
+---------------------------------------
+
+ L I C E N S E   I N F O R M A T I O N
+---------------------------------------
+MISO is a free typeface. However, 
+there is one important limitation:
+
+MISO MUST ALWAYS REMAIN COMPLETELY FREE
+
+You can use MISO for personal and commercial work.
+You can share MISO with your friends
+as long as you include this text file.
+
+You must not sell MISO.
+You must not charge someone else for using MISO.
+You must not bundle MISO with a sold product.
+
+Use it, share it, but keep it free.
+---------------------------------------
+
+Mårten Nettelbladt
+Omkrets arkitektur
+www.omkrets.se
+
+Stockholm, Sweden
+July 9th 2009
+
+---------------------------------------
+If you have any comments about MISO
+please let me know:
+miso (a) omkrets.se
+---------------------------------------
+
+November 27th 2008
+Converted to OpenType by Torin Hill.
+
+June 24th 2007
+Some small adjustments
+
+October 23rd 2006
+Released
