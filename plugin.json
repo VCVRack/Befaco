@@ -24,18 +24,6 @@
       ]
     },
     {
-      "slug": "EvenVCO2",
-      "name": "Even VCO (beta)",
-      "description": "Oscillator including even-harmonic waveform",
-      "manualUrl": "https://www.befaco.org/even-vco/",
-      "modularGridUrl": "https://www.modulargrid.net/e/befaco-even-vco-",
-      "tags": [
-        "VCO",
-        "Hardware clone",
-        "Polyphonic"
-      ]
-    },
-    {
       "slug": "Rampage",
       "name": "Rampage",
       "description": "Dual ramp generator",
@@ -305,18 +293,6 @@
       "tags": [
         "Clock generator",
         "Clock modulator",
-        "Hardware clone"
-      ]
-    },
-    {
-      "slug": "MidiThingV2",
-      "name": "MIDI Thing V2",
-      "description": "Hardware MIDI Thing v2 is a flexible MIDI to CV converter, this module acts as a bridge from VCV",
-      "manualUrl": "https://github.com/VCVRack/Befaco/blob/v2/docs/MIDIThingV2.md",
-      "modularGridUrl": "https://www.modulargrid.net/e/befaco-midi-thing-v2",
-      "tags": [
-        "External",
-        "MIDI",
         "Hardware clone"
       ]
     },

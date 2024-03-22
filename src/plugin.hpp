@@ -8,7 +8,6 @@ using namespace rack;
 extern Plugin* pluginInstance;
 
 extern Model* modelEvenVCO;
-extern Model* modelEvenVCO2;
 extern Model* modelRampage;
 extern Model* modelABC;
 extern Model* modelSpringReverb;
@@ -30,7 +29,6 @@ extern Model* modelChannelStrip;
 extern Model* modelPonyVCO;
 extern Model* modelMotionMTR;
 extern Model* modelBurst;
-extern Model* modelMidiThing;
 extern Model* modelVoltio;
 
 struct Knurlie : SvgScrew {
