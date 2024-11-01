@@ -20,8 +20,8 @@ struct Bypass : Module {
 		INPUTS_LEN
 	};
 	enum OutputId {
-		TOFX_L_OUTPUT,
-		TOFX_R_OUTPUT,
+		TO_FX_L_OUTPUT,
+		TO_FX_R_OUTPUT,
 		OUT_L_OUTPUT,
 		OUT_R_OUTPUT,
 		OUTPUTS_LEN
@@ -45,16 +45,28 @@ struct Bypass : Module {
 	dsp::BooleanTrigger latchTrigger;
 	dsp::SlewLimiter clickFilter;
 	bool launchButtonHeld = false;
+	bool applySaturation = true;
+	bool active = false;
+
+	struct GainParamQuantity : ParamQuantity {
+		std::string getDisplayValueString() override {
+			if (getValue() < 0.f) {
+				return string::f("%g dB", 30 * getValue());
+			}
+			else {
+				return string::f("%g dB", 12 * getValue());
+			}
+		}
+	};
 
 	Bypass() {
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
-		configSwitch(MODE_PARAM, 0.f, 1.f, 0.f, "Return mode", {"Hard", "Soft"});
-		configParam(FX_GAIN_PARAM, -30.f, 30.f, 0.f, "FX Gain");
+		auto switchParam = configSwitch(MODE_PARAM, 0.f, 1.f, 0.f, "Return mode", {"Hard", "Soft"});
+		switchParam->description = "In hard mode, Bypass wil cut off any sound coming from the loop.\nWith soft mode, the FX return is still active giving you reverb tails, decaying delay taps etc.";
+		configParam<GainParamQuantity>(FX_GAIN_PARAM, -1.f, 1.f, 0.f, "FX return gain");
 		configSwitch(LAUNCH_MODE_PARAM, 0.f, 1.f, 0.f, "Launch Mode", {"Latch (Toggle)", "Gate (Momentary)"});
 		launchParam = configButton(LAUNCH_BUTTON_PARAM, "Launch");
-
 		slewTimeParam = configParam(SLEW_TIME_PARAM, .005f, 0.05f, 0.01f, "Slew time", "s");
-
 
 		configInput(IN_L_INPUT, "Left");
 		configInput(IN_R_INPUT, "Right");
@@ -62,18 +74,15 @@ struct Bypass : Module {
 		configInput(FROM_FX_R_INPUT, "From FX R");
 		configInput(LAUNCH_INPUT, "Launch");
 
-		configOutput(TOFX_L_OUTPUT, "To FX L");
-		configOutput(TOFX_R_OUTPUT, "To FX R");
+		configOutput(TO_FX_L_OUTPUT, "To FX L");
+		configOutput(TO_FX_R_OUTPUT, "To FX R");
 		configOutput(OUT_L_OUTPUT, "Left");
 		configOutput(OUT_R_OUTPUT, "Right");
 
 		configBypass(IN_L_INPUT, OUT_L_OUTPUT);
 		configBypass(IN_R_INPUT, OUT_R_OUTPUT);
-
-
 	}
 
-	bool active = false;
 	void process(const ProcessArgs& args) override {
 
 		// slew time in secs (so take inverse for lambda)
@@ -99,22 +108,25 @@ struct Bypass : Module {
 			}
 		}
 
-		const float fxGain = std::pow(10, params[FX_GAIN_PARAM].getValue() / 20.0f);
+		// FX send section
 		const float sendActive = clickFilter.process(args.sampleTime, (latchMode == LatchMode::TOGGLE_MODE) ? active : launchValue);
-
 		for (int c = 0; c < maxInputChannels; c += 4) {
 			const float_4 inL = inputs[IN_L_INPUT].getPolyVoltageSimd<float_4>(c);
 			const float_4 inR = inputs[IN_R_INPUT].getNormalPolyVoltageSimd<float_4>(inL, c);
 
 			// we start be assuming that FXs can be polyphonic, but recognise that often they are not
-			outputs[TOFX_L_OUTPUT].setVoltageSimd<float_4>(inL * fxGain * sendActive, c);
-			outputs[TOFX_R_OUTPUT].setVoltageSimd<float_4>(inR * fxGain * sendActive, c);
+			outputs[TO_FX_L_OUTPUT].setVoltageSimd<float_4>(inL * sendActive, c);
+			outputs[TO_FX_R_OUTPUT].setVoltageSimd<float_4>(inR * sendActive, c);
 		}
 		// fx send polyphony is set by input polyphony
-		outputs[TOFX_L_OUTPUT].setChannels(maxInputChannels);
-		outputs[TOFX_R_OUTPUT].setChannels(maxInputChannels);
+		outputs[TO_FX_L_OUTPUT].setChannels(maxInputChannels);
+		outputs[TO_FX_R_OUTPUT].setChannels(maxInputChannels);
 
-		float_4 dryLeft, dryRight;
+
+		// FX return section
+		const float gainTaper = params[FX_GAIN_PARAM].getValue() < 0.f ? 30 * params[FX_GAIN_PARAM].getValue() : params[FX_GAIN_PARAM].getValue() * 12;
+		const float fxReturnGain = std::pow(10, gainTaper / 20.0f);
+		float_4 dryLeft, dryRight, outL, outR;
 		for (int c = 0; c < maxFxReturnChannels; c += 4) {
 
 			const bool fxMonophonic = (maxInputChannels == 1);
@@ -129,23 +141,53 @@ struct Bypass : Module {
 				dryRight = inputs[IN_R_INPUT].getNormalPolyVoltageSimd<float_4>(dryLeft, c);
 			}
 
-			const float_4 fxLeftReturn = inputs[FROM_FX_L_INPUT].getPolyVoltageSimd<float_4>(c);
-			const float_4 fxRightReturn = inputs[FROM_FX_R_INPUT].getPolyVoltageSimd<float_4>(c);
+			const float_4 fxLeftReturn = fxReturnGain * inputs[FROM_FX_L_INPUT].getPolyVoltageSimd<float_4>(c);
+			const float_4 fxRightReturn = fxReturnGain * inputs[FROM_FX_R_INPUT].getPolyVoltageSimd<float_4>(c);
 
 			if (returnMode == ReturnMode::HARD_MODE) {
-				outputs[OUT_L_OUTPUT].setVoltageSimd<float_4>(dryLeft * (1 - sendActive) + sendActive * fxLeftReturn, c);
-				outputs[OUT_R_OUTPUT].setVoltageSimd<float_4>(dryRight * (1 - sendActive) + sendActive * fxRightReturn, c);
+				outL = dryLeft * (1 - sendActive) + sendActive * fxLeftReturn;
+				outR = dryRight * (1 - sendActive) + sendActive * fxRightReturn;
 			}
 			else {
-				outputs[OUT_L_OUTPUT].setVoltageSimd<float_4>(dryLeft * (1 - sendActive) + fxLeftReturn, c);
-				outputs[OUT_R_OUTPUT].setVoltageSimd<float_4>(dryRight * (1 - sendActive) + fxRightReturn, c);
+				outL = dryLeft * (1 - sendActive) + fxLeftReturn;
+				outR = dryRight * (1 - sendActive) + fxRightReturn;
 			}
+
+			if (applySaturation) {
+				outL = Saturator<float_4>::process(outL / 10.f) * 10.f;
+				outR = Saturator<float_4>::process(outR / 10.f) * 10.f;
+			}
+
+			outputs[OUT_L_OUTPUT].setVoltageSimd<float_4>(outL, c);
+			outputs[OUT_R_OUTPUT].setVoltageSimd<float_4>(outR, c);
 		}
+
 		// output polyphony is set by fx return polyphony
 		outputs[OUT_L_OUTPUT].setChannels(maxFxReturnChannels);
 		outputs[OUT_R_OUTPUT].setChannels(maxFxReturnChannels);
 
 		lights[LAUNCH_LED].setSmoothBrightness(sendActive, args.sampleTime);
+	}
+
+	void dataFromJson(json_t* rootJ) override {
+		json_t* applySaturationJ = json_object_get(rootJ, "applySaturation");
+		if (applySaturationJ) {
+			applySaturation = json_boolean_value(applySaturationJ);
+		}
+
+		json_t* activeJ = json_object_get(rootJ, "active");
+		if (activeJ) {
+			active = json_boolean_value(activeJ);
+		}
+	}
+
+	json_t* dataToJson() override {
+		json_t* rootJ = json_object();
+
+		json_object_set_new(rootJ, "applySaturation", json_boolean(applySaturation));
+		json_object_set_new(rootJ, "active", json_boolean(active));
+
+		return rootJ;
 	}
 };
 
@@ -212,8 +254,8 @@ struct BypassWidget : ModuleWidget {
 		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(6.648, 95.028)), module, Bypass::LAUNCH_INPUT));
 		addInput(createInputCentered<BefacoInputPort>(mm2px(Vec(4.947, 15.03)), module, Bypass::IN_L_INPUT));
 
-		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(4.957, 27.961)), module, Bypass::TOFX_L_OUTPUT));
-		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(14.957, 27.961)), module, Bypass::TOFX_R_OUTPUT));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(4.957, 27.961)), module, Bypass::TO_FX_L_OUTPUT));
+		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(14.957, 27.961)), module, Bypass::TO_FX_R_OUTPUT));
 		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(4.947, 53.846)), module, Bypass::OUT_L_OUTPUT));
 		addOutput(createOutputCentered<BefacoOutputPort>(mm2px(Vec(14.957, 53.824)), module, Bypass::OUT_R_OUTPUT));
 	}
@@ -231,7 +273,7 @@ struct BypassWidget : ModuleWidget {
 		assert(module);
 
 		menu->addChild(new MenuSeparator());
-
+		menu->addChild(createBoolPtrMenuItem("Soft clip at ±10V", "", &module->applySaturation));
 		menu->addChild(new SlewTimeSider(module->slewTimeParam));
 
 	}
