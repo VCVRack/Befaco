@@ -169,14 +169,14 @@ struct EvenVCO : Module {
 
 				if (outputs[SINE_OUTPUT].isConnected() || outputs[EVEN_OUTPUT].isConnected()) {
 					// sin doesn't need PDW
-					osBufferSin[i] = -simd::cos(2.0 * M_PI * phase[c / 4]);
+					osBufferSin[i] = -simd::cos(M_PI + 2.0 * M_PI * phase[c / 4]);
 				}
 
 				if (outputs[TRI_OUTPUT].isConnected()) {
 					const float_4 dpwOrder1 = 1.0 - 2.0 * simd::abs(2 * phase[c / 4] - 1.0);
 					const float_4 dpwOrder3 = aliasSuppressedTri(phases) * denominatorInv;
 
-					osBufferTri[i] = simd::ifelse(lowFreqRegime, dpwOrder1, dpwOrder3);
+					osBufferTri[i] = -simd::ifelse(lowFreqRegime, dpwOrder1, dpwOrder3);
 				}
 
 				if (outputs[SAW_OUTPUT].isConnected()) {
