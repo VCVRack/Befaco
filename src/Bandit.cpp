@@ -47,6 +47,7 @@ struct Bandit : Module {
 	const float clipTime = 0.25f;
 	dsp::ClockDivider ledUpdateClock;
 	const int ledUpdateRate = 64;
+	bool applySaturation = true;
 
 	Bandit() {
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
@@ -156,19 +157,19 @@ struct Bandit : Module {
 			const float_4 inHigh = inputs[HIGH_INPUT].getPolyVoltageSimd<float_4>(c);
 			const float_4 inAll = inputs[ALL_INPUT].getPolyVoltageSimd<float_4>(c);
 
-			const float_4 lowGain = params[LOW_GAIN_PARAM].getValue() * inputs[LOW_CV_INPUT].getNormalPolyVoltageSimd<float_4>(10.f, c) / 10.f;
+			const float_4 lowGain = params[LOW_GAIN_PARAM].getValue() * clamp(inputs[LOW_CV_INPUT].getNormalPolyVoltageSimd<float_4>(10.f, c) / 10.f, 0.f, 1.f);
 			const float_4 outLow = 0.7 * 2 * filterLow[c / 4][1].process(filterLow[c / 4][0].process((inLow + inAll) * lowGain));
 			outputs[LOW_OUTPUT].setVoltageSimd<float_4>(outLow, c);
 
-			const float_4 lowMidGain = params[LOW_MID_GAIN_PARAM].getValue() * inputs[LOW_MID_CV_INPUT].getNormalPolyVoltageSimd<float_4>(10.f, c) / 10.f;
+			const float_4 lowMidGain = params[LOW_MID_GAIN_PARAM].getValue() * clamp(inputs[LOW_MID_CV_INPUT].getNormalPolyVoltageSimd<float_4>(10.f, c) / 10.f, 0.f, 1.f);
 			const float_4 outLowMid = 2 * filterLowMid[c / 4][1].process(filterLowMid[c / 4][0].process((inLowMid + inAll) * lowMidGain));
 			outputs[LOW_MID_OUTPUT].setVoltageSimd<float_4>(outLowMid, c);
 
-			const float_4 highMidGain = params[HIGH_MID_GAIN_PARAM].getValue() * inputs[HIGH_MID_CV_INPUT].getNormalPolyVoltageSimd<float_4>(10.f, c) / 10.f;
+			const float_4 highMidGain = params[HIGH_MID_GAIN_PARAM].getValue() * clamp(inputs[HIGH_MID_CV_INPUT].getNormalPolyVoltageSimd<float_4>(10.f, c) / 10.f, 0.f, 1.f);
 			const float_4 outHighMid = 2 * filterHighMid[c / 4][1].process(filterHighMid[c / 4][0].process((inHighMid + inAll) * highMidGain));
 			outputs[HIGH_MID_OUTPUT].setVoltageSimd<float_4>(outHighMid, c);
 
-			const float_4 highGain = params[HIGH_GAIN_PARAM].getValue() * inputs[HIGH_CV_INPUT].getNormalPolyVoltageSimd<float_4>(10.f, c) / 10.f;
+			const float_4 highGain = params[HIGH_GAIN_PARAM].getValue() * clamp(inputs[HIGH_CV_INPUT].getNormalPolyVoltageSimd<float_4>(10.f, c) / 10.f, 0.f, 1.f);
 			const float_4 outHigh = 0.7 * 2 * filterHigh[c / 4][1].process(filterHigh[c / 4][0].process((inHigh + inAll) * highGain));
 			outputs[HIGH_OUTPUT].setVoltageSimd<float_4>(outHigh, c);
 
@@ -178,6 +179,10 @@ struct Bandit : Module {
 			mixOutput[c / 4] += inputs[HIGH_MID_RETURN_INPUT].getNormalPolyVoltageSimd<float_4>(outHighMid * !outputs[HIGH_MID_OUTPUT].isConnected(), c);
 			mixOutput[c / 4] += inputs[HIGH_RETURN_INPUT].getNormalPolyVoltageSimd<float_4>(outHigh * !outputs[HIGH_OUTPUT].isConnected(), c);
 			mixOutput[c / 4] = mixOutput[c / 4] * clamp(inputs[ALL_CV_INPUT].getNormalPolyVoltageSimd<float_4>(10.f, c) / 10.f, 0.f, 1.f);
+
+			if (applySaturation) {
+				mixOutput[c / 4] = Saturator<float_4>::process(mixOutput[c / 4] / 10.f) * 10.f;
+			}
 
 			outputs[MIX_OUTPUT].setVoltageSimd<float_4>(mixOutput[c / 4], c);
 		}
@@ -249,6 +254,20 @@ struct Bandit : Module {
 			lights[MIX_CLIP_LIGHT + 2].setBrightness(0.f);
 		}
 	}
+
+	void dataFromJson(json_t* rootJ) override {
+		json_t* applySaturationJ = json_object_get(rootJ, "applySaturation");
+		if (applySaturationJ) {
+			applySaturation = json_boolean_value(applySaturationJ);
+		}
+	}
+
+	json_t* dataToJson() override {
+		json_t* rootJ = json_object();
+		json_object_set_new(rootJ, "applySaturation", json_boolean(applySaturation));
+
+		return rootJ;
+	}
 };
 
 
@@ -288,6 +307,15 @@ struct BanditWidget : ModuleWidget {
 
 		addChild(createLightCentered<MediumLight<RedGreenBlueLight>>(mm2px(Vec(37.781, 111.125)), module, Bandit::MIX_CLIP_LIGHT));
 		addChild(createLightCentered<MediumLight<RedGreenBlueLight>>(mm2px(Vec(37.781, 115.875)), module, Bandit::MIX_LIGHT));
+	}
+
+	void appendContextMenu(Menu* menu) override {
+		Bandit* module = dynamic_cast<Bandit*>(this->module);
+		assert(module);
+
+		menu->addChild(new MenuSeparator());
+		menu->addChild(createBoolPtrMenuItem("Soft clip at ±10V", "", &module->applySaturation));
+
 	}
 };
 
