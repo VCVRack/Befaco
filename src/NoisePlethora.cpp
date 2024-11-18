@@ -160,8 +160,8 @@ struct NoisePlethora : Module {
 
 	// section A/B
 	bool bypassFilters = false;
-	std::shared_ptr<NoisePlethoraPlugin> algorithm[2]{nullptr, nullptr}; 	// pointer to actual algorithm
-	std::string_view algorithmName[2]{"", ""};				// variable to cache which algorithm is active (after program CV applied)
+	std::shared_ptr<NoisePlethoraPlugin> algorithm[2] {nullptr, nullptr}; 	// pointer to actual algorithm
+	std::string_view algorithmName[2] {"", ""};				// variable to cache which algorithm is active (after program CV applied)
 	std::map<std::string_view, std::shared_ptr<NoisePlethoraPlugin>> A_algorithms{};
 	std::map<std::string_view, std::shared_ptr<NoisePlethoraPlugin>> B_algorithms{};
 
@@ -197,7 +197,7 @@ struct NoisePlethora : Module {
 		configParam(Y_A_PARAM, 0.f, 1.f, 0.5f, "YA");
 		configParam(CUTOFF_CV_A_PARAM, 0.f, 1.f, 0.f, "Cutoff CV A");
 		configSwitch(FILTER_TYPE_A_PARAM, 0.f, 2.f, 0.f, "Filter type", {"Lowpass", "Bandpass", "Highpass"});
-		configParam(PROGRAM_PARAM, 0, 1, 0.f, "Program/Bank selection");
+		configParam(PROGRAM_PARAM, -INFINITY, +INFINITY, 0.f, "Program/Bank selection");
 		configSwitch(FILTER_TYPE_B_PARAM, 0.f, 2.f, 0.f, "Filter type", {"Lowpass", "Bandpass", "Highpass"});
 		configParam(CUTOFF_CV_B_PARAM, 0.f, 1.f, 0.f, "Cutoff CV B");
 		configParam(X_B_PARAM, 0.f, 1.f, 0.5f, "XB");
@@ -233,7 +233,7 @@ struct NoisePlethora : Module {
 		getInputInfo(PROG_A_INPUT)->description = "CV sums with active program (0.5V increments)";
 		getInputInfo(PROG_B_INPUT)->description = "CV sums with active program (0.5V increments)";
 
-		for (auto const &entry : MyFactory::Instance()->factoryFunctionRegistry) {
+		for (auto const& entry : MyFactory::Instance()->factoryFunctionRegistry) {
 			A_algorithms[entry.first] = MyFactory::Instance()->Create(entry.first);
 			B_algorithms[entry.first] = MyFactory::Instance()->Create(entry.first);
 		}
@@ -440,23 +440,25 @@ struct NoisePlethora : Module {
 	void processProgramBankKnobLogic(const ProcessArgs& args) {
 
 		// program knob will either change program for current bank...
-		{
+		if (programButtonDragged) {
+			// work out the change (in discrete increments) since the program/bank knob started being dragged
+			const int delta = (int)(dialResolution * (params[PROGRAM_PARAM].getValue() - programKnobReferenceState));
 
 			if (programKnobMode == PROGRAM_MODE) {
 				const int numProgramsForCurrentBank = getBankForIndex(programSelector.getCurrent().getBank()).getSize();
-				const int currentProgram = programSelector.getCurrent().getProgram();
-				const int newProgramFromKnob = (int) std::round((numProgramsForCurrentBank - 1) * params[PROGRAM_PARAM].getValue());
 
-				if (newProgramFromKnob != currentProgram) {
+				if (delta != 0) {
+					const int newProgramFromKnob = unsigned_modulo(programSelector.getCurrent().getProgram() + delta, numProgramsForCurrentBank);
+					programKnobReferenceState = params[PROGRAM_PARAM].getValue();
 					setAlgorithmViaProgram(newProgramFromKnob);
 				}
 			}
 			// ...or change bank, (trying to) keep program the same
 			else {
-				const int currentBank = programSelector.getCurrent().getBank();
-				const int newBankFromKnob = (int) std::round((numBanks - 1) * params[PROGRAM_PARAM].getValue());
 
-				if (currentBank != newBankFromKnob) {
+				if (delta != 0) {
+					const int newBankFromKnob = unsigned_modulo(programSelector.getCurrent().getBank() + delta, numBanks);
+					programKnobReferenceState = params[PROGRAM_PARAM].getValue();
 					setAlgorithmViaBank(newBankFromKnob);
 				}
 			}

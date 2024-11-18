@@ -1,5 +1,9 @@
 # Change Log
 
+## v2.8.1
+  * Noise Plethora
+    * Fix bug where program choice is wrongly copied between top and bottom sections
+
 ## v2.8.0
   * Molten Bypass
     * Initial release
