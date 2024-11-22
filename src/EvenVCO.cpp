@@ -43,7 +43,7 @@ struct EvenVCO : Module {
 		configInput(PITCH1_INPUT, "Pitch 1");
 		configInput(PITCH2_INPUT, "Pitch 2");
 		configInput(FM_INPUT, "FM");
-		configInput(SYNC_INPUT, "Sync");
+		configInput(SYNC_INPUT, "Hard Sync");
 		configInput(PWM_INPUT, "Pulse Width Modulation");
 
 		configOutput(TRI_OUTPUT, "Triangle");
@@ -52,8 +52,6 @@ struct EvenVCO : Module {
 		configOutput(SAW_OUTPUT, "Sawtooth");
 		configOutput(SQUARE_OUTPUT, "Square");
 
-		// calculate up/downsampling rates
-		onSampleRateChange();
 	}
 
 	void onSampleRateChange() override {
@@ -62,6 +60,13 @@ struct EvenVCO : Module {
 			for (int c = 0; c < 4; c++) {
 				oversampler[i][c].setOversamplingIndex(oversamplingIndex);
 				oversampler[i][c].reset(sampleRate);
+			}
+		}
+
+		for (int c = 0; c < 4; c++) {
+			for (int i = 0; i < NUM_UPSAMPLED_INPUTS; i++) {
+				oversamplerInputs[i][c].setOversamplingIndex(oversamplingIndex);
+				oversamplerInputs[i][c].reset(sampleRate);
 			}
 		}
 
@@ -111,6 +116,12 @@ struct EvenVCO : Module {
 		return (sawOffsetBuff[0] - 2.0 * sawOffsetBuff[1] + sawOffsetBuff[2]);
 	}
 
+	enum UpsampledInputs {
+		FM_INPUT_UP,
+		SYNC_INPUT_UP,
+		NUM_UPSAMPLED_INPUTS
+	};
+	chowdsp::VariableOversampling<6, float_4> oversamplerInputs[NUM_UPSAMPLED_INPUTS][4]; 	// uses a 2*6=12th order Butterworth filter
 	chowdsp::VariableOversampling<6, float_4> oversampler[NUM_OUTPUTS][4]; 	// uses a 2*6=12th order Butterworth filter
 	int oversamplingIndex = 2; 	// default is 2^oversamplingIndex == x4 oversampling
 
@@ -131,24 +142,30 @@ struct EvenVCO : Module {
 				pw = simd::rescale(pw, -1.f, +1.f, 0.f, 1.f);
 			}
 
-			const float_4 fmVoltage = inputs[FM_INPUT].getPolyVoltageSimd<float_4>(c) * 0.25f;
 			const float_4 pitch = inputs[PITCH1_INPUT].getPolyVoltageSimd<float_4>(c) + inputs[PITCH2_INPUT].getPolyVoltageSimd<float_4>(c);
-			const float_4 freq = dsp::FREQ_C4 * simd::pow(2.f, pitchKnobs + pitch + fmVoltage);
-			const float_4 deltaBasePhase = simd::clamp(freq * args.sampleTime / oversamplingRatio, 1e-6, 0.5f);
-			// floating point arithmetic doesn't work well at low frequencies, specifically because the finite difference denominator
-			// becomes tiny - we check for that scenario and use naive / 1st order waveforms in that frequency regime (as aliasing isn't
-			// a problem there). With no oversampling, at 44100Hz, the threshold frequency is 44.1Hz.
-			const float_4 lowFreqRegime = simd::abs(deltaBasePhase) < 1e-3;
-			// 1 / denominator for the second-order FD
-			const float_4 denominatorInv = 0.25 / (deltaBasePhase * deltaBasePhase);
 
 			// pulsewave waveform doesn't have DC even for non 50% duty cycles, but Befaco team would like the option
 			// for it to be added back in for hardware compatibility reasons
 			const float_4 pulseDCOffset = (!removePulseDC) * 2.f * (0.5f - pw);
 
-			// hard sync
-			const float_4 syncMask = syncTrigger[c / 4].process(inputs[SYNC_INPUT].getPolyVoltageSimd<float_4>(c));
-			phase[c / 4] = simd::ifelse(syncMask, 0.5f, phase[c / 4]);
+			// input oversampling buffers
+			float_4* osBufferSync = oversamplerInputs[SYNC_INPUT_UP][c / 4].getOSBuffer();
+			float_4* osBufferFM = oversamplerInputs[FM_INPUT_UP][c / 4].getOSBuffer();
+
+			// upsample hard sync input (if connected)
+			if (inputs[SYNC_INPUT].isConnected()) {
+				oversamplerInputs[SYNC_INPUT_UP][c].upsample(inputs[SYNC_INPUT].getPolyVoltageSimd<float_4>(c));
+			}
+			else {
+				std::fill(osBufferSync, &osBufferSync[oversamplingRatio], float_4::zero());
+			}
+			// upsample FM input (if connected)
+			if (inputs[FM_INPUT].isConnected()) {
+				oversamplerInputs[FM_INPUT_UP][c].upsample(inputs[FM_INPUT].getPolyVoltageSimd<float_4>(c));
+			}
+			else {
+				std::fill(osBufferFM, &osBufferFM[oversamplingRatio], float_4::zero());
+			}
 
 			float_4* osBufferTri = oversampler[TRI_OUTPUT][c / 4].getOSBuffer();
 			float_4* osBufferSaw = oversampler[SAW_OUTPUT][c / 4].getOSBuffer();
@@ -156,10 +173,23 @@ struct EvenVCO : Module {
 			float_4* osBufferSquare = oversampler[SQUARE_OUTPUT][c / 4].getOSBuffer();
 			float_4* osBufferEven = oversampler[EVEN_OUTPUT][c / 4].getOSBuffer();
 			for (int i = 0; i < oversamplingRatio; ++i) {
+				// use upsampled FM input
+				const float_4 fmVoltage = osBufferFM[i] * 0.25f;
+				const float_4 freq = dsp::FREQ_C4 * simd::pow(2.f, pitchKnobs + pitch + fmVoltage);
+				const float_4 deltaBasePhase = simd::clamp(freq * args.sampleTime / oversamplingRatio, 1e-6, 0.5f);
+				// floating point arithmetic doesn't work well at low frequencies, specifically because the finite difference denominator
+				// becomes tiny - we check for that scenario and use naive / 1st order waveforms in that frequency regime (as aliasing isn't
+				// a problem there). With no oversampling, at 44100Hz, the threshold frequency is 44.1Hz.
+				const float_4 lowFreqRegime = simd::abs(deltaBasePhase) < 1e-3;
+				// 1 / denominator for the second-order FD
+				const float_4 denominatorInv = 0.25 / (deltaBasePhase * deltaBasePhase);
 
 				phase[c / 4] += deltaBasePhase;
 				// ensure within [0, 1]
 				phase[c / 4] -= simd::floor(phase[c / 4]);
+
+				const float_4 syncMask = syncTrigger[c / 4].process(osBufferSync[i]);
+				phase[c / 4] = simd::ifelse(syncMask, 0.5f, phase[c / 4]);
 
 				float_4 phases[3]; // phase as extrapolated to the current and two previous samples
 

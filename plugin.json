@@ -1,6 +1,6 @@
 {
   "slug": "Befaco",
-  "version": "2.8.1",
+  "version": "2.8.2",
   "license": "GPL-3.0-or-later",
   "name": "Befaco",
   "brand": "Befaco",
@@ -349,6 +349,8 @@
       "slug": "Bandit",
       "name": "Bandit",
       "description": "Bandit is a spectral processing playground.",
+      "manualUrl": "https://www.befaco.org/bandit/",
+      "modularGridUrl": "https://www.modulargrid.net/e/befaco-bandit",
       "tags": [
         "Equalizer",
         "Filter",
