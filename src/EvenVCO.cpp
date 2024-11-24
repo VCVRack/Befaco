@@ -218,12 +218,12 @@ struct EvenVCO : Module {
 
 				if (outputs[SQUARE_OUTPUT].isConnected()) {
 
-					float_4 dpwOrder1 = simd::ifelse(phase[c / 4] < pw, -1.0, +1.0);
-					dpwOrder1 -= removePulseDC ? 2.f * (0.5f - pw) : 0.f;
+					float_4 dpwOrder1 = simd::ifelse(phase[c / 4] < pw, +1.0, -1.0);
+					dpwOrder1 += removePulseDC ? 2.f * (0.5f - pw) : 0.f;
 
 					float_4 saw = aliasSuppressedSaw(phases);
 					float_4 sawOffset = aliasSuppressedOffsetSaw(phases, pw);
-					float_4 dpwOrder3 = (saw - sawOffset) * denominatorInv + pulseDCOffset;
+					float_4 dpwOrder3 = (saw - sawOffset) * denominatorInv - pulseDCOffset;
 
 					osBufferSquare[i] = simd::ifelse(lowFreqRegime, dpwOrder1, dpwOrder3);
 				}

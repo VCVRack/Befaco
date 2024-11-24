@@ -3,6 +3,7 @@
 ## v2.8.2
   * EvenVCO
     * Upsample Hard Sync and FM inputs
+    * Fix bug when DC option was disabled
 
 ## v2.8.1
   * Noise Plethora
