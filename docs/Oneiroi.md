@@ -14,3 +14,9 @@ Based on [Befaco Oneiroi](http://www.befaco.org/oneiroi) Eurorack module. For th
 * As yet, slew of parameter values on randomize is not supported
 
 ![Oneiroi](img/Oneiroi.png)
+
+
+## Changelog
+
+### v2.0.0
+  * Initial release
