@@ -2,6 +2,10 @@
 
 Based on [Befaco Oneiroi](http://www.befaco.org/oneiroi) Eurorack module. For the official manual, see [here](https://befaco.org/docs/Oneiroi/Oneiroi_User_Manual.pdf).
 
+## Changelog
+
+### v2.0.0
+  * Initial release
 
 ## Differences with hardware
 
@@ -16,7 +20,3 @@ Based on [Befaco Oneiroi](http://www.befaco.org/oneiroi) Eurorack module. For th
 ![Oneiroi](img/Oneiroi.png)
 
 
-## Changelog
-
-### v2.0.0
-  * Initial release
