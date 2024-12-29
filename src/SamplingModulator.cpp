@@ -64,6 +64,14 @@ struct SamplingModulator : Module {
 		configParam(FINE_PARAM, 0.f, 1.f, 0.f, "Fine tune");
 		configSwitch(INT_EXT_PARAM, 0.f, 1.f, CLOCK_INTERNAL, "Clock", {"External", "Internal"});
 
+		configInput(SYNC_INPUT, "Sync");
+		configInput(VOCT_INPUT, "V/Oct");
+		configInput(HOLD_INPUT, "Hold");
+		configInput(IN_INPUT, "Raw");
+		configOutput(CLOCK_OUTPUT, "Clock");
+		configOutput(TRIGG_OUTPUT, "Trigger");
+		configOutput(OUT_OUTPUT, "Sampled");
+
 		for (int i = 0; i < numSteps; i++) {
 			configSwitch(STEP_PARAM + i, 0.f, 2.f, STATE_ON, string::f("Step %d", i + 1), {"Reset", "Off", "On"});
 		}

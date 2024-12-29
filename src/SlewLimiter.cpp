@@ -31,6 +31,9 @@ struct SlewLimiter : Module {
 
 		configInput(RISE_INPUT, "Rise CV");
 		configInput(FALL_INPUT, "Fall CV");
+		configInput(IN_INPUT, "In");
+
+		configOutput(OUT_OUTPUT, "Out");
 	}
 
 	void process(const ProcessArgs& args) override {

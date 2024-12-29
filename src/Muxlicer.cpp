@@ -177,8 +177,8 @@ struct MultDivClock {
 
 static const std::vector<int> clockOptionsQuadratic = {-16, -8, -4, -2, 1, 2, 4, 8, 16};
 static const std::vector<int> clockOptionsAll = {-16, -15, -14, -13, -12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, 1,
-                                                 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
-                                                };
+	       2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
+};
 
 inline std::string getClockOptionString(const int clockOption) {
 	return (clockOption < 0) ? ("x 1/" + std::to_string(-clockOption)) : ("x " + std::to_string(clockOption));
@@ -887,7 +887,7 @@ struct MuxlicerWidget : ModuleWidget {
 			for (int clockOption : module->quadraticGatesOnly ? clockOptionsQuadratic : clockOptionsAll) {
 				std::string optionString = getClockOptionString(clockOption);
 				OutputClockScalingChildItem* clockItem = createMenuItem<OutputClockScalingChildItem>(optionString,
-				    CHECKMARK(module->outputClockMultDiv.multDiv == clockOption));
+				  CHECKMARK(module->outputClockMultDiv.multDiv == clockOption));
 				clockItem->clockOutMulDiv = clockOption;
 				clockItem->module = module;
 				menu->addChild(clockItem);
@@ -1079,6 +1079,9 @@ struct Mex : Module {
 		for (int i = 0; i < 8; ++i) {
 			configSwitch(STEP_PARAM + i, 0.f, 2.f, 0.f, string::f("Step %d", i + 1), {"Gate in/Clock Out", "Muted", "All Gates"});
 		}
+
+		configInput(GATE_IN_INPUT, "Gate");
+		configOutput(OUT_OUTPUT, "Gate");
 	}
 
 	Muxlicer* findHostModulePtr(Module* module) {

@@ -105,6 +105,9 @@ struct Morphader : Module {
 			configSwitch(MODE + i, AUDIO_MODE, CV_MODE, AUDIO_MODE, string::f("Mode %d", i + 1), {"Audio", "CV"});
 			configInput(CV_INPUT + i, string::f("CV channel %d", i + 1));
 		}
+		for (int i = 0; i < NUM_MIXER_CHANNELS; i++) {
+			configOutput(OUT + i, string::f("Channel %d", i + 1));
+		}
 
 		configParam(FADER_LAG_PARAM, 2.0f / slewMax, 2.0f / slewMin, 2.0f / slewMax, "Fader lag", "s");
 		configParam(FADER_PARAM, -1.f, 1.f, 0.f, "Fader");

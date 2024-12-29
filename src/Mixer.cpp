@@ -36,6 +36,10 @@ struct Mixer : Module {
 		configParam(CH3_PARAM, 0.0, 1.0, 0.0, "Ch 3 level", "%", 0, 100);
 		configParam(CH4_PARAM, 0.0, 1.0, 0.0, "Ch 4 level", "%", 0, 100);
 
+		configInput(IN1_INPUT, "Ch 1");
+		configInput(IN2_INPUT, "Ch 2");
+		configInput(IN3_INPUT, "Ch 3");
+		configInput(IN4_INPUT, "Ch 4");
 		configOutput(OUT1_OUTPUT, "Main");
 		configOutput(OUT2_OUTPUT, "Inverted");
 	}
