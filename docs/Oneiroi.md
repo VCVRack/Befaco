@@ -4,6 +4,11 @@ Based on [Befaco Oneiroi](http://www.befaco.org/oneiroi) Eurorack module. For th
 
 ## Changelog
 
+### v2.0.1
+  * Fixed issues where looper buffer wasn't restored on Windows
+  * Add option to never randomise pitch
+  * Random button led brightness now reflects length of the slewing applied
+
 ### v2.0.0
   * Initial release
 
