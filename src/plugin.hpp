@@ -34,6 +34,11 @@ extern Model* modelVoltio;
 extern Model* modelOctaves;
 extern Model* modelBypass;
 extern Model* modelBandit;
+extern Model* modelMixer2;
+extern Model* modelAtte;
+extern Model* modelAxBC;
+extern Model* modelSlew;
+extern Model* modelMuDi;
 
 struct Knurlie : SvgScrew {
 	Knurlie() {
@@ -271,6 +276,15 @@ template <typename T>
 T exponentialBipolar80Pade_5_4(T x) {
 	return (T(0.109568) * x + T(0.281588) * simd::pow(x, 3) + T(0.133841) * simd::pow(x, 5))
 	       / (T(1.) - T(0.630374) * simd::pow(x, 2) + T(0.166271) * simd::pow(x, 4));
+}
+
+template <typename T>
+static T clip(T x) {
+	// Pade approximant of x/(1 + x^12)^(1/12)
+	const T limit = 1.16691853009184f;
+	x = clamp(x * 0.1f, -limit, limit);
+	return 10.0f * (x + 1.45833f * simd::pow(x, 13) + 0.559028f * simd::pow(x, 25) + 0.0427035f * simd::pow(x, 37))
+	       / (1.0f + 1.54167f * simd::pow(x, 12) + 0.642361f * simd::pow(x, 24) + 0.0579909f * simd::pow(x, 36));
 }
 
 struct ADEnvelope {

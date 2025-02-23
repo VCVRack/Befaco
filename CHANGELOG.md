@@ -1,5 +1,9 @@
 # Change Log
 
+## v2.9.0
+  * MuDi, Slew, Atte, Mixer2, AxBC initial releases
+  * Fix missing port information 
+
 ## v2.8.2
   * EvenVCO
     * Upsample Hard Sync and FM inputs

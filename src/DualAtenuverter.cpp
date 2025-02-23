@@ -85,7 +85,7 @@ struct DualAtenuverter : Module {
 		else {
 			lights[OUT1_LIGHT + 0].setBrightness(0.0f);
 			lights[OUT1_LIGHT + 1].setBrightness(0.0f);
-			lights[OUT1_LIGHT + 2].setBrightness(10.0f);
+			lights[OUT1_LIGHT + 2].setBrightness(1.0f);
 		}
 
 		if (channels2 == 1) {
@@ -96,7 +96,7 @@ struct DualAtenuverter : Module {
 		else {
 			lights[OUT2_LIGHT + 0].setBrightness(0.0f);
 			lights[OUT2_LIGHT + 1].setBrightness(0.0f);
-			lights[OUT2_LIGHT + 2].setBrightness(10.0f);
+			lights[OUT2_LIGHT + 2].setBrightness(1.0f);
 		}
 	}
 };
