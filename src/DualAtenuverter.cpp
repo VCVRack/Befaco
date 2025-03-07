@@ -30,6 +30,12 @@ struct DualAtenuverter : Module {
 		configParam(OFFSET1_PARAM, -10.0, 10.0, 0.0, "Ch 1 offset", " V");
 		configParam(ATEN2_PARAM, -1.0, 1.0, 0.0, "Ch 2 gain");
 		configParam(OFFSET2_PARAM, -10.0, 10.0, 0.0, "Ch 2 offset", " V");
+
+		configInput(IN1_INPUT, "In 1");
+		configInput(IN2_INPUT, "In 2");
+		configOutput(OUT1_OUTPUT, "Out 1");
+		configOutput(OUT2_OUTPUT, "Out 2");
+
 		configBypass(IN1_INPUT, OUT1_OUTPUT);
 		configBypass(IN2_INPUT, OUT2_OUTPUT);
 	}
@@ -79,7 +85,7 @@ struct DualAtenuverter : Module {
 		else {
 			lights[OUT1_LIGHT + 0].setBrightness(0.0f);
 			lights[OUT1_LIGHT + 1].setBrightness(0.0f);
-			lights[OUT1_LIGHT + 2].setBrightness(10.0f);
+			lights[OUT1_LIGHT + 2].setBrightness(1.0f);
 		}
 
 		if (channels2 == 1) {
@@ -90,7 +96,7 @@ struct DualAtenuverter : Module {
 		else {
 			lights[OUT2_LIGHT + 0].setBrightness(0.0f);
 			lights[OUT2_LIGHT + 1].setBrightness(0.0f);
-			lights[OUT2_LIGHT + 2].setBrightness(10.0f);
+			lights[OUT2_LIGHT + 2].setBrightness(1.0f);
 		}
 	}
 };

@@ -47,6 +47,7 @@ struct Percall : Module {
 			configInput(CH_INPUTS + i, string::f("Channel %d", i + 1));
 			configInput(TRIG_INPUTS + i, string::f("Channel %d trigger", i + 1));
 			configInput(CV_INPUTS + i, string::f("Channel %d CV", i + 1));
+			configOutput(CH_OUTPUTS + i, string::f("Channel %d", i + 1));
 			configOutput(ENV_OUTPUTS + i, string::f("Channel %d envelope", i + 1));
 
 			envs[i].attackTime = attackTime;

@@ -66,6 +66,15 @@ struct SpringReverb : Module {
 		configParam(LEVEL2_PARAM, 0.0, 1.0, 0.0, "In 2 level", "%", 0, 100);
 		configParam(HPF_PARAM, 0.0, 1.0, 0.5, "High pass filter cutoff");
 
+		configInput(CV1_INPUT, "CV 1");
+		configInput(CV2_INPUT, "CV 2");
+		configInput(IN1_INPUT, "In 1");
+		configInput(IN2_INPUT, "In 2");
+		configInput(MIX_CV_INPUT, "Mix CV");
+
+		configOutput(MIX_OUTPUT, "Mix");
+		configOutput(WET_OUTPUT, "Wet");
+
 		initIR();
 
 		convolver = new dsp::RealTimeConvolver(BLOCK_SIZE);

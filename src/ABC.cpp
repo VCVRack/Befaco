@@ -2,15 +2,6 @@
 
 using simd::float_4;
 
-template <typename T>
-static T clip(T x) {
-	// Pade approximant of x/(1 + x^12)^(1/12)
-	const T limit = 1.16691853009184f;
-	x = clamp(x * 0.1f, -limit, limit);
-	return 10.0f * (x + 1.45833f * simd::pow(x, 13) + 0.559028f * simd::pow(x, 25) + 0.0427035f * simd::pow(x, 37))
-	       / (1.0f + 1.54167f * simd::pow(x, 12) + 0.642361f * simd::pow(x, 24) + 0.0579909f * simd::pow(x, 36));
-}
-
 struct ABC : Module {
 	enum ParamIds {
 		B1_LEVEL_PARAM,
@@ -102,10 +93,10 @@ struct ABC : Module {
 			float b = 0.f;
 			for (int c = 0; c < channels; c++)
 				b += std::pow(lastOut[c / 4][c % 4], 2);
-			b = std::sqrt(b);
+			b = std::sqrt(b / channels);
 			lights[outLight + 0].setBrightness(0.0f);
 			lights[outLight + 1].setBrightness(0.0f);
-			lights[outLight + 2].setBrightness(b);
+			lights[outLight + 2].setBrightness(b / 5.f);
 		}
 	}
 

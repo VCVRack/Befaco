@@ -198,6 +198,10 @@ struct Burst : Module {
 		configInput(TIME_INPUT, "Time Division/Multiplication");
 		configInput(PROBABILITY_INPUT, "Probability");
 		configInput(TRIGGER_INPUT, "Trigger");
+
+		configOutput(TEMPO_OUTPUT, "Tempo");
+		configOutput(EOC_OUTPUT, "End-of-cycle");
+		configOutput(OUT_OUTPUT, "Burst");
 		
 		ledUpdate.setDivision(ledUpdateRate);
 	}

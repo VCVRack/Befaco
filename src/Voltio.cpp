@@ -33,7 +33,7 @@ struct Voltio : Module {
 		semitonesParam->snapEnabled = true;
 
 		configInput(SUM_INPUT, "Sum");
-		configOutput(OUT_OUTPUT, "");
+		configOutput(OUT_OUTPUT, "Main");
 	}
 
 	void process(const ProcessArgs& args) override {

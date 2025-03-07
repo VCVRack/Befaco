@@ -33,4 +33,9 @@ void init(rack::Plugin *p) {
 	p->addModel(modelOctaves);
 	p->addModel(modelBypass);
 	p->addModel(modelBandit);
+	p->addModel(modelMixer2);
+	p->addModel(modelAtte);
+	p->addModel(modelAxBC);
+	p->addModel(modelSlew);
+	p->addModel(modelMuDi);
 }
