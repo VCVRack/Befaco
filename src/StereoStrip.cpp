@@ -269,11 +269,14 @@ struct StereoStrip : Module {
 	void onSampleRateChange() override {
 		bool forceUpdate = true;
 		updateEQsIfChanged(forceUpdate);
+		
+		// at low sample rates (e.g. 24kHz), shelf filter is at Nyquist!
+		const float shelfSampleRate = std::min(0.4f * APP->engine->getSampleRate(), 12000.0f);
 
 		for (int side = 0; side < 2; ++side) {
 			for (int c = 0; c < 16; c += 4) {
-				highpass[side][c / 4].setCutoff(25.0f, 0.8f, AeFilterType::AeHIGHPASS);
-				highshelf[side][c / 4].setParams(12000.0f, 0.8f, -5.0f, AeEQType::AeHIGHSHELVE);
+				highpass[side][c / 4].setCutoff(25.0f, 0.8f, AeFilterType::AeHIGHPASS);				
+				highshelf[side][c / 4].setParams(shelfSampleRate, 0.8f, -5.0f, AeEQType::AeHIGHSHELVE);
 			}
 		}
 	}

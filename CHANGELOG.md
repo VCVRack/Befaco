@@ -2,7 +2,8 @@
 
 ## v2.9.0
   * MuDi, Slew, Atte, Mixer2, AxBC initial releases
-  * Fix missing port information 
+  * Fix missing port information (multiple modules)
+  * Fix StereoStrip issue at very low sample rates
 
 ## v2.8.2
   * EvenVCO
