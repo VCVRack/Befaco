@@ -15,7 +15,7 @@ We have tried to make the VCV implementations as authentic as possible, however 
 
 * The hardware version of Morphader accepts 0-8V CV for the crossfade control, here we widen this to accept 0-10V.
 
-* Chopping Kinky hardward is DC coupled, but we add the option (default disabled) to remove this offset.
+* Chopping Kinky hardware is DC coupled, but we add the option (default disabled) to remove this offset.
 
 * See [docs/Muxlicer.md](docs/Muxlicer.md)
 
@@ -28,6 +28,6 @@ We have tried to make the VCV implementations as authentic as possible, however 
   * to limit the pulsewidth from 5% to 95% (hardware is full range)
   * to remove DC from the pulse waveform output (hardware contains DC for non-50% duty cycles)
 
-* MotionMTR optionally doesn't use the 10V normalling on inputs if in audio mode to avoid acidentally adding unwanted DC to audio signals, see context menu. E.g. if you temporarily unpatch an audio source whilst using it it mixer mode, you get 10V DC suddenly and a nasty pop.
+* MotionMTR optionally doesn't use the 10V normalling on inputs if in audio mode to avoid accidentally adding unwanted DC to audio signals, see context menu. E.g. if you temporarily unpatch an audio source whilst using it it mixer mode, you get 10V DC suddenly and a nasty pop.
 
-* Burst hardware version version can also set the tempo by tapping the encoder, this is not possible in the VCV version. 
+* Burst hardware version can also set the tempo by tapping the encoder, this is not possible in the VCV version. 
