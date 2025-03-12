@@ -2,6 +2,15 @@
 
 Based on [Befaco Oneiroi](http://www.befaco.org/oneiroi) Eurorack module. For the official manual, see [here](https://befaco.org/docs/Oneiroi/Oneiroi_User_Manual.pdf).
 
+## Changelog
+
+### v2.0.1
+  * Fixed issues where looper buffer wasn't restored on Windows
+  * Add option to never randomise pitch
+  * Random button led brightness now reflects length of the slewing applied
+
+### v2.0.0
+  * Initial release
 
 ## Differences with hardware
 
@@ -14,3 +23,5 @@ Based on [Befaco Oneiroi](http://www.befaco.org/oneiroi) Eurorack module. For th
 * As yet, slew of parameter values on randomize is not supported
 
 ![Oneiroi](img/Oneiroi.png)
+
+
