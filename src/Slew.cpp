@@ -47,7 +47,7 @@ struct Slew : Module {
 		auto fall = configParam(FALL_PARAM, 0.f, 1.f, 0.f, "Fall");
 		fall->description = "Sets the FALL slew time manually, higher is longer slew time.\n"
 		                    "Acts as an attenuator of CV in when CV sent to fall.";
-		configSwitch(CV_MODE_PARAM, 0.f, 2.f, 1.f, "", {"Fall", "Rise/Fall", "Rise"});
+		configSwitch(CV_MODE_PARAM, 0.f, 2.f, 1.f, "CV Mode", {"Fall", "Rise/Fall", "Rise"});
 		configInput(IN_INPUT, "In");
 		auto cvIn = configInput(CV_INPUT, "CV");
 		cvIn->description = "CV input for slew time, 0V to 10V, attenuated by relevant sliders.";
@@ -84,6 +84,8 @@ struct Slew : Module {
 		const CvMode cvMode = (CvMode)(params[CV_MODE_PARAM].getValue());
 
 		outputs[OUT_OUTPUT].setChannels(numPolyphonyEngines);
+		outputs[RISING_OUTPUT].setChannels(numPolyphonyEngines);
+		outputs[FALLING_OUTPUT].setChannels(numPolyphonyEngines);
 
 		for (int c = 0; c < numPolyphonyEngines; c += 4) {
 			in[c / 4] = inputs[IN_INPUT].getVoltageSimd<float_4>(c);
@@ -119,6 +121,8 @@ struct Slew : Module {
 			out[c / 4] = ifelse(delta_lt_0 & (out[c / 4] < in[c / 4]), in[c / 4], out[c / 4]);
 
 			outputs[OUT_OUTPUT].setVoltageSimd(out[c / 4], c);
+			outputs[RISING_OUTPUT].setVoltageSimd(ifelse(delta_gt_0, 10.f, 0.f), c);
+			outputs[FALLING_OUTPUT].setVoltageSimd(ifelse(delta_lt_0, 10.f, 0.f), c);		
 		}
 
 		if (lightDivider.process()) {
@@ -136,8 +140,8 @@ struct Slew : Module {
 			else {
 				bool anyRising = false, anyFalling = false;
 				for (int c = 0; c < numPolyphonyEngines; c++) {
-					anyRising |= out[c / 4][c % 4] < in[c / 4][c % 4];
-					anyFalling |= out[c / 4][c % 4] > in[c / 4][c % 4];
+					anyRising |= delta[c / 4][c % 4] > 0.f;
+					anyFalling |= delta[c / 4][c % 4] < 0.f;
 				}
 				lights[RISING_LIGHT + 0].setBrightness(0.f);
 				lights[RISING_LIGHT + 1].setBrightness(0.f);
