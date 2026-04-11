@@ -77,31 +77,42 @@ int Bank::getSize() {
 #include "P_Rwalk_BitCrushPW.hpp"
 #include "P_Rwalk_LFree.hpp"
 
-// Bank D: Test / other
-//#include "P_TestPlugin.hpp"
-//#include "P_TeensyAlt.hpp"
-//#include "P_WhiteNoise.hpp"
-//#include "P_Rwalk_LBit.hpp"
-//#include "P_Rwalk_SineFM.hpp"
-//#include "P_VarWave.hpp"
-//#include "P_RwalkVarWave.hpp"
-//#include "P_Rwalk_ModWave.hpp"
-//#include "P_Rwalk_WaveTwist.hpp"
+// Bank D: Resonant Bodies
+#include "P_CombNoise.hpp"
+#include "P_PluckCloud.hpp"
+#include "P_TubeResonance.hpp"
+#include "P_FormantNoise.hpp"
+#include "P_BowedMetal.hpp"
+#include "P_FlangeNoise.hpp"
+#include "P_NoiseBells.hpp"
+#include "P_NoiseHarmonics.hpp"
+#include "P_IceRain.hpp"
+#include "P_DroneBody.hpp"
+
+// Bank E: Chaos Machines
+#include "P_LogisticNoise.hpp"
+#include "P_HenonDust.hpp"
+#include "P_CellularSynth.hpp"
+#include "P_StochasticPulse.hpp"
+#include "P_BitShift.hpp"
+#include "P_FeedbackFM.hpp"
+#include "P_RunawayFilter.hpp"
+#include "P_GlitchLoop.hpp"
+#include "P_SubHarmonic.hpp"
+#include "P_DualAttractor.hpp"
 
 
 static const Bank bank1 BANKS_DEF_1; // Banks_Def.hpp
 static const Bank bank2 BANKS_DEF_2;
 static const Bank bank3 BANKS_DEF_3;
-//static const Bank bank4 BANKS_DEF_4;
-//static const Bank bank5 BANKS_DEF_5;
-static std::array<Bank, numBanks> banks { bank1, bank2, bank3 }; //, bank5 };
+static const Bank bank4 BANKS_DEF_4;
+static const Bank bank5 BANKS_DEF_5;
+static std::array<Bank, numBanks> banks { bank1, bank2, bank3, bank4, bank5 };
 
-// static const Bank bank6 BANKS_DEF_6;
 // static const Bank bank7 BANKS_DEF_7;
 // static const Bank bank8 BANKS_DEF_8;
 // static const Bank bank9 BANKS_DEF_9;
 // static const Bank bank10 BANKS_DEF_10;
-// static std::array<Bank, programsPerBank> banks { bank1, bank2, bank3, bank4, bank5, bank6, bank7, bank8, bank9, bank10 };
 
 Bank& getBankForIndex(int i) {
 	if (i < 0)
