@@ -65,7 +65,20 @@
 		{ "DualAttractor", 1.0 } \
 	}
 
-// #define BANKS_DEF_6
+#define BANKS_DEF_6 { \
+		{ "PulseWander", 1.0 }, \
+		{ "TwinPulse", 1.0 }, \
+		{ "QuantPulse", 1.0 }, \
+		{ "ShapedPulse", 1.0 }, \
+		{ "ShiftPulse", 1.0 }, \
+		{ "MetallicNoise", 1.0 }, \
+		{ "NoiseSlew", 1.0 }, \
+		{ "NoiseBurst", 1.0 }, \
+		{ "LFSRNoise", 1.0 }, \
+		{ "DualPulse", 1.0 } \
+	}
+
+// #define BANKS_DEF_7
 // #define BANKS_DEF_8
 // #define BANKS_DEF_9
 // #define BANKS_DEF_10

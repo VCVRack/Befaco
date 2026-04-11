@@ -30,10 +30,10 @@
 </head>
 <body>
 <h1 id="noise-plethora-complete-plugin-guide">Noise Plethora — Complete Plugin Guide</h1>
-<p><em>Befaco Noise Plethora v1.5 + Banks D &amp; E Extension</em></p>
+<p><em>Befaco Noise Plethora v1.5 + Banks D, E &amp; F Extension</em></p>
 <h2 id="about-this-guide">About This Guide</h2>
 <p>The Noise Plethora is a Eurorack noise workstation with 3 digital sound generators (A, B, and C), each followed by an analog multimode filter. Generators A and B run interchangeable algorithms organized in banks of 10. Each algorithm has two parameters controlled by the <strong>X</strong> and <strong>Y</strong> knobs (and their corresponding CV inputs, 0–10Vpp).</p>
-<p>This guide documents all 50 algorithms across 5 banks:</p>
+<p>This guide documents all 60 algorithms across 6 banks:</p>
 <table>
 <thead>
 <tr>
@@ -74,9 +74,15 @@
 <td>0–9</td>
 <td>Deterministic chaos, algorithmic processes, digital manipulation</td>
 </tr>
+<tr>
+<td><strong>F</strong></td>
+<td>Stochastic</td>
+<td>0–9</td>
+<td>Random pulses, metallic noise, LFSR sequences, noise textures</td>
+</tr>
 </tbody>
 </table>
-<p>Banks A–C are the original Befaco firmware. Banks D–E are community extensions.</p>
+<p>Banks A–C are the original Befaco firmware. Banks D–F are community extensions.</p>
 <hr />
 <h2 id="table-of-contents">Table of Contents</h2>
 <ul>
@@ -135,6 +141,17 @@
 <li><a href="#e-7-glitchloop">E-7: GlitchLoop</a> — Loop with bit degradation</li>
 <li><a href="#e-8-subharmonic">E-8: SubHarmonic</a> — Frequency dividers</li>
 <li><a href="#e-9-dualattractor">E-9: DualAttractor</a> — Coupled Lorenz oscillators</li>
+<li><a href="#bank-f-stochastic">Bank F: Stochastic</a></li>
+<li><a href="#f-0-pulsewander">F-0: PulseWander</a> — Smooth random walk pulses</li>
+<li><a href="#f-1-twinpulse">F-1: TwinPulse</a> — Two correlated random walks</li>
+<li><a href="#f-2-quantpulse">F-2: QuantPulse</a> — Quantized random (1-6 bits)</li>
+<li><a href="#f-3-shapedpulse">F-3: ShapedPulse</a> — Shaped probability distribution</li>
+<li><a href="#f-4-shiftpulse">F-4: ShiftPulse</a> — 4-stage shift register sequences</li>
+<li><a href="#f-5-metallicnoise">F-5: MetallicNoise</a> — 6 inharmonic square oscillators</li>
+<li><a href="#f-6-noiseslew">F-6: NoiseSlew</a> — Noise with adjustable LP slew</li>
+<li><a href="#f-7-noiseburst">F-7: NoiseBurst</a> — Sporadic noise bursts</li>
+<li><a href="#f-8-lfsrnoise">F-8: LFSRNoise</a> — LFSR pseudo-random sequences</li>
+<li><a href="#f-9-dualpulse">F-9: DualPulse</a> — Two S&amp;H at independent rates</li>
 </ul>
 <hr />
 <h2 id="bank-a-textures">Bank A: Textures</h2>
@@ -1669,7 +1686,301 @@
 </tbody>
 </table>
 <p><strong>Sound character:</strong> Two drunk musicians trying to play in unison. Moments of harmony interrupted by chaos. Organic, alive, never repeating.</p>
+<hr />
+<h2 id="bank-f-stochastic">Bank F: Stochastic</h2>
+<p>Random processes generating pulses, transients, and noise textures. The pulse-based algorithms (F-0 through F-4) exploit the Noise Plethora's internal DC blocker to transform random stepped values into unique transient/pulse shapes — a character exclusive to this module's architecture.</p>
+<hr />
+<h3 id="f-0-pulsewander">F-0: PulseWander</h3>
+<p><strong>Smooth random walk generating organic pulse patterns.</strong></p>
+<p>A random target value is chosen periodically, and a one-pole LP filter smoothly tracks it. The module's DC blocker transforms held values into distinctive pulse shapes with natural attack/decay envelopes.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Control</th>
+<th>Range</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>X (k1)</strong></td>
+<td>Rate</td>
+<td>5 – 400 Hz</td>
+<td>How often a new random target is chosen. Low = sparse, isolated pulses. High = dense, overlapping transients.</td>
+</tr>
+<tr>
+<td><strong>Y (k2)</strong></td>
+<td>Smoothness</td>
+<td>Instant – Smooth</td>
+<td>k2=0: instant jumps (sharp S&amp;H pulses). k2=1: smooth glide between targets (softer, rounder transients). The LP filter alpha auto-scales with rate.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Sound character:</strong> Organic, irregular pulse train. Each pulse has a unique amplitude from the random walk. The smoothness control morphs from sharp clicks to rounded bumps. Unlike a regular clock, the randomness creates a "breathing" quality.</p>
+<hr />
+<h3 id="f-1-twinpulse">F-1: TwinPulse</h3>
+<p><strong>Two random walks with controllable correlation creating crossed pulse patterns.</strong></p>
+<p>Two independent random walk generators running at the same rate. The correlation control blends the second walk toward the first, creating patterns that range from fully independent (complex interference) to identical (simple doubled pulse).</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Control</th>
+<th>Range</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>X (k1)</strong></td>
+<td>Rate</td>
+<td>5 – 400 Hz</td>
+<td>Speed of both random walks.</td>
+</tr>
+<tr>
+<td><strong>Y (k2)</strong></td>
+<td>Correlation</td>
+<td>Independent – Identical</td>
+<td>0 = two completely unrelated pulse streams (complex polyrhythmic interference). 1 = both outputs identical (single pulse stream, louder). Sweet spot around 0.3–0.7 where patterns partially align.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Sound character:</strong> Two overlapping pulse patterns. At low correlation, a complex, polyrhythmic texture where pulses sometimes align and sometimes don't. At high correlation, they merge into a single stream. The interplay creates a rhythmic quality that pure randomness lacks.</p>
+<hr />
+<h3 id="f-2-quantpulse">F-2: QuantPulse</h3>
+<p><strong>Random values quantized to N bits, creating stepped pulse patterns.</strong></p>
+<p>Generates random values quantized to a variable number of discrete levels (2^bits). At 1 bit: binary (2 levels). At 6 bits: 64 levels. The DC blocker creates pulses whose amplitude is quantized to these levels.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Control</th>
+<th>Range</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>X (k1)</strong></td>
+<td>Rate</td>
+<td>5 – 500 Hz</td>
+<td>Clock speed. How often a new quantized random value is generated.</td>
+</tr>
+<tr>
+<td><strong>Y (k2)</strong></td>
+<td>Bit depth</td>
+<td>1 – 6 bits (continuous)</td>
+<td>Quantization resolution. 1 bit = binary pulse (on/off). 2 bits = 4 levels. 6 bits = 64 levels (nearly continuous). Continuous morphing between bit depths.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Sound character:</strong> Quantized random pulses. At low bits: harsh, digital, with clearly discrete amplitude steps. At high bits: smoother, approaching the character of PulseWander. The bit quantization adds a lo-fi, digital texture to the random process.</p>
+<hr />
+<h3 id="f-3-shapedpulse">F-3: ShapedPulse</h3>
+<p><strong>Random with variable probability distribution shape.</strong></p>
+<p>The random values follow different probability distributions depending on Y. Uniform (flat — all values equally likely), triangular (values near center more likely), or peaked/gaussian (values strongly concentrated near center, rare extremes).</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Control</th>
+<th>Range</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>X (k1)</strong></td>
+<td>Rate</td>
+<td>5 – 500 Hz</td>
+<td>Clock speed.</td>
+</tr>
+<tr>
+<td><strong>Y (k2)</strong></td>
+<td>Distribution</td>
+<td>Uniform → Triangular → Gaussian</td>
+<td>0 = uniform (all amplitudes equally likely — evenly distributed pulses). 0.5 = triangular (sum of 2 uniforms — moderate peak clustering). 1.0 = peaked (sum of 4 uniforms, central limit theorem — most pulses near zero, rare large ones).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Sound character:</strong> The distribution shape is audible. Uniform: even, balanced pulse amplitudes. Peaked: mostly quiet with occasional loud spikes — creates a "crackling" or "dripping" quality where large events are rare surprises.</p>
+<hr />
+<h3 id="f-4-shiftpulse">F-4: ShiftPulse</h3>
+<p><strong>4-stage shift register creating evolving pulse sequences.</strong></p>
+<p>A shift register where random values enter stage 1 and shift down to stages 2, 3, 4 on each clock tick. All 4 stages are mixed in the output with adjustable weighting, creating patterns that evolve as values propagate through the chain.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Control</th>
+<th>Range</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>X (k1)</strong></td>
+<td>Clock rate</td>
+<td>5 – 300 Hz</td>
+<td>Speed of the shift register clock.</td>
+</tr>
+<tr>
+<td><strong>Y (k2)</strong></td>
+<td>Stage mix</td>
+<td>Stage 1 only → All 4</td>
+<td>Progressive activation: Y=0: only stage 1 (fastest changing). Y=0.33: adds stage 2 (delayed echo). Y=0.66: adds stage 3. Y=1.0: all 4 stages equally mixed. The delayed repetitions create rhythmic pattern echoes.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Sound character:</strong> A pulse pattern that develops delayed echoes of itself. At low Y: simple random pulses. As Y increases, you hear the same values repeated 1, 2, 3 steps later, creating a cascading effect — like an echo chamber for random events.</p>
+<hr />
+<h3 id="f-5-metallicnoise">F-5: MetallicNoise</h3>
+<p><strong>6 square wave oscillators at inharmonic frequencies mixed and highpass filtered.</strong></p>
+<p>The classic technique used in the TR-808 cymbal and hi-hat circuits: six pulse oscillators at non-harmonic frequency ratios, summed together. The resulting waveform has a dense, metallic spectral character that no single oscillator can produce. A highpass filter controls brightness.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Control</th>
+<th>Range</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>X (k1)</strong></td>
+<td>Pitch multiplier</td>
+<td>0.5x – 2.5x</td>
+<td>Scales all 6 base frequencies together. At 1.0x: original frequencies. Below 1.0: lower, darker. Above: higher, brighter.</td>
+</tr>
+<tr>
+<td><strong>Y (k2)</strong></td>
+<td>Brightness</td>
+<td>500 – 15500 Hz HPF</td>
+<td>Highpass filter cutoff. Low = full-bodied metallic noise. High = thin, sizzling hi-hat territory.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Base frequencies (Hz):</strong> 205.3, 304.4, 369.6, 522.7, 800.6, 1053.4</p>
+<p><strong>Sound character:</strong> Unmistakably metallic. At low HPF: thick, crash cymbal-like. At high HPF: thin, closed hi-hat sizzle. The 6 inharmonic frequencies create dense beating patterns that give the "shimmer" characteristic of real cymbals.</p>
+<hr />
+<h3 id="f-6-noiseslew">F-6: NoiseSlew</h3>
+<p><strong>White noise with adjustable one-pole lowpass slew.</strong></p>
+<p>A simple but effective texture generator: white noise passed through a one-pole LP filter with adjustable cutoff. At high cutoff: full noise. At low cutoff: smooth, slowly undulating random wave. A mix control adds raw noise texture on top of the slewed signal.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Control</th>
+<th>Range</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>X (k1)</strong></td>
+<td>Smoothness</td>
+<td>Smooth – Noisy</td>
+<td>LP filter coefficient. Low = very smooth, slowly varying random wave. High = barely filtered, noise-like.</td>
+</tr>
+<tr>
+<td><strong>Y (k2)</strong></td>
+<td>Texture mix</td>
+<td>Clean – Textured</td>
+<td>Blends raw noise on top of the slewed signal. 0 = only slewed output. 1 = slewed + 30% raw noise for gritty texture.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Sound character:</strong> The full spectrum from smooth random undulation to white noise in one algorithm. At X=0: a gentle, wandering random wave. At X=1: nearly unfiltered noise. The texture mix adds a "grain" to the smooth version without overpowering it.</p>
+<hr />
+<h3 id="f-7-noiseburst">F-7: NoiseBurst</h3>
+<p><strong>Sporadic bursts of white noise with silence between them.</strong></p>
+<p>Generates discrete events: random-length bursts of noise separated by silence. Each burst has a natural fade-out envelope (20-sample ramp) to prevent clicks. The density controls how often bursts occur.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Control</th>
+<th>Range</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>X (k1)</strong></td>
+<td>Burst density</td>
+<td>~1/sec – ~130/sec</td>
+<td>Average burst rate. Low = sparse, isolated events. High = dense but never continuous — always gaps between bursts.</td>
+</tr>
+<tr>
+<td><strong>Y (k2)</strong></td>
+<td>Burst length</td>
+<td>1 ms – 100 ms</td>
+<td>Duration of each noise burst. Short = percussive clicks. Long = noise "grains."</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Sound character:</strong> Sporadic noise events in silence. Like a Geiger counter, or rain hitting a window irregularly. At high density with short bursts: crackling granular texture. At low density with long bursts: isolated noise "drops" with natural decay.</p>
+<hr />
+<h3 id="f-8-lfsrnoise">F-8: LFSRNoise</h3>
+<p><strong>16-bit Linear Feedback Shift Register with selectable tap configurations.</strong></p>
+<p>A classic LFSR pseudo-random sequence generator with 8 different feedback tap polynomials. Different taps produce different sequence lengths and spectral characteristics. Output quantized to 16 discrete levels (top 4 bits) for a recognizable stepped character.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Control</th>
+<th>Range</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>X (k1)</strong></td>
+<td>Clock rate</td>
+<td>5 – 500 Hz</td>
+<td>How fast the register shifts. Low = slow stepped pattern. High = fast digital noise with pitch.</td>
+</tr>
+<tr>
+<td><strong>Y (k2)</strong></td>
+<td>Tap selection</td>
+<td>8 configurations</td>
+<td>Selects from 8 feedback polynomials. Each produces a different sequence pattern — some nearly random, some with audible repetition. Sweep to find sweet spots.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Sound character:</strong> Digital pseudo-random sequences with a lo-fi, quantized character. Different taps create different "flavors" of digital noise — some more tonal, some more chaotic. The 16-level quantization gives it a distinctly stepped, 4-bit retro quality.</p>
+<hr />
+<h3 id="f-9-dualpulse">F-9: DualPulse</h3>
+<p><strong>Two sample-and-hold generators running at independent rates, mixed together.</strong></p>
+<p>Two independent S&amp;H circuits, each generating random values at their own clock rate. The outputs are mixed 50/50, creating complex polyrhythmic stepped patterns from the interaction of two independent clocks.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Control</th>
+<th>Range</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>X (k1)</strong></td>
+<td>S&amp;H 1 rate</td>
+<td>5 – 500 Hz</td>
+<td>Clock speed of the first generator.</td>
+</tr>
+<tr>
+<td><strong>Y (k2)</strong></td>
+<td>S&amp;H 2 rate</td>
+<td>5 – 500 Hz</td>
+<td>Clock speed of the second generator. Independent of X.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Sound character:</strong> Two overlapping random step patterns. When the two rates are similar: slow beating between the patterns. When rates are very different: a fast pattern modulated by a slow one. At simple ratios (2:1, 3:2): hints of regularity emerge. At complex ratios: maximally unpredictable interaction.</p>
 <hr>
-<p><em>Generated from firmware source code analysis. Befaco Noise Plethora v1.5 + Banks D &amp; E extension.</em></p>
+<p><em>Generated from firmware source code analysis. Befaco Noise Plethora v1.5 + Banks D, E &amp; F extension.</em></p>
 </body>
 </html>

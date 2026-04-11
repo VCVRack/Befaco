@@ -101,18 +101,26 @@ int Bank::getSize() {
 #include "P_SubHarmonic.hpp"
 #include "P_DualAttractor.hpp"
 
+// Bank F: Stochastic
+#include "P_PulseWander.hpp"
+#include "P_TwinPulse.hpp"
+#include "P_QuantPulse.hpp"
+#include "P_ShapedPulse.hpp"
+#include "P_ShiftPulse.hpp"
+#include "P_MetallicNoise.hpp"
+#include "P_NoiseSlew.hpp"
+#include "P_NoiseBurst.hpp"
+#include "P_LFSRNoise.hpp"
+#include "P_DualPulse.hpp"
+
 
 static const Bank bank1 BANKS_DEF_1; // Banks_Def.hpp
 static const Bank bank2 BANKS_DEF_2;
 static const Bank bank3 BANKS_DEF_3;
 static const Bank bank4 BANKS_DEF_4;
 static const Bank bank5 BANKS_DEF_5;
-static std::array<Bank, numBanks> banks { bank1, bank2, bank3, bank4, bank5 };
-
-// static const Bank bank7 BANKS_DEF_7;
-// static const Bank bank8 BANKS_DEF_8;
-// static const Bank bank9 BANKS_DEF_9;
-// static const Bank bank10 BANKS_DEF_10;
+static const Bank bank6 BANKS_DEF_6;
+static std::array<Bank, numBanks> banks { bank1, bank2, bank3, bank4, bank5, bank6 };
 
 Bank& getBankForIndex(int i) {
 	if (i < 0)
