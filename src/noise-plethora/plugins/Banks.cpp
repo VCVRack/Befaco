@@ -106,7 +106,7 @@ static std::array<Bank, numBanks> banks { bank1, bank2, bank3 }; //, bank5 };
 Bank& getBankForIndex(int i) {
 	if (i < 0)
 		i = 0;
-	if (i >= programsPerBank)
-		i = (programsPerBank - 1);
+	if (i >= numBanks)
+		i = (numBanks - 1);
 	return banks[i];
 }
