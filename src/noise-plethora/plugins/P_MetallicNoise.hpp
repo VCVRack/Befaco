@@ -16,7 +16,7 @@ public:
 
 	void init() override {
 		for (int i = 0; i < 6; i++) {
-			osc[i].begin(0.3f, baseFreqs[i], WAVEFORM_SQUARE);
+			osc[i].begin(0.15f, baseFreqs[i], WAVEFORM_SQUARE);  // 6*0.15=0.9 max sum, no clipping
 		}
 
 		mixer1.gain(0, 1.0f);

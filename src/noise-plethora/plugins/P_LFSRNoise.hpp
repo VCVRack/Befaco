@@ -40,6 +40,7 @@ public:
 				uint16_t masked = lfsr & currentTaps;
 				uint16_t feedback = __builtin_popcount(masked) & 1;
 				lfsr = (lfsr >> 1) | (feedback << 15);
+				if (lfsr == 0) lfsr = 0xACE1;  // prevent permanent lockup
 				clockCounter = 0;
 			}
 

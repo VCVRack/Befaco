@@ -59,13 +59,16 @@ public:
 			}
 			prevSamplePositive = currentPositive;
 
-			// Mix: source quieter, subharmonics louder so you clearly hear them come in
+			// Mix: source + subharmonics, normalized to prevent clipping
 			float srcFloat = (float)srcSample / 32767.0f;
-			float mix = 0.15f * srcFloat;
+			float totalWeight = 0.15f;
+			for (int d = 0; d < 4; d++) totalWeight += divWeights[d] * 0.35f;
+			float norm = 0.9f / totalWeight;
 
+			float mix = 0.15f * norm * srcFloat;
 			for (int d = 0; d < 4; d++) {
-				float divValue = divStates[d] ? 0.5f : -0.5f;
-				mix += divWeights[d] * divValue;
+				float divValue = divStates[d] ? 0.35f : -0.35f;
+				mix += divWeights[d] * norm * divValue;
 			}
 
 			int32_t out = (int32_t)(mix * 32767.0f);
