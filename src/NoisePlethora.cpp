@@ -172,6 +172,11 @@ struct NoisePlethora : Module {
 
 	ProgramSelector programSelector; 		// tracks banks and programs for both sections A/B, including which is the "active" section
 	ProgramSelector programSelectorWithCV; 	// as above, but also with CV for program applied as an offset - works like Plaits Model CV input
+
+	// Stereo mode: B mirrors A's algorithm, XB/YB become stereo width/movement
+	bool stereoMode = false;
+	float stereoLFOPhase = 0.f;
+	float stereoOffset = 0.f;
 	// UI / UX for A/B
 	std::string textDisplayA = " ", textDisplayB = " ";
 	bool isDisplayActiveA = false, isDisplayActiveB = false;
@@ -274,6 +279,24 @@ struct NoisePlethora : Module {
 			updateParamsTimer.trigger(updateTimeSecs);
 		}
 
+		// Stereo mode: sync B's program to A and update stereo LFO
+		if (stereoMode && updateParams) {
+			// Sync B to A's algorithm
+			std::string_view aName = programSelectorWithCV.getA().getCurrentProgramName();
+			if (aName != algorithmName[SECTION_B]) {
+				// Copy A's bank/program to B
+				programSelector.getB().setBank(programSelector.getA().getBank());
+				programSelector.getB().setProgram(programSelector.getA().getProgram());
+			}
+
+			// Update stereo LFO: XB = width, YB = movement speed
+			float width = params[X_B_PARAM].getValue();
+			float speed = params[Y_B_PARAM].getValue();
+			stereoLFOPhase += speed * 0.3f * updateTimeSecs;
+			if (stereoLFOPhase > 1.f) stereoLFOPhase -= 1.f;
+			stereoOffset = width * 0.4f * std::sin(2.f * M_PI * stereoLFOPhase);
+		}
+
 		// process A, B and C
 		processTopSection(SECTION_A, X_A_PARAM, Y_A_PARAM,
 		                  FILTER_TYPE_A_PARAM, CUTOFF_A_PARAM, CUTOFF_CV_A_PARAM, RES_A_PARAM,
@@ -335,8 +358,17 @@ struct NoisePlethora : Module {
 
 		float out = 0.f;
 		if (algorithm[SECTION] && outputs[OUTPUT].isConnected()) {
-			float cvX = params[X_PARAM].getValue() + rescale(inputs[X_INPUT].getVoltage(), -10.f, +10.f, -1.f, 1.f);
-			float cvY = params[Y_PARAM].getValue() + rescale(inputs[Y_INPUT].getVoltage(), -10.f, +10.f, -1.f, 1.f);
+			float cvX, cvY;
+
+			if (stereoMode && SECTION == SECTION_B) {
+				// Stereo mode: B reads A's params. Offset on k2 (timbre), NOT k1 (pitch).
+				cvX = params[X_A_PARAM].getValue() + rescale(inputs[X_A_INPUT].getVoltage(), -10.f, +10.f, -1.f, 1.f);
+				cvY = params[Y_A_PARAM].getValue() + rescale(inputs[Y_A_INPUT].getVoltage(), -10.f, +10.f, -1.f, 1.f) + stereoOffset;
+			}
+			else {
+				cvX = params[X_PARAM].getValue() + rescale(inputs[X_INPUT].getVoltage(), -10.f, +10.f, -1.f, 1.f);
+				cvY = params[Y_PARAM].getValue() + rescale(inputs[Y_INPUT].getVoltage(), -10.f, +10.f, -1.f, 1.f);
+			}
 
 			// update parameters of the algorithm
 			if (updateParams) {
@@ -425,15 +457,19 @@ struct NoisePlethora : Module {
 		else if (programKnobMode == BANK_MODE) {
 			textDisplayA = 'A' + programSelectorWithCV.getA().getBank();
 		}
-		isDisplayActiveA = programSelectorWithCV.getMode() == SECTION_A;
+		isDisplayActiveA = stereoMode || (programSelectorWithCV.getMode() == SECTION_A);
 
-		if (programKnobMode == PROGRAM_MODE) {
+		if (stereoMode) {
+			// In stereo mode, B shows same as A
+			textDisplayB = textDisplayA;
+		}
+		else if (programKnobMode == PROGRAM_MODE) {
 			textDisplayB = std::to_string(programSelectorWithCV.getB().getProgram());
 		}
 		else if (programKnobMode == BANK_MODE) {
 			textDisplayB = 'A' + programSelectorWithCV.getB().getBank();
 		}
-		isDisplayActiveB = programSelectorWithCV.getMode() == SECTION_B;
+		isDisplayActiveB = stereoMode || (programSelectorWithCV.getMode() == SECTION_B);
 	}
 
 	// handle convoluted logic for the multifunction Program knob
@@ -567,6 +603,11 @@ struct NoisePlethora : Module {
 		if (blockDCJ) {
 			blockDC = json_boolean_value(blockDCJ);
 		}
+
+		json_t* stereoModeJ = json_object_get(rootJ, "stereoMode");
+		if (stereoModeJ) {
+			stereoMode = json_boolean_value(stereoModeJ);
+		}
 	}
 
 	json_t* dataToJson() override {
@@ -577,6 +618,7 @@ struct NoisePlethora : Module {
 
 		json_object_set_new(rootJ, "bypassFilters", json_boolean(bypassFilters));
 		json_object_set_new(rootJ, "blockDC", json_boolean(blockDC));
+		json_object_set_new(rootJ, "stereoMode", json_boolean(stereoMode));
 
 		return rootJ;
 	}
@@ -833,7 +875,7 @@ struct NoisePlethoraWidget : ModuleWidget {
 
 		// build the two algorithm selection menus programmatically
 		menu->addChild(createMenuLabel("Algorithms"));
-		std::vector<std::string> bankAliases = {"Textures", "HH Clusters", "Harsh & Wild", "Test"};
+		std::vector<std::string> bankAliases = {"Textures", "HH Clusters", "Harsh & Wild", "Resonant Bodies", "Chaos Machines", "Stochastic"};
 		char programNames[] = "AB";
 		for (int sectionId = 0; sectionId < 2; ++sectionId) {
 
@@ -873,6 +915,9 @@ struct NoisePlethoraWidget : ModuleWidget {
 
 
 		}
+
+		menu->addChild(createMenuLabel("Stereo"));
+		menu->addChild(createBoolPtrMenuItem("Stereo Mode (B mirrors A, XB=width, YB=speed)", "", &module->stereoMode));
 
 		menu->addChild(createMenuLabel("Filters"));
 		menu->addChild(createBoolPtrMenuItem("Remove DC", "", &module->blockDC));
