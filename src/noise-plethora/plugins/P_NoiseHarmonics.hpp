@@ -23,13 +23,13 @@ public:
 		dc1.amplitude(0.5);
 
 		filter1.frequency(1000);
-		filter1.resonance(3.0);
+		filter1.resonance(1.5);       // lower Q = wider, grittier character
 		filter1.octaveControl(2.0);
 	}
 
 	void process(float k1, float k2) override {
-		float dcAmp = 0.05f + pow(k1, 2) * 0.95f;
-		float filterFreq = 100.0f + pow(k2, 2) * 8000.0f;
+		float dcAmp = 0.1f + pow(k1, 2) * 1.5f;  // wider range, more aggressive folding
+		float filterFreq = 60.0f + pow(k2, 2) * 8000.0f;
 
 		dc1.amplitude(dcAmp);
 		filter1.frequency(filterFreq);
@@ -41,7 +41,8 @@ public:
 		wavefolder1.update(&noiseBlock, &dcBlock, &wfBlock);
 		filter1.update(&wfBlock, nullptr, &lpBlock, &bpBlock, &hpBlock);
 
-		blockBuffer.pushBuffer(bpBlock.data, AUDIO_BLOCK_SAMPLES);
+		// lowpass instead of bandpass — lets all wavefolder harmonics through
+		blockBuffer.pushBuffer(lpBlock.data, AUDIO_BLOCK_SAMPLES);
 	}
 
 	AudioStream& getStream() override {

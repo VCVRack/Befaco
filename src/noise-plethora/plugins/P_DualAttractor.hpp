@@ -80,9 +80,9 @@ public:
 			z2 = 2.0f;
 		}
 
-		// Map Lorenz x outputs to frequency offsets
-		float freq1 = baseFreq + x1 * baseFreq * 0.1f;
-		float freq2 = baseFreq * 1.5f + x2 * baseFreq * 0.1f;
+		// Map Lorenz x outputs to frequency offsets — wide modulation for chaotic character
+		float freq1 = baseFreq + x1 * baseFreq * 0.4f;
+		float freq2 = baseFreq * 1.5f + x2 * baseFreq * 0.4f;
 
 		// Clamp frequencies to reasonable range
 		if (freq1 < 20.0f) freq1 = 20.0f;

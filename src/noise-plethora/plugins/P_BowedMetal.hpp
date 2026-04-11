@@ -34,8 +34,8 @@ public:
 
 		// k2 low = struck (short ring, louder noise burst)
 		// k2 high = bowed (long ring, quieter continuous noise)
-		float ringTime = 0.997f + k2 * 0.0025f;  // r: 0.997 → 0.9995
-		float noiseLevel = 0.6f - k2 * 0.45f;      // 0.6 → 0.15
+		float ringTime = 0.9985f + k2 * 0.0013f;  // r: 0.9985 → 0.9998 (higher baseline)
+		float noiseLevel = 0.4f - k2 * 0.32f;      // 0.4 → 0.08 (less noise overall)
 		noise1.amplitude(noiseLevel);
 
 		updateResonators(freq, k2, ringTime);

@@ -16,9 +16,10 @@ public:
 	void init() override {
 		density = 50.0f;
 		lastPulseSign = false;
+		dryMix = 0.3f;
 
 		filter1.frequency(1000);
-		filter1.resonance(4.5f);
+		filter1.resonance(3.5f);      // lower Q = shorter ring, more percussive
 		filter1.octaveControl(1.0f);
 	}
 
@@ -43,8 +44,16 @@ public:
 			}
 		}
 
-		// Filter the impulses - use bandpass output for resonant pings
+		// Filter the impulses + mix dry clicks for percussive attack
 		filter1.update(&impulseBlock, nullptr, &lpBlock, &bpBlock, &hpBlock);
+
+		for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++) {
+			// Mix: dry click + resonant ring
+			int32_t mixed = (int32_t)(impulseBlock.data[i] * dryMix) + bpBlock.data[i];
+			if (mixed > 32767) mixed = 32767;
+			if (mixed < -32767) mixed = -32767;
+			bpBlock.data[i] = (int16_t)mixed;
+		}
 
 		blockBuffer.pushBuffer(bpBlock.data, AUDIO_BLOCK_SAMPLES);
 	}
@@ -62,6 +71,7 @@ private:
 	audio_block_t impulseBlock, lpBlock, bpBlock, hpBlock;
 
 	float density = 50.0f;
+	float dryMix = 0.3f;
 	bool lastPulseSign = false;
 };
 
