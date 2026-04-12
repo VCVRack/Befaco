@@ -4,7 +4,7 @@
 
 ## About This Guide
 
-The Noise Plethora is a Eurorack noise workstation with 3 digital sound generators (A, B, and C), each followed by an analog multimode filter. Generators A and B run interchangeable algorithms organized in banks of 10. Each algorithm has two parameters controlled by the **X** and **Y** knobs (and their corresponding CV inputs, 0–10Vpp).
+The Noise Plethora is a Eurorack noise workstation with 2 digital sound generators (A and B), each followed by an analog multimode filter. Generators A and B run interchangeable algorithms organized in banks of 10. Each algorithm has two parameters controlled by the **X** and **Y** knobs (and their corresponding CV inputs, 0–10Vpp).
 
 This guide documents all 60 algorithms across 6 banks:
 
