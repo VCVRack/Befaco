@@ -173,10 +173,11 @@ struct NoisePlethora : Module {
 	ProgramSelector programSelector; 		// tracks banks and programs for both sections A/B, including which is the "active" section
 	ProgramSelector programSelectorWithCV; 	// as above, but also with CV for program applied as an offset - works like Plaits Model CV input
 
-	// Stereo mode: B mirrors A's algorithm, XB/YB become stereo width/movement
+	// Stereo mode: B mirrors A's algorithm, XB/YB become stereo pan width/speed
 	bool stereoMode = false;
 	float stereoLFOPhase = 0.f;
-	float stereoOffset = 0.f;
+	float stereoGainL = 1.f;
+	float stereoGainR = 1.f;
 	// UI / UX for A/B
 	std::string textDisplayA = " ", textDisplayB = " ";
 	bool isDisplayActiveA = false, isDisplayActiveB = false;
@@ -289,12 +290,15 @@ struct NoisePlethora : Module {
 				programSelector.getB().setProgram(programSelector.getA().getProgram());
 			}
 
-			// Update stereo LFO: XB = width, YB = movement speed
+			// Update stereo LFO: XB = pan width, YB = pan speed
+			// Real L/R panning via amplitude modulation
 			float width = params[X_B_PARAM].getValue();
 			float speed = params[Y_B_PARAM].getValue();
-			stereoLFOPhase += speed * 0.3f * updateTimeSecs;
+			stereoLFOPhase += speed * speed * 1.5f * updateTimeSecs; // quadratic: max 1.5 Hz
 			if (stereoLFOPhase > 1.f) stereoLFOPhase -= 1.f;
-			stereoOffset = width * 0.4f * std::sin(2.f * M_PI * stereoLFOPhase);
+			float pan = width * std::sin(2.f * M_PI * stereoLFOPhase);
+			stereoGainL = clamp(1.f - pan, 0.f, 2.f) * 0.5f;
+			stereoGainR = clamp(1.f + pan, 0.f, 2.f) * 0.5f;
 		}
 
 		// process A, B and C
@@ -361,9 +365,9 @@ struct NoisePlethora : Module {
 			float cvX, cvY;
 
 			if (stereoMode && SECTION == SECTION_B) {
-				// Stereo mode: B reads A's params. Offset on k2 (timbre), NOT k1 (pitch).
+				// Stereo mode: B reads A's params (same pitch and timbre)
 				cvX = params[X_A_PARAM].getValue() + rescale(inputs[X_A_INPUT].getVoltage(), -10.f, +10.f, -1.f, 1.f);
-				cvY = params[Y_A_PARAM].getValue() + rescale(inputs[Y_A_INPUT].getVoltage(), -10.f, +10.f, -1.f, 1.f) + stereoOffset;
+				cvY = params[Y_A_PARAM].getValue() + rescale(inputs[Y_A_INPUT].getVoltage(), -10.f, +10.f, -1.f, 1.f);
 			}
 			else {
 				cvX = params[X_PARAM].getValue() + rescale(inputs[X_INPUT].getVoltage(), -10.f, +10.f, -1.f, 1.f);
@@ -403,7 +407,12 @@ struct NoisePlethora : Module {
 			}
 		}
 
-		outputs[OUTPUT].setVoltage(Saturator<float>::process(out) * 5.f);
+		// Apply stereo panning gain
+		float stereoGain = 1.f;
+		if (stereoMode) {
+			stereoGain = (SECTION == SECTION_A) ? stereoGainL : stereoGainR;
+		}
+		outputs[OUTPUT].setVoltage(Saturator<float>::process(out) * 5.f * stereoGain);
 	}
 
 	// process section C
@@ -917,7 +926,7 @@ struct NoisePlethoraWidget : ModuleWidget {
 		}
 
 		menu->addChild(createMenuLabel("Stereo"));
-		menu->addChild(createBoolPtrMenuItem("Stereo Mode (B mirrors A, XB=width, YB=speed)", "", &module->stereoMode));
+		menu->addChild(createBoolPtrMenuItem("Stereo Mode (B mirrors A, XB=pan width, YB=pan speed)", "", &module->stereoMode));
 
 		menu->addChild(createMenuLabel("Filters"));
 		menu->addChild(createBoolPtrMenuItem("Remove DC", "", &module->blockDC));
