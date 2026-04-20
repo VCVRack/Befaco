@@ -282,6 +282,10 @@ struct NoisePlethora : Module {
 
 		// Stereo mode: sync B's program to A and update stereo LFO
 		if (stereoMode && updateParams) {
+			// In stereo mode A is the master: ensure the program knob always edits A,
+			// even if mode was flipped to B by a context-menu selection
+			programSelector.setMode(SECTION_A);
+
 			// Sync B to A's algorithm
 			std::string_view aName = programSelectorWithCV.getA().getCurrentProgramName();
 			if (aName != algorithmName[SECTION_B]) {
@@ -910,7 +914,10 @@ struct NoisePlethoraWidget : ModuleWidget {
 							if (implemented) {
 								menu->addChild(createMenuItem(algorithmName.data(), currentProgramAndBank ? CHECKMARK_STRING : "",
 								[ = ]() {
-									module->setAlgorithm(sectionId, algorithmName);
+									// In stereo mode A is the master and B mirrors it, so route
+									// Program B picks to A to avoid silently-overridden selections
+									const int targetSection = module->stereoMode ? 0 : sectionId;
+									module->setAlgorithm(targetSection, algorithmName);
 								}));
 							}
 							else {
