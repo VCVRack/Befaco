@@ -1,0 +1,6 @@
+[submodule "libs/Iroi"]
+	path = libs/Iroi
+	url = https://github.com/Befaco/Iroi.git
+[submodule "libs/OwlProgram"]
+	path = libs/OwlProgram
+	url = https://github.com/hemmer/OwlProgram.git

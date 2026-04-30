@@ -1,6 +1,5 @@
 #include "plugin.hpp"
 
-
 Plugin *pluginInstance;
 
 void init(rack::Plugin *p) {
@@ -38,4 +37,5 @@ void init(rack::Plugin *p) {
 	p->addModel(modelAxBC);
 	p->addModel(modelSlew);
 	p->addModel(modelMuDi);
+	p->addModel(modelIroi);
 }
