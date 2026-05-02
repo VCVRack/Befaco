@@ -1,5 +1,9 @@
 # Change Log
 
+## v2.10.0
+  * Iroi
+    * Initial release
+
 ## v2.9.1
   * Slew
     * Fix Slew rise/fall outputs

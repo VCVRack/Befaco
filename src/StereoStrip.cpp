@@ -257,8 +257,6 @@ struct StereoStrip : Module {
 		configBypass(LEFT_INPUT, LEFT_OUTPUT);
 		configBypass(RIGHT_INPUT, RIGHT_OUTPUT);
 
-		onSampleRateChange();
-
 		clickFilter.rise = 50.f; // Hz
 		clickFilter.fall = 50.f; // Hz
 
@@ -273,10 +271,10 @@ struct StereoStrip : Module {
 		// at low sample rates (e.g. 24kHz), shelf filter is at Nyquist!
 		const float shelfSampleRate = std::min(0.4f * APP->engine->getSampleRate(), 12000.0f);
 
-		for (int side = 0; side < 2; ++side) {
-			for (int c = 0; c < 16; c += 4) {
-				highpass[side][c / 4].setCutoff(25.0f, 0.8f, AeFilterType::AeHIGHPASS);				
-				highshelf[side][c / 4].setParams(shelfSampleRate, 0.8f, -5.0f, AeEQType::AeHIGHSHELVE);
+		for (int c = 0; c < 16; c += 4) {
+			for (int side = 0; side < 2; ++side) {
+				highpass[c / 4][side].setCutoff(25.0f, 0.8f, AeFilterType::AeHIGHPASS);				
+				highshelf[c / 4][side].setParams(shelfSampleRate, 0.8f, -5.0f, AeEQType::AeHIGHSHELVE);
 			}
 		}
 	}

@@ -39,6 +39,7 @@ extern Model* modelAtte;
 extern Model* modelAxBC;
 extern Model* modelSlew;
 extern Model* modelMuDi;
+extern Model* modelIroi;
 
 struct Knurlie : SvgScrew {
 	Knurlie() {
@@ -54,6 +55,20 @@ struct BefacoTinyKnobRed : BefacoTinyKnob {
 	BefacoTinyKnobRed() {
 		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoTinyPointWhite.svg")));
 		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoTinyKnobRed_bg.svg")));
+	}
+};
+
+struct BefacoTinyKnobGreen : BefacoTinyKnob {
+	BefacoTinyKnobGreen() {
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoTinyPointWhite.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoTinyKnobGreen_bg.svg")));
+	}
+};
+
+struct BefacoTinyKnobBlue : BefacoTinyKnob {
+	BefacoTinyKnobBlue() {
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoTinyPointWhite.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoTinyKnobBlue_bg.svg")));
 	}
 };
 
@@ -95,6 +110,20 @@ struct Davies1900hDarkGreyKnob : Davies1900hKnob {
 	Davies1900hDarkGreyKnob() {
 		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hDarkGrey.svg")));
 		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hDarkGrey_bg.svg")));
+	}
+};
+
+struct Davies1900hBlueKnob : Davies1900hKnob {
+	Davies1900hBlueKnob() {
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hBlue.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hBlue_bg.svg")));
+	}
+};
+
+struct Davies1900hGreenKnob : Davies1900hKnob {
+	Davies1900hGreenKnob() {
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hGreen.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hGreen_bg.svg")));
 	}
 };
 
