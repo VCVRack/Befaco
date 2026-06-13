@@ -1,5 +1,13 @@
 # Change Log
 
+## v2.11.0
+  * Random8
+    * Initial release
+  * Morphader
+    * Handle polyphony correctly for CVs
+  * Iroi
+    * Prevent possible UB on Windows
+
 ## v2.10.0
   * Iroi
     * Initial release

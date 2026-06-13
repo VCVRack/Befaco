@@ -45,7 +45,7 @@ struct SlewLimiter : Module {
 		// this is the number of active polyphony engines, defined by the input
 		int numPolyphonyEngines = inputs[IN_INPUT].getChannels();
 
-		// minimum and std::maximum slopes in volts per second
+		// minimum and maximum slopes in volts per second
 		const float slewMin = 0.1;
 		const float slewMax = 10000.f;
 		// Amount of extra slew per voltage difference

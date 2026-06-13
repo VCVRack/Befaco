@@ -1,6 +1,7 @@
 RACK_DIR ?= ../..
 
 SOURCES += $(wildcard src/*.cpp)
+SOURCES += $(wildcard src/random8_core/*.cpp)
 SOURCES += $(wildcard src/noise-plethora/*/*.cpp)
 
 # OwlProgram sources (mirrors Befaco Oneiroi integration)
