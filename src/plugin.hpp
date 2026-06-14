@@ -40,6 +40,7 @@ extern Model* modelAxBC;
 extern Model* modelSlew;
 extern Model* modelMuDi;
 extern Model* modelIroi;
+extern Model* modelRandom8;
 
 struct Knurlie : SvgScrew {
 	Knurlie() {
@@ -267,6 +268,16 @@ struct BefacoButton : app::SvgSwitch {
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/components/BefacoButton_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/components/BefacoButton_1.svg")));
 	}
+};
+
+
+/** From VCV Free */
+struct VCVBezelSmallLight : app::SvgSwitch {
+    VCVBezelSmallLight() {
+        momentary = true;
+        addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/VCVButtonLight_0.svg")));
+        addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/VCVButtonLight_1.svg")));
+    }
 };
 
 struct Davies1900hWhiteKnobEndless : Davies1900hKnob {
