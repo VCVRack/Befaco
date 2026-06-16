@@ -106,6 +106,22 @@ struct Random8 : Module {
         }
     };
 
+    static const char *getStyleName(int style) {
+        static const char *styleNames[] = {
+            "Standard", "Rosc", "Gamma", "Expo", "Weibull", "Low-High", "FBM", "Perlin",
+        };
+        style = clamp(style, 0, R8::NUM_AVAILABLE_STYLES - 1);
+        return styleNames[style];
+    }
+
+    static const char *getLoopModeName(int loopMode) {
+        switch (loopMode) {
+        case 1: return "Loop";
+        case 2: return "Evolve";
+        default: return "Off";
+        }
+    }
+
     Random8() {
         config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
         for (int i = 0; i < NUM_CHANNELS; i++) {
@@ -233,6 +249,27 @@ struct Random8 : Module {
         channelParams.steps = static_cast<int>(std::round(params[STEPS_VALUE_PARAM + channel].getValue()));
         channelParams.loopMode = loopModes[channel];
         return channelParams;
+    }
+
+    std::vector<std::string> getChannelSettingLabels(int channel) {
+        if (channel < 0 || channel >= NUM_CHANNELS) {
+            return {};
+        }
+
+        std::vector<std::string> labels;
+        labels.reserve(9);
+        labels.push_back(string::f("GAIN: %d%%", static_cast<int>(std::round(params[GAIN_VALUE_PARAM + channel].getValue() * 100.f))));
+        labels.push_back(string::f("DIVIDER: %d", static_cast<int>(std::round(params[DIVIDER_VALUE_PARAM + channel].getValue()))));
+        labels.push_back(string::f("PROB: %d%%", static_cast<int>(std::round(params[PROB_VALUE_PARAM + channel].getValue()))));
+        labels.push_back(string::f("STYLE: %s", getStyleName(static_cast<int>(std::round(params[STYLE_VALUE_PARAM + channel].getValue())))));
+        labels.push_back(string::f("OFFSET: %.1fV", params[OFFSET_VALUE_PARAM + channel].getValue()));
+        labels.push_back(
+            string::f("SCALE: %s", befaco::scale_names[clamp(static_cast<int>(std::round(params[SCALE_VALUE_PARAM + channel].getValue())),
+                                                             0, R8::NUM_AVAILABLE_SCALES - 1)]));
+        labels.push_back(string::f("SLIDE: %d%%", static_cast<int>(std::round(params[SLIDE_VALUE_PARAM + channel].getValue() * 100.f))));
+        labels.push_back(string::f("STEPS: %d", static_cast<int>(std::round(params[STEPS_VALUE_PARAM + channel].getValue()))));
+        labels.push_back(string::f("LOOP: %s", getLoopModeName(loopModes[channel])));
+        return labels;
     }
 
     static bool channelParamsChanged(const Random8ChannelParams &a, const Random8ChannelParams &b) {
@@ -815,6 +852,17 @@ struct Random8Widget : ModuleWidget {
                     random8->savePresetSlot(static_cast<int>(index));
                 }
             }));
+
+        menu->addChild(new MenuSeparator());
+        menu->addChild(createSubmenuItem("View channel settings", "", [=](Menu *menu) {
+            for (int channel = 0; channel < Random8::NUM_CHANNELS; channel++) {
+                menu->addChild(createSubmenuItem(string::f("Channel %d", channel + 1), "", [=](Menu *menu) {
+                    for (const std::string &label : random8->getChannelSettingLabels(channel)) {
+                        menu->addChild(createMenuLabel(label));
+                    }
+                }));
+            }
+        }));
 
         menu->addChild(new MenuSeparator());
         menu->addChild(createMenuLabel("Modes:"));
