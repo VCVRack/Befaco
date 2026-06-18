@@ -28,8 +28,11 @@ namespace R8{
         }
 
         uint16_t generate() override {
-            positionX = (positionX + 1) % SIXTEEN_BIT_MAX;
-            float pos = (float)positionX / (float)SIXTEEN_BIT_MAX;
+            // positionX advances one phase step per trigger. The walk speed is set by the
+            // phase resolution (the hardware 12-bit range), not the 16-bit output range:
+            // normalizing over SIXTEEN_BIT_MAX would shrink each step ~16x and stall the walk.
+            positionX = (positionX + 1) % TWELVE_BIT_MAX;
+            float pos = (float)positionX / (float)TWELVE_BIT_MAX;
             return (uint16_t)(perlin1d(pos, 920.666, 2) * SIXTEEN_BIT_MAX);
         }
 
@@ -60,8 +63,11 @@ namespace R8{
         }
 
         uint16_t generate() override {
-            positionX = (positionX + 1) % SIXTEEN_BIT_MAX;
-            float pos = (float)positionX / (float)SIXTEEN_BIT_MAX;
+            // positionX advances one phase step per trigger. The walk speed is set by the
+            // phase resolution (the hardware 12-bit range), not the 16-bit output range:
+            // normalizing over SIXTEEN_BIT_MAX would shrink each step ~16x and stall the walk.
+            positionX = (positionX + 1) % TWELVE_BIT_MAX;
+            float pos = (float)positionX / (float)TWELVE_BIT_MAX;
             return (uint16_t)(perlin1d(pos, 720.1459, 10) * SIXTEEN_BIT_MAX);
         }
 
