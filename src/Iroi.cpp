@@ -139,6 +139,7 @@ struct IroiVCV : Module {
     bool useNativeRackRandomisation = false;
     ParamQuantity *slewTimeParamQuantity = nullptr;
     float clearFlashTime = 0.f;
+    float randomLedBrightness = 0.f;
     std::atomic<bool> pendingRandomizeAction{false};
     std::array<float, 10> pendingSlewTargets{};
     bool hasPendingSlewTargets = false;
@@ -548,6 +549,9 @@ struct IroiVCV : Module {
             pendingSlewTargets = values;
             hasPendingSlewTargets = true;
             randomizeNonce++;
+            if (params[SLEW_TIME_PARAM].getValue() > 0.f) {
+                randomLedBrightness = 1.f;
+            }
         }
     }
 
@@ -645,6 +649,13 @@ struct IroiVCV : Module {
     }
 
     void updateLights(const ProcessArgs &args, const PatchCtrls *patchCtrls, const Ui *ui) {
+        const float blockTime = args.sampleTime * kBlockSize;
+        const float slewTime = params[SLEW_TIME_PARAM].getValue();
+        if (randomLedBrightness > 0.f) {
+            const float tau = std::max(0.3f * slewTime, 0.01f);
+            randomLedBrightness *= std::max(0.f, 1.f - blockTime / tau);
+        }
+
         lights[SYNC_LIGHT].setBrightnessSmooth(patch->isButtonPressed(SYNC_IN), args.sampleTime * kBlockSize);
         lights[LEVEL_LIGHT + 0].setBrightnessSmooth(ui->leds_[LED_INPUT_PEAK]->Get(), args.sampleTime * kBlockSize);
         lights[LEVEL_LIGHT + 1].setBrightnessSmooth(
@@ -652,7 +663,7 @@ struct IroiVCV : Module {
         lights[LEVEL_LIGHT + 2].setBrightness(0.f);
         lights[MOD_LIGHT].setBrightness(patch->getParameterValue(MOD_LED_PARAM));
         lights[SHIFT_BUTTON_LED].setBrightness(ui->leds_[LED_SHIFT]->Get());
-        lights[RANDOM_BUTTON_LED].setBrightness(ui->leds_[LED_RANDOM]->Get());
+        lights[RANDOM_BUTTON_LED].setBrightness(std::max(ui->leds_[LED_RANDOM]->Get(), randomLedBrightness));
 
         const bool mapOn = ui->IsMapOn();
         const int mapMode = (int)std::round(params[MAP_MODE_PARAM].getValue());
