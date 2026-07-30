@@ -40,13 +40,44 @@
 	}
 
 #define BANKS_DEF_4 { \
-		{ "TestPlugin", 1.0 }, \
-		{ "WhiteNoise", 1.0 }, \
-		{ "TeensyAlt", 1.0 }  \
+		{ "CombNoise", 1.0 }, \
+		{ "PluckCloud", 1.0 }, \
+		{ "TubeResonance", 1.0 }, \
+		{ "FormantNoise", 1.0 }, \
+		{ "BowedMetal", 1.0 }, \
+		{ "FlangeNoise", 1.0 }, \
+		{ "NoiseBells", 0.8 }, \
+		{ "NoiseHarmonics", 1.0 }, \
+		{ "IceRain", 1.0 }, \
+		{ "DroneBody", 1.0 } \
 	}
-#define BANKS_DEF_5
 
-// #define BANKS_DEF_6
+#define BANKS_DEF_5 { \
+		{ "LogisticNoise", 1.0 }, \
+		{ "HenonDust", 1.0 }, \
+		{ "CellularSynth", 1.0 }, \
+		{ "StochasticPulse", 1.0 }, \
+		{ "BitShift", 1.0 }, \
+		{ "FeedbackFM", 1.0 }, \
+		{ "RunawayFilter", 1.0 }, \
+		{ "GlitchLoop", 1.0 }, \
+		{ "SubHarmonic", 1.0 }, \
+		{ "DualAttractor", 1.0 } \
+	}
+
+#define BANKS_DEF_6 { \
+		{ "PulseWander", 1.0 }, \
+		{ "TwinPulse", 1.0 }, \
+		{ "QuantPulse", 1.0 }, \
+		{ "ShapedPulse", 1.0 }, \
+		{ "ShiftPulse", 1.0 }, \
+		{ "MetallicNoise", 1.0 }, \
+		{ "NoiseSlew", 1.0 }, \
+		{ "NoiseBurst", 1.0 }, \
+		{ "LFSRNoise", 1.0 }, \
+		{ "DualPulse", 1.0 } \
+	}
+
 // #define BANKS_DEF_7
 // #define BANKS_DEF_8
 // #define BANKS_DEF_9
