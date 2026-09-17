@@ -31,3 +31,7 @@ We have tried to make the VCV implementations as authentic as possible, however 
 * MotionMTR optionally doesn't use the 10V normalling on inputs if in audio mode to avoid accidentally adding unwanted DC to audio signals, see context menu. E.g. if you temporarily unpatch an audio source whilst using it it mixer mode, you get 10V DC suddenly and a nasty pop.
 
 * Burst hardware version can also set the tempo by tapping the encoder, this is not possible in the VCV version. 
+
+* Random8:
+  * doesn't automatically save state in hardware
+  * the VCV version simulates one of the noise modes - the RP2040 has an on-chip ring oscillator, and that random mode reads bits in pairs, applies some logic to transform into CV. 

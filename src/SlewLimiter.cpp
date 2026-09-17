@@ -45,7 +45,7 @@ struct SlewLimiter : Module {
 		// this is the number of active polyphony engines, defined by the input
 		int numPolyphonyEngines = inputs[IN_INPUT].getChannels();
 
-		// minimum and std::maximum slopes in volts per second
+		// minimum and maximum slopes in volts per second
 		const float slewMin = 0.1;
 		const float slewMax = 10000.f;
 		// Amount of extra slew per voltage difference
@@ -68,6 +68,8 @@ struct SlewLimiter : Module {
 
 			riseCV[c / 4] += param_rise;
 			fallCV[c / 4] += param_fall;
+			riseCV[c / 4] = simd::clamp(riseCV[c / 4], 0.f, 10.f);
+			fallCV[c / 4] = simd::clamp(fallCV[c / 4], 0.f, 10.f);
 
 			float_4 delta = in[c / 4] - out[c / 4];
 			float_4 delta_gt_0 = delta > 0.f;

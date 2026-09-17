@@ -97,10 +97,10 @@ struct Mixer2 : Module {
 		if (lightDivider.process()) {
 			const float deltaTime = args.sampleTime * lightDivider.getDivision();
 			if (numPolyphonyEngines == 1) {
-				lights[MIX12_LIGHT + 0].setBrightnessSmooth(std::abs(sum12[0]) / 5.f, deltaTime);
+				lights[MIX12_LIGHT + 0].setBrightnessSmooth(std::sqrt(sum12[0]) / 5.f, deltaTime);
 				lights[MIX12_LIGHT + 1].setBrightness(0.f);
 				lights[MIX12_LIGHT + 2].setBrightness(0.f);
-				lights[MIX34_LIGHT + 0].setBrightnessSmooth(std::abs(sum34[0]) / 5.f, deltaTime);
+				lights[MIX34_LIGHT + 0].setBrightnessSmooth(std::sqrt(sum34[0]) / 5.f, deltaTime);
 				lights[MIX34_LIGHT + 1].setBrightness(0.f);
 				lights[MIX34_LIGHT + 2].setBrightness(0.f);
 			}

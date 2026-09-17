@@ -93,6 +93,36 @@ struct SpringReverb : Module {
 		delete convolver;
 	}
 
+	void onReset() override {
+		inputBuffer.clear();
+		outputBuffer.clear();
+		inputSrc.refreshState();
+		outputSrc.refreshState();
+		dryFilter.reset();
+		vuFilter.reset();
+		lightFilter.reset();
+		lightRefreshClock.reset();
+
+		if (convolver) {
+			convolver->inputPos = 0;
+			if (convolver->inputFfts) {
+				std::fill(convolver->inputFfts,
+				          convolver->inputFfts + convolver->blockSize * 2 * convolver->kernelBlocks,
+				          0.f);
+			}
+			if (convolver->outputTail) {
+				std::fill(convolver->outputTail, convolver->outputTail + convolver->blockSize, 0.f);
+			}
+			if (convolver->tmpBlock) {
+				std::fill(convolver->tmpBlock, convolver->tmpBlock + convolver->blockSize * 2, 0.f);
+			}
+		}
+
+		for (int i = 0; i < NUM_LIGHTS; ++i) {
+			lights[i].setBrightness(0.f);
+		}
+	}
+
 	void processBypass(const ProcessArgs& args) override {
 		float in1 = inputs[IN1_INPUT].getVoltageSum();
 		float in2 = inputs[IN2_INPUT].getVoltageSum();

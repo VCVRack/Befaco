@@ -92,7 +92,7 @@ void AudioEffectGranular::update(const audio_block_t* input_block, audio_block_t
 
 	if (grain_mode == 0) {
 		// passthrough, no granular effect
-		memcpy(output_block->data, input_block->data, AUDIO_BLOCK_SAMPLES);
+		memcpy(output_block->data, input_block->data, sizeof(output_block->data));
 
 		// prev_input = block->data[AUDIO_BLOCK_SAMPLES - 1];
 	}
@@ -219,4 +219,3 @@ void AudioEffectGranular::update(const audio_block_t* input_block, audio_block_t
 	//transmit(block);
 	//release(block);
 }
-

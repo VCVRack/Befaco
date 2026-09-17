@@ -39,6 +39,8 @@ extern Model* modelAtte;
 extern Model* modelAxBC;
 extern Model* modelSlew;
 extern Model* modelMuDi;
+extern Model* modelIroi;
+extern Model* modelRandom8;
 
 struct Knurlie : SvgScrew {
 	Knurlie() {
@@ -54,6 +56,20 @@ struct BefacoTinyKnobRed : BefacoTinyKnob {
 	BefacoTinyKnobRed() {
 		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoTinyPointWhite.svg")));
 		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoTinyKnobRed_bg.svg")));
+	}
+};
+
+struct BefacoTinyKnobGreen : BefacoTinyKnob {
+	BefacoTinyKnobGreen() {
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoTinyPointWhite.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoTinyKnobGreen_bg.svg")));
+	}
+};
+
+struct BefacoTinyKnobBlue : BefacoTinyKnob {
+	BefacoTinyKnobBlue() {
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoTinyPointWhite.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/BefacoTinyKnobBlue_bg.svg")));
 	}
 };
 
@@ -95,6 +111,20 @@ struct Davies1900hDarkGreyKnob : Davies1900hKnob {
 	Davies1900hDarkGreyKnob() {
 		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hDarkGrey.svg")));
 		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hDarkGrey_bg.svg")));
+	}
+};
+
+struct Davies1900hBlueKnob : Davies1900hKnob {
+	Davies1900hBlueKnob() {
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hBlue.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hBlue_bg.svg")));
+	}
+};
+
+struct Davies1900hGreenKnob : Davies1900hKnob {
+	Davies1900hGreenKnob() {
+		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hGreen.svg")));
+		bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hGreen_bg.svg")));
 	}
 };
 
@@ -240,6 +270,16 @@ struct BefacoButton : app::SvgSwitch {
 	}
 };
 
+
+/** From VCV Free */
+struct VCVBezelSmallLight : app::SvgSwitch {
+    VCVBezelSmallLight() {
+        momentary = true;
+        addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/VCVButtonLight_0.svg")));
+        addFrame(Svg::load(asset::plugin(pluginInstance, "res/components/VCVButtonLight_1.svg")));
+    }
+};
+
 struct Davies1900hWhiteKnobEndless : Davies1900hKnob {
 	Davies1900hWhiteKnobEndless() {
 		setSvg(Svg::load(asset::plugin(pluginInstance, "res/components/Davies1900hWhiteEndless.svg")));
@@ -301,6 +341,11 @@ struct ADEnvelope {
 
 	ADEnvelope() { };
 
+	void reset() {
+		stage = STAGE_OFF;
+		env = envLinear = 0.f;
+	}
+
 	void process(const float& sampleTime) {
 
 		if (stage == STAGE_OFF) {
@@ -348,6 +393,11 @@ struct DCBlockerT {
 	void setFrequency(float fc) {
 		fc_ = fc;
 		recalculateCoefficients();
+	}
+
+	void reset() {
+		for (int idx = 0; idx < N; idx++)
+			blockDCFilter[idx].reset();
 	}
 
 	T process(T x) {

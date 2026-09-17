@@ -2,6 +2,8 @@
 #include "noise-plethora/plugins/NoisePlethoraPlugin.hpp"
 #include "noise-plethora/plugins/ProgramSelector.hpp"
 
+#include <atomic>
+
 enum FilterMode {
 	LOWPASS,
 	HIGHPASS,
@@ -179,8 +181,8 @@ struct NoisePlethora : Module {
 	float stereoGainL = 1.f;
 	float stereoGainR = 1.f;
 	// UI / UX for A/B
-	std::string textDisplayA = " ", textDisplayB = " ";
-	bool isDisplayActiveA = false, isDisplayActiveB = false;
+	std::atomic<char> textDisplayA {' '}, textDisplayB {' '};
+	std::atomic<bool> isDisplayActiveA {false}, isDisplayActiveB {false};
 	bool programButtonHeld = false;
 	bool programButtonDragged = false;
 	dsp::BooleanTrigger programHoldTrigger;
@@ -280,19 +282,11 @@ struct NoisePlethora : Module {
 			updateParamsTimer.trigger(updateTimeSecs);
 		}
 
-		// Stereo mode: sync B's program to A and update stereo LFO
+		// Stereo mode: A is the master and XB/YB control stereo movement.
 		if (stereoMode && updateParams) {
-			// In stereo mode A is the master: ensure the program knob always edits A,
-			// even if mode was flipped to B by a context-menu selection
+			// Ensure the program knob always edits A, even if the mode was flipped
+			// to B immediately before stereo mode was enabled.
 			programSelector.setMode(SECTION_A);
-
-			// Sync B to A's algorithm
-			std::string_view aName = programSelectorWithCV.getA().getCurrentProgramName();
-			if (aName != algorithmName[SECTION_B]) {
-				// Copy A's bank/program to B
-				programSelector.getB().setBank(programSelector.getA().getBank());
-				programSelector.getB().setProgram(programSelector.getA().getProgram());
-			}
 
 			// Update stereo LFO: XB = pan width, YB = pan speed
 			// Real L/R panning via amplitude modulation
@@ -315,33 +309,22 @@ struct NoisePlethora : Module {
 		processBottomSection(args);
 
 		// UI
-		updateDataForLEDDisplay();
 		processProgramBankKnobLogic(args);
+		if (updateParams) {
+			updateDataForLEDDisplay();
+		}
 	}
 
-	// process CV for section, specifically: work out the offset relative to the current
-	// program and see if this is a new algorithm
-	void processCVOffsets(Section SECTION, InputIds PROG_INPUT) {
+	void updateEffectiveAlgorithm(Section SECTION, int bank, int program) {
+		ProgramSelection& selection = programSelectorWithCV.getSection(SECTION);
+		selection.setBank(bank);
+		selection.setProgram(program);
 
-		const int offset = 2 * inputs[PROG_INPUT].getVoltage();
+		std::string_view newAlgorithmName = selection.getCurrentProgramName();
 
-		const int bank = programSelector.getSection(SECTION).getBank();
-		const int numProgramsForBank = getBankForIndex(bank).getSize();
-
-		const int programWithoutCV = programSelector.getSection(SECTION).getProgram();
-		const int programWithCV = unsigned_modulo(programWithoutCV + offset, numProgramsForBank);
-
-		// duplicate key settings to programSelectorWithCV (expect modified program)
-		programSelectorWithCV.setMode(programSelector.getMode());
-		programSelectorWithCV.getSection(SECTION).setBank(bank);
-		programSelectorWithCV.getSection(SECTION).setProgram(programWithCV);
-
-		std::string_view newAlgorithmName = programSelectorWithCV.getSection(SECTION).getCurrentProgramName();
-
-		// this is just a caching check to avoid constantly re-initialisating the algorithms
+		// This is just a caching check to avoid constantly re-initialising algorithms.
 		if (newAlgorithmName != algorithmName[SECTION]) {
-
-			algorithm[SECTION] = SECTION == Section::SECTION_A ? A_algorithms[newAlgorithmName] : B_algorithms[newAlgorithmName];
+			algorithm[SECTION] = SECTION == SECTION_A ? A_algorithms[newAlgorithmName] : B_algorithms[newAlgorithmName];
 			algorithmName[SECTION] = newAlgorithmName;
 
 			if (algorithm[SECTION]) {
@@ -353,15 +336,41 @@ struct NoisePlethora : Module {
 		}
 	}
 
+	// Process CV for a section: work out the offset relative to the current
+	// program and see if this is a new algorithm.
+	void processCVOffsets(Section SECTION, InputIds PROG_INPUT) {
+
+		const int offset = 2 * inputs[PROG_INPUT].getVoltage();
+
+		const int bank = programSelector.getSection(SECTION).getBank();
+		const int numProgramsForBank = getBankForIndex(bank).getSize();
+
+		const int programWithoutCV = programSelector.getSection(SECTION).getProgram();
+		const int programWithCV = unsigned_modulo(programWithoutCV + offset, numProgramsForBank);
+
+		// Duplicate the active-section setting to the effective selector, whose
+		// program may differ due to CV.
+		programSelectorWithCV.setMode(programSelector.getMode());
+		updateEffectiveAlgorithm(SECTION, bank, programWithCV);
+	}
+
 	// exactly the same for A and B
 	void processTopSection(Section SECTION, ParamIds X_PARAM, ParamIds Y_PARAM, ParamIds FILTER_TYPE_PARAM,
 	                       ParamIds CUTOFF_PARAM, ParamIds CUTOFF_CV_PARAM, ParamIds RES_PARAM,
 	                       InputIds PROG_INPUT, InputIds X_INPUT, InputIds Y_INPUT, InputIds CUTOFF_INPUT, OutputIds OUTPUT,
 	                       const ProcessArgs& args, bool updateParams) {
 
-		// periodically work out how CV should modify the current sections algorithm
+		// Periodically work out how CV should modify the current section's
+		// algorithm. In stereo mode B follows A's effective post-CV selection;
+		// B's saved base selection is left intact for when stereo mode is disabled.
 		if (updateParams) {
-			processCVOffsets(SECTION, PROG_INPUT);
+			if (stereoMode && SECTION == SECTION_B) {
+				ProgramSelection& effectiveA = programSelectorWithCV.getA();
+				updateEffectiveAlgorithm(SECTION_B, effectiveA.getBank(), effectiveA.getProgram());
+			}
+			else {
+				processCVOffsets(SECTION, PROG_INPUT);
+			}
 		}
 
 		float out = 0.f;
@@ -422,18 +431,37 @@ struct NoisePlethora : Module {
 	// process section C
 	void processBottomSection(const ProcessArgs& args) {
 
-		float gritCv = rescale(clamp(inputs[GRIT_INPUT].getVoltage(), -10.f, 10.f), -10.f, 10.f, -1.f, 1.f);
-		float gritAmount = clamp(params[GRIT_PARAM].getValue() + gritCv, 0.f, 1.f);
-		float gritFrequency = 0.1 + std::pow(gritAmount, 2) * 20000;
-		gritNoiseSource.setDensity(gritFrequency);
-		float gritNoise = gritNoiseSource.process(args.sampleTime);
-		outputs[GRITTY_OUTPUT].setVoltage(gritNoise * 5.f);
+		const bool filteredOutputConnected = outputs[FILTERED_OUTPUT].isConnected();
+		const bool useWhiteSource = params[SOURCE_C_PARAM].getValue() != 0.f;
+		const bool gritNeeded = outputs[GRITTY_OUTPUT].isConnected() ||
+		                        (filteredOutputConnected && !useWhiteSource);
+		const bool whiteNeeded = outputs[WHITE_OUTPUT].isConnected() ||
+		                         (filteredOutputConnected && useWhiteSource);
+		// Hold each generator's state while its source is unused; reconnecting resumes
+		// its sequence after the intentional gap rather than advancing a muted source.
 
-		float whiteNoise = whiteNoiseSource.process();
-		outputs[WHITE_OUTPUT].setVoltage(whiteNoise * 5.f);
+		float gritNoise = 0.f;
+		if (gritNeeded) {
+			float gritCv = rescale(clamp(inputs[GRIT_INPUT].getVoltage(), -10.f, 10.f), -10.f, 10.f, -1.f, 1.f);
+			float gritAmount = clamp(params[GRIT_PARAM].getValue() + gritCv, 0.f, 1.f);
+			float gritFrequency = 0.1 + std::pow(gritAmount, 2) * 20000;
+			gritNoiseSource.setDensity(gritFrequency);
+			gritNoise = gritNoiseSource.process(args.sampleTime);
+		}
+		if (outputs[GRITTY_OUTPUT].isConnected()) {
+			outputs[GRITTY_OUTPUT].setVoltage(gritNoise * 5.f);
+		}
+
+		float whiteNoise = 0.f;
+		if (whiteNeeded) {
+			whiteNoise = whiteNoiseSource.process();
+		}
+		if (outputs[WHITE_OUTPUT].isConnected()) {
+			outputs[WHITE_OUTPUT].setVoltage(whiteNoise * 5.f);
+		}
 
 		float out = 0.f;
-		if (outputs[FILTERED_OUTPUT].isConnected() && !bypassFilters) {
+		if (filteredOutputConnected && !bypassFilters) {
 
 			const float freqCV = std::pow(params[CUTOFF_CV_C_PARAM].getValue(), 2) * inputs[CUTOFF_C_INPUT].getVoltage();
 			const float pitch = rescale(params[CUTOFF_C_PARAM].getValue(), 0, 1, -5.f, +6.4f) + freqCV;
@@ -454,7 +482,7 @@ struct NoisePlethora : Module {
 				out = blockDCFilter[SECTION_C].process(out);
 			}
 		}
-		else if (bypassFilters) {
+		else if (filteredOutputConnected && bypassFilters) {
 			out = params[SOURCE_C_PARAM].getValue() ? whiteNoise : gritNoise;
 		}
 
@@ -465,24 +493,24 @@ struct NoisePlethora : Module {
 	void updateDataForLEDDisplay() {
 
 		if (programKnobMode == PROGRAM_MODE) {
-			textDisplayA = std::to_string(programSelectorWithCV.getA().getProgram());
+			textDisplayA.store('0' + programSelectorWithCV.getA().getProgram(), std::memory_order_relaxed);
 		}
 		else if (programKnobMode == BANK_MODE) {
-			textDisplayA = 'A' + programSelectorWithCV.getA().getBank();
+			textDisplayA.store('A' + programSelectorWithCV.getA().getBank(), std::memory_order_relaxed);
 		}
-		isDisplayActiveA = stereoMode || (programSelectorWithCV.getMode() == SECTION_A);
+		isDisplayActiveA.store(stereoMode || (programSelectorWithCV.getMode() == SECTION_A), std::memory_order_relaxed);
 
 		if (stereoMode) {
 			// In stereo mode, B shows same as A
-			textDisplayB = textDisplayA;
+			textDisplayB.store(textDisplayA.load(std::memory_order_relaxed), std::memory_order_relaxed);
 		}
 		else if (programKnobMode == PROGRAM_MODE) {
-			textDisplayB = std::to_string(programSelectorWithCV.getB().getProgram());
+			textDisplayB.store('0' + programSelectorWithCV.getB().getProgram(), std::memory_order_relaxed);
 		}
 		else if (programKnobMode == BANK_MODE) {
-			textDisplayB = 'A' + programSelectorWithCV.getB().getBank();
+			textDisplayB.store('A' + programSelectorWithCV.getB().getBank(), std::memory_order_relaxed);
 		}
-		isDisplayActiveB = stereoMode || (programSelectorWithCV.getMode() == SECTION_B);
+		isDisplayActiveB.store(stereoMode || (programSelectorWithCV.getMode() == SECTION_B), std::memory_order_relaxed);
 	}
 
 	// handle convoluted logic for the multifunction Program knob
@@ -694,7 +722,6 @@ struct BefacoTinyKnobSnapPress : BefacoTinyKnobBlack {
 struct NoisePlethoraLEDDisplay : LightWidget {
 	float fontSize = 28;
 	Vec textPos = Vec(2, 25);
-	int numChars = 1;
 	bool activeDisplay = true;
 	NoisePlethora* module;
 	NoisePlethora::Section section = NoisePlethora::SECTION_A;
@@ -773,19 +800,16 @@ struct NoisePlethoraLEDDisplay : LightWidget {
 
 		if (font && font->handle >= 0) {
 
-			std::string text = "A";  // fallback if module not yet defined
+			char text = 'A';  // fallback if module not yet defined
 			if (module) {
-				text = (section == NoisePlethora::SECTION_A) ? module->textDisplayA : module->textDisplayB;
+				text = (section == NoisePlethora::SECTION_A)
+				           ? module->textDisplayA.load(std::memory_order_relaxed)
+				           : module->textDisplayB.load(std::memory_order_relaxed);
 			}
-			char buffer[numChars + 1];
-			int l = text.size();
-			if (l > numChars)
-				l = numChars;
+			char buffer[2] = {};
+			buffer[0] = text;
 
 			nvgGlobalTint(args.vg, color::WHITE);
-
-			text.copy(buffer, l);
-			buffer[numChars] = '\0';
 
 			nvgFontSize(args.vg, fontSize);
 			nvgFontFaceId(args.vg, font->handle);
@@ -802,7 +826,9 @@ struct NoisePlethoraLEDDisplay : LightWidget {
 		}
 
 		if (module) {
-			const bool isSectionDisplayActive = (section == NoisePlethora::SECTION_A) ? module->isDisplayActiveA : module->isDisplayActiveB;
+			const bool isSectionDisplayActive = (section == NoisePlethora::SECTION_A)
+			                                        ? module->isDisplayActiveA.load(std::memory_order_relaxed)
+			                                        : module->isDisplayActiveB.load(std::memory_order_relaxed);
 
 			// active bank dot
 			nvgBeginPath(args.vg);
@@ -895,10 +921,12 @@ struct NoisePlethoraWidget : ModuleWidget {
 			menu->addChild(createSubmenuItem(string::f("Program %c", programNames[sectionId]), "",
 			[ = ](Menu * menu) {
 				for (int i = 0; i < numBanks; i++) {
-					const int currentBank = module->programSelector.getSection(sectionId).getBank();
-					const int currentProgram = module->programSelector.getSection(sectionId).getProgram();
+					const int displayedSection = module->stereoMode ? NoisePlethora::SECTION_A : sectionId;
+					const int currentBank = module->programSelector.getSection(displayedSection).getBank();
+					const int currentProgram = module->programSelector.getSection(displayedSection).getProgram();
+					const char* bankType = i >= 3 ? " (USER)" : "";
 
-					menu->addChild(createSubmenuItem(string::f("Bank %d: %s", i + 1, bankAliases[i].c_str()), currentBank == i ? CHECKMARK_STRING : "", [ = ](Menu * menu) {
+					menu->addChild(createSubmenuItem(string::f("Bank %c%s: %s", 'A' + i, bankType, bankAliases[i].c_str()), currentBank == i ? CHECKMARK_STRING : "", [ = ](Menu * menu) {
 						for (int j = 0; j < getBankForIndex(i).getSize(); ++j) {
 							const bool currentProgramAndBank = (currentProgram == j) && (currentBank == i);
 							std::string_view algorithmName = getBankForIndex(i).getProgramName(j);

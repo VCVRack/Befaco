@@ -58,11 +58,22 @@ struct Percall : Module {
 		configInput(STRENGTH_INPUT, string::f("Overall gain (also affects Env Outs)"));
 
 		for (int i = 0; i < 2; i++) {
-			configParam(CHOKE_PARAMS + i, 0.f, 1.f, 0.f, string::f("Choke %d to %d", 2 * i + 1, 2 * i + 2));
+			configSwitch(CHOKE_PARAMS + i, 0.f, 1.f, 0.f, string::f("Choke %d to %d", 2 * i + 1, 2 * i + 2), {"Off", "On"});
 		}
 
 		cvDivider.setDivision(16);
 		lightDivider.setDivision(128);
+	}
+
+	void onReset() override {
+		for (int i = 0; i < 4; ++i) {
+			envs[i].reset();
+			gains[i] = 0.f;
+			trigger[i].reset();
+			lights[LEDS + i].setBrightness(0.f);
+		}
+		cvDivider.reset();
+		lightDivider.reset();
 	}
 
 	void process(const ProcessArgs& args) override {

@@ -154,14 +154,14 @@ struct EvenVCO : Module {
 
 			// upsample hard sync input (if connected)
 			if (inputs[SYNC_INPUT].isConnected()) {
-				oversamplerInputs[SYNC_INPUT_UP][c].upsample(inputs[SYNC_INPUT].getPolyVoltageSimd<float_4>(c));
+				oversamplerInputs[SYNC_INPUT_UP][c / 4].upsample(inputs[SYNC_INPUT].getPolyVoltageSimd<float_4>(c));
 			}
 			else {
 				std::fill(osBufferSync, &osBufferSync[oversamplingRatio], float_4::zero());
 			}
 			// upsample FM input (if connected)
 			if (inputs[FM_INPUT].isConnected()) {
-				oversamplerInputs[FM_INPUT_UP][c].upsample(inputs[FM_INPUT].getPolyVoltageSimd<float_4>(c));
+				oversamplerInputs[FM_INPUT_UP][c / 4].upsample(inputs[FM_INPUT].getPolyVoltageSimd<float_4>(c));
 			}
 			else {
 				std::fill(osBufferFM, &osBufferFM[oversamplingRatio], float_4::zero());
@@ -297,7 +297,7 @@ struct EvenVCO : Module {
 
 		json_t* oversamplingIndexJ = json_object_get(rootJ, "oversamplingIndex");
 		if (oversamplingIndexJ) {
-			oversamplingIndex = json_integer_value(oversamplingIndexJ);
+			oversamplingIndex = clamp(static_cast<int>(json_integer_value(oversamplingIndexJ)), 0, 4);
 			onSampleRateChange();
 		}
 	}

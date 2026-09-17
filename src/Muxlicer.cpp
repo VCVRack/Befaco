@@ -110,6 +110,13 @@ struct MultDivClock {
 
 	float dividedProgressSeconds = 0.f;
 
+	void reset() {
+		secondsSinceLastClock = -1.0f;
+		inputClockLengthSeconds = -1.0f;
+		dividerCount = 0;
+		dividedProgressSeconds = 0.f;
+	}
+
 	// returns the gated clock signal, returns true when high
 	bool process(float deltaTime, bool clockPulseReceived) {
 
@@ -404,12 +411,35 @@ struct Muxlicer : Module {
 
 	void onReset() override {
 		internalClockLength = 0.250f;
-		internalClockProgress = 0;
+		internalClockProgress = 0.f;
 		runIndex = 0;
+		addressIndex = 0;
+		tapped = false;
+		resetRequested = RESET_NOT_REQUESTED;
+		tapTime = 99999.f;
+		inputClockTrigger.reset();
+		mainClockTrigger.reset();
+		resetTrigger.reset();
+		playStateTrigger.reset();
+		detectResetTrigger.reset();
+		tapTempoTrigger.reset();
+		endOfCyclePulse.reset();
 		mainClockMultDiv.multDiv = 1;
+		mainClockMultDiv.reset();
 		outputClockMultDiv.multDiv = 1;
+		outputClockMultDiv.reset();
+		multiClock.reset(0.f);
 		quadraticGatesOnly = false;
 		playState = STATE_STOPPED;
+		usingExternalClock = false;
+		isAllGatesOutHigh = false;
+		isOutputClockHigh = false;
+		for (int i = 0; i < NUM_OUTPUTS; ++i) {
+			outputs[i].setVoltage(0.f);
+		}
+		for (int i = 0; i < NUM_LIGHTS; ++i) {
+			lights[i].setBrightness(0.f);
+		}
 	}
 
 	void process(const ProcessArgs& args) override {
@@ -1082,6 +1112,14 @@ struct Mex : Module {
 
 		configInput(GATE_IN_INPUT, "Gate");
 		configOutput(OUT_OUTPUT, "Gate");
+	}
+
+	void onReset() override {
+		gateInTrigger.reset();
+		outputs[OUT_OUTPUT].setVoltage(0.f);
+		for (int i = 0; i < NUM_LIGHTS; ++i) {
+			lights[i].setBrightness(0.f);
+		}
 	}
 
 	Muxlicer* findHostModulePtr(Module* module) {

@@ -101,7 +101,7 @@ struct Atte : Module {
 					lights[A_LIGHT + 0 + channel * 3].setBrightness(0.f);
 					lights[A_LIGHT + 1 + channel * 3].setBrightness(0.f);
 					float sum = 0.f;
-					for (int c = 0; c < numPolyphonyEngines; c += 4) {
+					for (int c = 0; c < numPolyphonyEngines; c++) {
 						sum += std::pow(outputs[A_OUTPUT + channel].getVoltage(c), 2);
 					}
 					lights[A_LIGHT + 2 + channel * 3].setBrightness(std::sqrt(sum / numPolyphonyEngines) / 10.f);

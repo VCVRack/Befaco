@@ -73,28 +73,27 @@ struct BurstEngine {
 
 	int triggersOccurred = 0;       // how many triggers have been
 	int triggersRequested = 0;      // how many bursts have been requested (fixed over course of burst)
-	bool active = true;             // is there a burst active
+	bool active = false;            // is there a burst active
 	bool wasInhibited = false;      // was this burst inhibited (i.e. just the first trigger sent)
 
 	std::tuple<float, float, bool> process(float sampleTime) {
 
+		bool eocTriggered = false;
 		if (active) {
 			burstTimer.process(sampleTime);
-		}
-
-		bool eocTriggered = false;
-		if (burstTimer.time > timings[triggersOccurred]) {
-			if (triggersOccurred < triggersRequested) {
-				burstOutput.reset();
-				burstOutput.trigger(TRIGGER_TIME);
+			if (triggersOccurred <= triggersRequested && burstTimer.time > timings[triggersOccurred]) {
+				if (triggersOccurred < triggersRequested) {
+					burstOutput.reset();
+					burstOutput.trigger(TRIGGER_TIME);
+				}
+				else {
+					eocOutput.reset();
+					eocOutput.trigger(TRIGGER_TIME);
+					active = false;
+					eocTriggered = true;
+				}
+				triggersOccurred++;
 			}
-			else if (triggersOccurred == triggersRequested) {
-				eocOutput.reset();
-				eocOutput.trigger(TRIGGER_TIME);
-				active = false;
-				eocTriggered = true;
-			}
-			triggersOccurred++;
 		}
 
 		const float burstOut = burstOutput.process(sampleTime);
@@ -350,4 +349,3 @@ struct BurstWidget : ModuleWidget {
 
 
 Model* modelBurst = createModel<Burst, BurstWidget>("Burst");
-

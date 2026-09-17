@@ -30,7 +30,7 @@ typedef struct audio_block_struct {
 
 	static void copyBlock(const audio_block_struct* src, audio_block_struct* dst) {
 		if (src && dst) {
-			memcpy(&(dst->data), &(src->data), AUDIO_BLOCK_SAMPLES);
+			memcpy(&(dst->data), &(src->data), sizeof(dst->data));
 		}
 	}
 } audio_block_t;

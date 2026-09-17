@@ -21,10 +21,14 @@ struct BefacoADSREnvelope {
 
 	BefacoADSREnvelope() { };
 
+	float attackTimeFromEnvelope(float envelopeValue) const {
+		return attackTime * std::pow(clamp(envelopeValue, 0.f, 1.f), 1.f / attackShape);
+	}
+
 	void retrigger() {
 		stage = STAGE_ATTACK;
 		// get the linear value of the envelope
-		timeInCurrentStage = attackTime * std::pow(env, 1.0f / attackShape);
+		timeInCurrentStage = attackTimeFromEnvelope(env);
 	}
 
 	void processTransitionsGateMode(const bool& gateHeld) {
@@ -56,7 +60,7 @@ struct BefacoADSREnvelope {
 				}
 				case STAGE_RELEASE: {
 					stage = STAGE_ATTACK;
-					timeInCurrentStage = attackTime * env;
+					timeInCurrentStage = attackTimeFromEnvelope(env);
 					break;
 				}
 			}

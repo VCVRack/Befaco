@@ -91,6 +91,7 @@ struct Mixer : Module {
 			float light = outputs[OUT1_OUTPUT].getVoltage();
 			lights[OUT_POS_LIGHT].setSmoothBrightness(light / 5.f, args.sampleTime);
 			lights[OUT_NEG_LIGHT].setSmoothBrightness(-light / 5.f, args.sampleTime);
+			lights[OUT_BLUE_LIGHT].setBrightness(0.f);
 		}
 		else {
 			float light = 0.0f;

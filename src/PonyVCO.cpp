@@ -157,6 +157,17 @@ struct PonyVCO : Module {
 		}
 	}
 
+	void onReset() override {
+		for (int i = 0; i < 4; ++i) {
+			phase[i] = 0.f;
+			syncTrigger[i].reset();
+		}
+		onSampleRateChange();
+		for (int i = 0; i < 4; ++i) {
+			blockTZFMDCFilter[i].reset();
+		}
+	}
+
 	// implementation taken from "Alias-Suppressed Oscillators Based on Differentiated Polynomial Waveforms",
 	// also the notes from Surge Synthesier repo:
 	// https://github.com/surge-synthesizer/surge/blob/09f1ec8e103265bef6fc0d8a0fc188238197bf8c/src/common/dsp/oscillators/ModernOscillator.cpp#L19
@@ -174,7 +185,9 @@ struct PonyVCO : Module {
 		const int oversamplingRatio = lfoMode ? 1 : oversampler[0].getOversamplingRatio();
 
 		// number of active polyphony engines (must be at least 1)
-		const int channels = std::max({inputs[TZFM_INPUT].getChannels(), inputs[VOCT_INPUT].getChannels(), inputs[TIMBRE_INPUT].getChannels(), 1});
+		const int channels = std::max({inputs[TZFM_INPUT].getChannels(), inputs[VOCT_INPUT].getChannels(),
+		                               inputs[TIMBRE_INPUT].getChannels(), inputs[SYNC_INPUT].getChannels(),
+		                               inputs[VCA_INPUT].getChannels(), 1});
 
 		for (int c = 0; c < channels; c += 4) {
 			const float_4 timbre = simd::clamp(params[TIMBRE_PARAM].getValue() + inputs[TIMBRE_INPUT].getPolyVoltageSimd<float_4>(c) / 10.f, 0.f, 1.f);
@@ -347,7 +360,7 @@ struct PonyVCO : Module {
 
 		json_t* oversamplingIndexJ = json_object_get(rootJ, "oversamplingIndex");
 		if (oversamplingIndexJ) {
-			oversamplingIndex = json_integer_value(oversamplingIndexJ);
+			oversamplingIndex = clamp(static_cast<int>(json_integer_value(oversamplingIndexJ)), 0, 4);
 			onSampleRateChange();
 		}
 	}

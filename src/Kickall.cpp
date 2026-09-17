@@ -79,6 +79,16 @@ struct Kickall : Module {
 		oversampler.reset(APP->engine->getSampleRate());
 	}
 
+	void onReset() override {
+		phase = 0.f;
+		volume.reset();
+		pitch.reset();
+		gateTrigger.reset();
+		buttonTrigger.reset();
+		oversampler.reset(APP->engine->getSampleRate());
+		lights[ENV_LIGHT].setBrightness(0.f);
+	}
+
 	void process(const ProcessArgs& args) override {
 		// TODO: check values
 		const bool risingEdgeGate = gateTrigger.process(inputs[TRIGG_INPUT].getVoltage() / 2.0f, 0.1, 2.0);

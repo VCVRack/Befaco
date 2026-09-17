@@ -22,6 +22,11 @@ struct AeFilter {
 
 	float a0, a1, a2, b0, b1, b2;
 
+	void reset() {
+		std::fill(x, x + 2, T{});
+		std::fill(y, y + 2, T{});
+	}
+
 	inline T process(const T& in) noexcept {
 		T out = b0 * in + b1 * x[0] + b2 * x[1] - a1 * y[0] - a2 * y[1];
 
@@ -92,6 +97,11 @@ struct AeEqualizer {
 	T y[2] = {};
 
 	float a0, a1, a2, b0, b1, b2;
+
+	void reset() {
+		std::fill(x, x + 2, T{});
+		std::fill(y, y + 2, T{});
+	}
 
 	T process(T in) {
 		T out = b0 * in + b1 * x[0] + b2 * x[1] - a1 * y[0] - a2 * y[1];
@@ -257,8 +267,6 @@ struct StereoStrip : Module {
 		configBypass(LEFT_INPUT, LEFT_OUTPUT);
 		configBypass(RIGHT_INPUT, RIGHT_OUTPUT);
 
-		onSampleRateChange();
-
 		clickFilter.rise = 50.f; // Hz
 		clickFilter.fall = 50.f; // Hz
 
@@ -273,10 +281,10 @@ struct StereoStrip : Module {
 		// at low sample rates (e.g. 24kHz), shelf filter is at Nyquist!
 		const float shelfSampleRate = std::min(0.4f * APP->engine->getSampleRate(), 12000.0f);
 
-		for (int side = 0; side < 2; ++side) {
-			for (int c = 0; c < 16; c += 4) {
-				highpass[side][c / 4].setCutoff(25.0f, 0.8f, AeFilterType::AeHIGHPASS);				
-				highshelf[side][c / 4].setParams(shelfSampleRate, 0.8f, -5.0f, AeEQType::AeHIGHSHELVE);
+		for (int c = 0; c < 16; c += 4) {
+			for (int side = 0; side < 2; ++side) {
+				highpass[c / 4][side].setCutoff(25.0f, 0.8f, AeFilterType::AeHIGHPASS);				
+				highshelf[c / 4][side].setParams(shelfSampleRate, 0.8f, -5.0f, AeEQType::AeHIGHSHELVE);
 			}
 		}
 	}
@@ -312,6 +320,26 @@ struct StereoStrip : Module {
 				}
 			}
 			lastLowGain = lowGain;
+		}
+	}
+
+	void onReset() override {
+		for (int c = 0; c < 4; ++c) {
+			for (int side = 0; side < 2; ++side) {
+				eqLow[c][side].reset();
+				eqMid[c][side].reset();
+				eqHigh[c][side].reset();
+				highpass[c][side].reset();
+				highshelf[c][side].reset();
+			}
+		}
+		clickFilter.reset();
+		sliderUpdate.reset();
+		lastLowGain = -INFINITY;
+		lastMidGain = -INFINITY;
+		lastHighGain = -INFINITY;
+		for (int i = 0; i < LIGHTS_LEN; ++i) {
+			lights[i].setBrightness(0.f);
 		}
 	}
 
@@ -435,7 +463,9 @@ struct StereoStrip : Module {
 
 		json_t* panningLawJ = json_object_get(rootJ, "panningLaw");
 		if (panningLawJ) {
-			panningLaw = (PanningLaw) json_integer_value(panningLawJ);
+			panningLaw = static_cast<PanningLaw>(clamp(static_cast<int>(json_integer_value(panningLawJ)),
+			                                             static_cast<int>(LINEAR_6dB),
+			                                             static_cast<int>(LINEAR_CLIPPED)));
 		}
 
 		json_t* softClippingJ = json_object_get(rootJ, "applySoftClipping");
