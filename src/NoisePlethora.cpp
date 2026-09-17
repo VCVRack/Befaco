@@ -180,6 +180,31 @@ struct NoisePlethora : Module {
 	float stereoLFOPhase = 0.f;
 	float stereoGainL = 1.f;
 	float stereoGainR = 1.f;
+
+	struct XYParamQuantity : ParamQuantity {
+		std::string getDescription() override {
+			NoisePlethora* noisePlethora = static_cast<NoisePlethora*>(module);
+			const bool stereo = noisePlethora && noisePlethora->stereoMode;
+
+			switch (paramId) {
+				case X_A_PARAM:
+					return stereo ? "Controls the X parameter for both stereo generators."
+					              : "Controls the X parameter for algorithm A.";
+				case Y_A_PARAM:
+					return stereo ? "Controls the Y parameter for both stereo generators."
+					              : "Controls the Y parameter for algorithm A.";
+				case X_B_PARAM:
+					return stereo ? "Controls stereo pan width."
+					              : "Controls the X parameter for algorithm B.";
+				case Y_B_PARAM:
+					return stereo ? "Controls stereo pan speed."
+					              : "Controls the Y parameter for algorithm B.";
+				default:
+					return ParamQuantity::getDescription();
+			}
+		}
+	};
+
 	// UI / UX for A/B
 	std::atomic<char> textDisplayA {' '}, textDisplayB {' '};
 	std::atomic<bool> isDisplayActiveA {false}, isDisplayActiveB {false};
@@ -199,19 +224,19 @@ struct NoisePlethora : Module {
 
 	NoisePlethora()  {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
-		configParam(X_A_PARAM, 0.f, 1.f, 0.5f, "XA");
+		configParam<XYParamQuantity>(X_A_PARAM, 0.f, 1.f, 0.5f, "XA");
 		configParam(RES_A_PARAM, 0.f, 1.f, 0.f, "Resonance A");
 		configParam(CUTOFF_A_PARAM, 0.f, 1.f, 1.f, "Cutoff A");
-		configParam(Y_A_PARAM, 0.f, 1.f, 0.5f, "YA");
+		configParam<XYParamQuantity>(Y_A_PARAM, 0.f, 1.f, 0.5f, "YA");
 		configParam(CUTOFF_CV_A_PARAM, 0.f, 1.f, 0.f, "Cutoff CV A");
 		configSwitch(FILTER_TYPE_A_PARAM, 0.f, 2.f, 0.f, "Filter type", {"Lowpass", "Bandpass", "Highpass"});
 		configParam(PROGRAM_PARAM, -INFINITY, +INFINITY, 0.f, "Program/Bank selection");
 		configSwitch(FILTER_TYPE_B_PARAM, 0.f, 2.f, 0.f, "Filter type", {"Lowpass", "Bandpass", "Highpass"});
 		configParam(CUTOFF_CV_B_PARAM, 0.f, 1.f, 0.f, "Cutoff CV B");
-		configParam(X_B_PARAM, 0.f, 1.f, 0.5f, "XB");
+		configParam<XYParamQuantity>(X_B_PARAM, 0.f, 1.f, 0.5f, "XB");
 		configParam(CUTOFF_B_PARAM, 0.f, 1.f, 1.f, "Cutoff B");
 		configParam(RES_B_PARAM, 0.f, 1.f, 0.f, "Resonance B");
-		configParam(Y_B_PARAM, 0.f, 1.f, 0.5f, "YB");
+		configParam<XYParamQuantity>(Y_B_PARAM, 0.f, 1.f, 0.5f, "YB");
 		configSwitch(FILTER_TYPE_C_PARAM, 0.f, 2.f, 0.f, "Filter type", {"Lowpass", "Bandpass", "Highpass"});
 		configParam(CUTOFF_C_PARAM, 0.f, 1.f, 1.f, "Cutoff C");
 		configParam(GRIT_PARAM, 0.f, 1.f, 0.f, "Grit Quantity");
