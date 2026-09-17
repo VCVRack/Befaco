@@ -25,7 +25,7 @@ namespace R8{
 
         uint16_t generate() override { return rand(); }
 
-        RandomLoop CreateSequence() override {
+        RandomLoop& CreateSequence() override {
             //TODO: check values clamping here
             for (int i = 0; i < randLoop.size; i++)
             {

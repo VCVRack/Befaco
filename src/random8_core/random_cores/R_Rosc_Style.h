@@ -32,7 +32,7 @@ namespace R8{
 
         uint16_t generate() override { return rnd_whitened(info.seed); }
 
-        RandomLoop CreateSequence() override {
+        RandomLoop& CreateSequence() override {
             for (int i = 0; i < randLoop.size; i++)
             {
                 randLoop.randValues.pop_back();

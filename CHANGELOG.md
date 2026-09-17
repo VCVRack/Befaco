@@ -1,5 +1,23 @@
 # Change Log
 
+## v2.12.0 (unreleased)
+  * EvenVCO
+    * Fix polyphonic FM/sync memory corruption
+  * Burst
+    * Fix startup EOC and post-burst out-of-bounds access
+  * Iroi
+    * Prevent Owl errors and assertions from terminating Rack; restore sync/modulation LEDs
+  * Polyphony
+    * Fix dry/return widths in Bypass, lane CV in Hexmix VCA and Morphader, stale Rampage logic lanes, and omitted Octaves/Pony inputs
+  * Noise Plethora
+    * Fix truncated 16-bit block copies and make the DSP-to-UI display state lock-free
+  * Sampling Modulator
+    * Prevent stale or invalid BLEP events after output/mode changes
+  * Random8
+    * Remove engine, sequence, preset, and reset allocation from real-time processing
+  * MIDI Thing
+    * Remove per-sample active-channel allocation
+
 ## v2.11.0
   * Random8
     * Initial release

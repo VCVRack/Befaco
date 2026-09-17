@@ -43,7 +43,7 @@ namespace R8{
         // uint16_t generate() override { return (uint16_t)(generatePink() * (double)65535); }
         uint16_t generate() override { return (uint16_t)(generatePink()); }
 
-        RandomLoop CreateSequence() override {
+        RandomLoop& CreateSequence() override {
             for (int i = 0; i < randLoop.size; i++)
             {
                 randLoop.randValues.pop_back();
@@ -74,8 +74,9 @@ namespace R8{
             pinkNorm = 1.0 / (float)(numRows + 1);
             // in testing, I found it was better to initialize the rows with noise
             // this avoids a climb up to some max value during the first run through the rows
+            pinkRows.resize(numRows);
             for (int i = 0; i < numRows; i++)
-                pinkRows.push_back(rand());
+                pinkRows[i] = rand();
             pinkRunSum = rand();
         }
 
@@ -201,7 +202,7 @@ namespace R8{
             return static_cast<uint16_t>(std::round(normalized * static_cast<float>(SIXTEEN_BIT_MAX)));
         }
 
-        RandomLoop CreateSequence() override {
+        RandomLoop& CreateSequence() override {
             for (int i = 0; i < randLoop.size; i++)
             {
                 randLoop.randValues.pop_back();

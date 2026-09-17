@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <array>
 #include <memory>
 #include <vector>
 
@@ -39,10 +40,18 @@ class Channel {
         uint16_t prevVal = 0;
         int currentLoopIndex = -1;
         uint8_t triggerCount = 0;
-        std::vector<uint16_t> sequence{};
+        std::array<uint16_t, RANDOM_SEQUENCE_SIZE> sequence{};
+        bool hasSequence = false;
     };
 
     ChannelData data;
+
+    Channel() {
+        for (int style = RandomStyle::Standard; style <= RandomStyle::Binomial; ++style) {
+            RandomInfo info {static_cast<RandomStyle>(style), 0};
+            cores_[style] = assign_style(info);
+        }
+    }
 
     void setup(const ChannelData &_data) {
         data = _data;
@@ -53,15 +62,19 @@ class Channel {
 
     void setCore(RandomInfo info) {
         data.coreInfo = info;
-        currentCore = assign_style(data.coreInfo);
+        const int style = static_cast<int>(data.coreInfo.style);
+        currentCore = (style >= RandomStyle::Standard && style <= RandomStyle::Binomial) ? cores_[style].get() : nullptr;
         if (currentCore) {
+            currentCore->resetForSetup();
             currentCore->setup(data.coreInfo);
         }
     }
 
     void setCore() {
-        currentCore = assign_style(data.coreInfo);
+        const int style = static_cast<int>(data.coreInfo.style);
+        currentCore = (style >= RandomStyle::Standard && style <= RandomStyle::Binomial) ? cores_[style].get() : nullptr;
         if (currentCore) {
+            currentCore->resetForSetup();
             currentCore->create(data.coreInfo);
         }
     }
@@ -83,6 +96,7 @@ class Channel {
         state.triggerCount = triggerCount;
         if (currentCore) {
             state.sequence = currentCore->getSequence();
+            state.hasSequence = true;
         }
         return state;
     }
@@ -94,7 +108,7 @@ class Channel {
         currentLoopIndex = state.currentLoopIndex;
         triggerCount = state.triggerCount;
         setCore(data.coreInfo);
-        if (currentCore && !state.sequence.empty()) {
+        if (currentCore && state.hasSequence) {
             currentCore->setSequence(state.sequence);
             currentCore->setCurrentValue(state.currentVal);
             currentCore->setNextValue(state.nextVal);
@@ -196,7 +210,8 @@ class Channel {
     int64_t slided_val = 0;
 
     befaco::Quantizer quantizer_;
-    std::unique_ptr<Random> currentCore;
+    std::array<std::unique_ptr<Random>, RandomStyle::Binomial + 1> cores_{};
+    Random* currentCore = nullptr;
 
     uint16_t slide_value(uint16_t val, float deltaSeconds) {
         if (data.slide <= 3) {

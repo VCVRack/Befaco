@@ -35,7 +35,7 @@ namespace R8{
 
         uint16_t generate() override { return read_EM_antenna(info.seed); }
 
-        RandomLoop CreateSequence() override {
+        RandomLoop& CreateSequence() override {
             for (int i = 0; i < randLoop.size; i++)
             {
                 randLoop.randValues.pop_back();

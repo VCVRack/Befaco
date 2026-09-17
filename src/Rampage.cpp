@@ -297,8 +297,15 @@ struct Rampage : Module {
 
 		for (int c = 0; c < channels_max; c += 4) {
 
-			float_4 a = out[0][c / 4];
-			float_4 b = out[1][c / 4];
+			float_4 a = 0.f;
+			float_4 b = 0.f;
+			for (int lane = 0; lane < 4; ++lane) {
+				const int channel = c + lane;
+				if (channel < channels[0])
+					a[lane] = out[0][c / 4][lane];
+				if (channel < channels[1])
+					b[lane] = out[1][c / 4][lane];
+			}
 
 			if (balance < 0.5)
 				b *= 2.0f * balance;

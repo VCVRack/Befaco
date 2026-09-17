@@ -83,8 +83,9 @@ struct SamplingModulator : Module {
 		const bool isHoldOutRequired = outputs[OUT_OUTPUT].isConnected() && inputs[IN_INPUT].isConnected();
 		const bool isClockOutRequired = outputs[CLOCK_OUTPUT].isConnected();
 		const bool isTriggOutRequired = outputs[TRIGG_OUTPUT].isConnected();
+		const bool internalClock = params[INT_EXT_PARAM].getValue() == CLOCK_INTERNAL;
 
-		if (params[INT_EXT_PARAM].getValue() == CLOCK_EXTERNAL) {
+		if (!internalClock) {
 			// if external mode, the SYNC/EXT. CLOCK input acts as a clock
 			advanceStep = clock.process(rescale(inputs[SYNC_INPUT].getVoltage(), 0.1f, 2.f, 0.f, 1.f));
 		}
@@ -121,16 +122,15 @@ struct SamplingModulator : Module {
 		const float frequency = minDialFrequency * simd::pow(2.f, pitch);
 
 		const float oldPhase = stepPhase;
+		bool internalPhaseWrapped = false;
 		float deltaPhase = clamp(args.sampleTime * frequency, 1e-6f, 0.5f);
 		stepPhase += deltaPhase;
 
 		if (!halfPhase && stepPhase >= 0.5) {
 
 			float crossing  = -(stepPhase - 0.5) / deltaPhase;
-			if (isClockOutRequired) {
-				squareMinBlep.insertDiscontinuity(crossing, -2.f);
-			}
-			if (isTriggOutRequired && stepStates[currentStep] == STATE_ON) {
+			squareMinBlep.insertDiscontinuity(crossing, -2.f);
+			if (internalClock && stepStates[currentStep] == STATE_ON) {
 				triggMinBlep.insertDiscontinuity(crossing, -2.f);
 			}
 
@@ -139,15 +139,14 @@ struct SamplingModulator : Module {
 
 		if (stepPhase >= 1.0f) {
 			stepPhase -= 1.0f;
+			internalPhaseWrapped = true;
 
-			if (isClockOutRequired) {
-				float crossing = -stepPhase / deltaPhase;
-				squareMinBlep.insertDiscontinuity(crossing, +2.f);
-			}
+			float crossing = -stepPhase / deltaPhase;
+			squareMinBlep.insertDiscontinuity(crossing, +2.f);
 
 			halfPhase = false;
 
-			if (params[INT_EXT_PARAM].getValue() == CLOCK_INTERNAL) {
+			if (internalClock) {
 				advanceStep = true;
 			}
 		}
@@ -156,8 +155,10 @@ struct SamplingModulator : Module {
 			currentStep = (currentStep + 1) % std::max(1, numEffectiveSteps);
 
 			if (stepStates[currentStep] == STATE_ON) {
-				const float crossing = -(oldPhase + deltaPhase - 1.0) / deltaPhase;
-				triggMinBlep.insertDiscontinuity(crossing, +2.f);
+				const float crossing = internalClock && internalPhaseWrapped ? -(oldPhase + deltaPhase - 1.0) / deltaPhase : 0.f;
+				if (internalClock) {
+					triggMinBlep.insertDiscontinuity(crossing, +2.f);
+				}
 				triggerGenerator.trigger();
 
 				if (!holdDetector.isHigh() && isHoldOutRequired) {
@@ -168,12 +169,15 @@ struct SamplingModulator : Module {
 			}
 		}
 
-		const float holdOutput = isHoldOutRequired ? (heldValue + holdMinBlep.process()) : 0.f;
+		const float holdBlep = holdMinBlep.process();
+		const float squareBlep = squareMinBlep.process();
+		const float triggerBlep = triggMinBlep.process();
+		const float holdOutput = isHoldOutRequired ? (heldValue + holdBlep) : 0.f;
 		outputs[OUT_OUTPUT].setVoltage(holdOutput);
 
 		if (isClockOutRequired) {
 			float square = (stepPhase < 0.5) ? 2.f : 0.f;
-			square += squareMinBlep.process();
+			square += squareBlep;
 			square -= 1.0f * removeDC;
 			outputs[CLOCK_OUTPUT].setVoltage(5.f * square);
 		}
@@ -181,10 +185,10 @@ struct SamplingModulator : Module {
 			outputs[CLOCK_OUTPUT].setVoltage(0.f);
 		}
 
-		if (params[INT_EXT_PARAM].getValue() == CLOCK_INTERNAL) {
+		if (internalClock) {
 			if (isTriggOutRequired) {
 				float trigger = (stepPhase < 0.5 && stepStates[currentStep] == STATE_ON) ? 2.f : 0.f;
-				trigger += triggMinBlep.process();
+				trigger += triggerBlep;
 
 				if (removeDC) {
 					trigger -= 1.0f;

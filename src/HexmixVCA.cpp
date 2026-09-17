@@ -2,14 +2,15 @@
 
 using simd::float_4;
 
-static float gainFunction(float x, float shape) {
-	float lin = x;
+template <typename T>
+static T gainFunction(T x, float shape) {
+	T lin = x;
 	if (shape > 0.f) {
-		float log = 11.f * x / (10.f * x + 1.f);
+		T log = 11.f * x / (10.f * x + 1.f);
 		return crossfade(lin, log, shape);
 	}
 	else {
-		float exp = std::pow(x, 4);
+		T exp = x * x * x * x;
 		return crossfade(lin, exp, -shape);
 	}
 }
@@ -86,10 +87,9 @@ struct HexmixVCA : Module {
 					maxChannels = std::max(maxChannels, channels);
 				}
 
-				float cvGain = clamp(inputs[CV_INPUT + row].getNormalVoltage(10.f) / 10.f, 0.f, 1.f);
-				float gain = gainFunction(cvGain, shapes[row]) * outputLevels[row];
-
 				for (int c = 0; c < channels; c += 4) {
+					const float_4 cvGain = clamp(inputs[CV_INPUT + row].getNormalPolyVoltageSimd<float_4>(10.f, c) / 10.f, 0.f, 1.f);
+					const float_4 gain = gainFunction(cvGain, shapes[row]) * outputLevels[row];
 					in[c / 4] = inputs[row].getVoltageSimd<float_4>(c) * gain;
 				}
 			}

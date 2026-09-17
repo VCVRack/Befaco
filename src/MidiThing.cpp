@@ -1,5 +1,7 @@
 #include "plugin.hpp"
 
+#include <array>
+
 
 /*! \brief Decode System Exclusive messages.
  SysEx messages are encoded to guarantee transmission of data bytes higher than
@@ -312,13 +314,14 @@ struct MidiThing : Module {
 			}
 		}
 
-		std::vector<int> activeChannels;
+		std::array<int, NUM_INPUTS> activeChannels{};
+		int activeChannelCount = 0;
 		for (int c = 0; c < NUM_INPUTS; ++c) {
 			if (inputs[A1_INPUT + c].isConnected()) {
-				activeChannels.push_back(c);
+				activeChannels[activeChannelCount++] = c;
 			}
 		}
-		numActiveChannels = activeChannels.size();
+		numActiveChannels = activeChannelCount;
 		// we're done if no channels are active
 		if (numActiveChannels == 0) {
 			return;

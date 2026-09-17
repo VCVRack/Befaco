@@ -215,6 +215,7 @@ struct Octaves : Module {
 		}
 		activePolyphonyEngines = std::max({activePolyphonyEngines, inputs[VOCT1_INPUT].getChannels(), inputs[VOCT2_INPUT].getChannels()});
 		activePolyphonyEngines = std::max(activePolyphonyEngines, inputs[PWM_INPUT].getChannels());
+		activePolyphonyEngines = std::max(activePolyphonyEngines, inputs[SYNC_INPUT].getChannels());
 
 		return activePolyphonyEngines;
 	}

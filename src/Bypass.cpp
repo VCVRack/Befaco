@@ -89,7 +89,10 @@ struct Bypass : Module {
 		clickFilter.rise = clickFilter.fall = 1.0 / params[SLEW_TIME_PARAM].getValue();
 
 		const int maxInputChannels = std::max({1, inputs[IN_L_INPUT].getChannels(), inputs[IN_R_INPUT].getChannels()});
-		const int maxFxReturnChannels = std::max({1, inputs[FROM_FX_L_INPUT].getChannels(), inputs[FROM_FX_R_INPUT].getChannels()});
+		const int fxReturnChannels = std::max(inputs[FROM_FX_L_INPUT].getChannels(), inputs[FROM_FX_R_INPUT].getChannels());
+		const bool fxReturnConnected = fxReturnChannels > 0;
+		const bool fxMonophonic = fxReturnConnected && fxReturnChannels == 1;
+		const int outputChannels = fxMonophonic ? 1 : std::max(maxInputChannels, fxReturnChannels);
 
 		const LatchMode latchMode = (LatchMode) params[LAUNCH_MODE_PARAM].getValue();
 		const ReturnMode returnMode = (ReturnMode) params[MODE_PARAM].getValue();
@@ -127,9 +130,8 @@ struct Bypass : Module {
 		const float gainTaper = params[FX_GAIN_PARAM].getValue() < 0.f ? 30 * params[FX_GAIN_PARAM].getValue() : params[FX_GAIN_PARAM].getValue() * 12;
 		const float fxReturnGain = std::pow(10, gainTaper / 20.0f);
 		float_4 dryLeft, dryRight, outL, outR;
-		for (int c = 0; c < maxFxReturnChannels; c += 4) {
+		for (int c = 0; c < outputChannels; c += 4) {
 
-			const bool fxMonophonic = (maxInputChannels == 1);
 			if (fxMonophonic) {
 				// if the return fx is monophonic, mix down dry inputs to monophonic also
 				dryLeft = inputs[IN_L_INPUT].getVoltageSum();
@@ -162,9 +164,8 @@ struct Bypass : Module {
 			outputs[OUT_R_OUTPUT].setVoltageSimd<float_4>(outR, c);
 		}
 
-		// output polyphony is set by fx return polyphony
-		outputs[OUT_L_OUTPUT].setChannels(maxFxReturnChannels);
-		outputs[OUT_R_OUTPUT].setChannels(maxFxReturnChannels);
+		outputs[OUT_L_OUTPUT].setChannels(outputChannels);
+		outputs[OUT_R_OUTPUT].setChannels(outputChannels);
 
 		lights[LAUNCH_LED].setSmoothBrightness(sendActive, args.sampleTime);
 	}

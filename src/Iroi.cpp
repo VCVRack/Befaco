@@ -648,7 +648,7 @@ struct IroiVCV : Module {
         }
     }
 
-    void updateLights(const ProcessArgs &args, const PatchCtrls *patchCtrls, const Ui *ui) {
+    void updateLights(const ProcessArgs &args, const PatchCtrls *patchCtrls, const PatchState *patchState, const Ui *ui) {
         const float blockTime = args.sampleTime * kBlockSize;
         const float slewTime = params[SLEW_TIME_PARAM].getValue();
         if (randomLedBrightness > 0.f) {
@@ -656,12 +656,14 @@ struct IroiVCV : Module {
             randomLedBrightness *= std::max(0.f, 1.f - blockTime / tau);
         }
 
-        lights[SYNC_LIGHT].setBrightnessSmooth(patch->isButtonPressed(SYNC_IN), args.sampleTime * kBlockSize);
+        lights[SYNC_LIGHT].setBrightnessSmooth(ui->leds_[LED_SYNC]->Get(), args.sampleTime * kBlockSize);
         lights[LEVEL_LIGHT + 0].setBrightnessSmooth(ui->leds_[LED_INPUT_PEAK]->Get(), args.sampleTime * kBlockSize);
         lights[LEVEL_LIGHT + 1].setBrightnessSmooth(
             lights[LEVEL_LIGHT + 0].getBrightness() < 0.5f ? ui->leds_[LED_INPUT]->Get() : 0.f, args.sampleTime * kBlockSize);
         lights[LEVEL_LIGHT + 2].setBrightness(0.f);
-        lights[MOD_LIGHT].setBrightness(patch->getParameterValue(MOD_LED_PARAM));
+        // Show the actual bipolar modulation waveform, independent of the hardware LED drive model.
+        const float modBrightness = clamp(0.5f * (patchState->modValue + 1.f), 0.f, 1.f);
+        lights[MOD_LIGHT].setBrightness(modBrightness);
         lights[SHIFT_BUTTON_LED].setBrightness(ui->leds_[LED_SHIFT]->Get());
         lights[RANDOM_BUTTON_LED].setBrightness(std::max(ui->leds_[LED_RANDOM]->Get(), randomLedBrightness));
 
@@ -770,7 +772,7 @@ struct IroiVCV : Module {
             patch->processAudio(*bufferOut);
             bufferIndex = 0;
 
-            updateLights(args, patchCtrls, ui);
+            updateLights(args, patchCtrls, patchState, ui);
         }
 
         bufferIn->getSamples(LEFT_CHANNEL)[bufferIndex] = inputs[LEFT_INPUT].getVoltageSum() / 5.f;

@@ -33,7 +33,7 @@ namespace R8{
             return (uint16_t)(perlin1d(pos, 920.666, 2) * SIXTEEN_BIT_MAX);
         }
 
-        RandomLoop CreateSequence() override {
+        RandomLoop& CreateSequence() override {
             for (int i = 0; i < randLoop.size; i++)
             {
                 randLoop.randValues.pop_back();
@@ -65,7 +65,7 @@ namespace R8{
             return (uint16_t)(perlin1d(pos, 720.1459, 10) * SIXTEEN_BIT_MAX);
         }
 
-        RandomLoop CreateSequence() override {
+        RandomLoop& CreateSequence() override {
             for (int i = 0; i < randLoop.size; i++)
             {
                 randLoop.randValues.pop_back();

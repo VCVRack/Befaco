@@ -2,6 +2,8 @@
 #include "noise-plethora/plugins/NoisePlethoraPlugin.hpp"
 #include "noise-plethora/plugins/ProgramSelector.hpp"
 
+#include <atomic>
+
 enum FilterMode {
 	LOWPASS,
 	HIGHPASS,
@@ -173,8 +175,8 @@ struct NoisePlethora : Module {
 	ProgramSelector programSelector; 		// tracks banks and programs for both sections A/B, including which is the "active" section
 	ProgramSelector programSelectorWithCV; 	// as above, but also with CV for program applied as an offset - works like Plaits Model CV input
 	// UI / UX for A/B
-	std::string textDisplayA = " ", textDisplayB = " ";
-	bool isDisplayActiveA = false, isDisplayActiveB = false;
+	std::atomic<char> textDisplayA {' '}, textDisplayB {' '};
+	std::atomic<bool> isDisplayActiveA {false}, isDisplayActiveB {false};
 	bool programButtonHeld = false;
 	bool programButtonDragged = false;
 	dsp::BooleanTrigger programHoldTrigger;
@@ -284,8 +286,10 @@ struct NoisePlethora : Module {
 		processBottomSection(args);
 
 		// UI
-		updateDataForLEDDisplay();
 		processProgramBankKnobLogic(args);
+		if (updateParams) {
+			updateDataForLEDDisplay();
+		}
 	}
 
 	// process CV for section, specifically: work out the offset relative to the current
@@ -420,20 +424,20 @@ struct NoisePlethora : Module {
 	void updateDataForLEDDisplay() {
 
 		if (programKnobMode == PROGRAM_MODE) {
-			textDisplayA = std::to_string(programSelectorWithCV.getA().getProgram());
+			textDisplayA.store('0' + programSelectorWithCV.getA().getProgram(), std::memory_order_relaxed);
 		}
 		else if (programKnobMode == BANK_MODE) {
-			textDisplayA = 'A' + programSelectorWithCV.getA().getBank();
+			textDisplayA.store('A' + programSelectorWithCV.getA().getBank(), std::memory_order_relaxed);
 		}
-		isDisplayActiveA = programSelectorWithCV.getMode() == SECTION_A;
+		isDisplayActiveA.store(programSelectorWithCV.getMode() == SECTION_A, std::memory_order_relaxed);
 
 		if (programKnobMode == PROGRAM_MODE) {
-			textDisplayB = std::to_string(programSelectorWithCV.getB().getProgram());
+			textDisplayB.store('0' + programSelectorWithCV.getB().getProgram(), std::memory_order_relaxed);
 		}
 		else if (programKnobMode == BANK_MODE) {
-			textDisplayB = 'A' + programSelectorWithCV.getB().getBank();
+			textDisplayB.store('A' + programSelectorWithCV.getB().getBank(), std::memory_order_relaxed);
 		}
-		isDisplayActiveB = programSelectorWithCV.getMode() == SECTION_B;
+		isDisplayActiveB.store(programSelectorWithCV.getMode() == SECTION_B, std::memory_order_relaxed);
 	}
 
 	// handle convoluted logic for the multifunction Program knob
@@ -639,7 +643,6 @@ struct BefacoTinyKnobSnapPress : BefacoTinyKnobBlack {
 struct NoisePlethoraLEDDisplay : LightWidget {
 	float fontSize = 28;
 	Vec textPos = Vec(2, 25);
-	int numChars = 1;
 	bool activeDisplay = true;
 	NoisePlethora* module;
 	NoisePlethora::Section section = NoisePlethora::SECTION_A;
@@ -718,19 +721,16 @@ struct NoisePlethoraLEDDisplay : LightWidget {
 
 		if (font && font->handle >= 0) {
 
-			std::string text = "A";  // fallback if module not yet defined
+			char text = 'A';  // fallback if module not yet defined
 			if (module) {
-				text = (section == NoisePlethora::SECTION_A) ? module->textDisplayA : module->textDisplayB;
+				text = (section == NoisePlethora::SECTION_A)
+				           ? module->textDisplayA.load(std::memory_order_relaxed)
+				           : module->textDisplayB.load(std::memory_order_relaxed);
 			}
-			char buffer[numChars + 1];
-			int l = text.size();
-			if (l > numChars)
-				l = numChars;
+			char buffer[2] = {};
+			buffer[0] = text;
 
 			nvgGlobalTint(args.vg, color::WHITE);
-
-			text.copy(buffer, l);
-			buffer[numChars] = '\0';
 
 			nvgFontSize(args.vg, fontSize);
 			nvgFontFaceId(args.vg, font->handle);
@@ -747,7 +747,9 @@ struct NoisePlethoraLEDDisplay : LightWidget {
 		}
 
 		if (module) {
-			const bool isSectionDisplayActive = (section == NoisePlethora::SECTION_A) ? module->isDisplayActiveA : module->isDisplayActiveB;
+			const bool isSectionDisplayActive = (section == NoisePlethora::SECTION_A)
+			                                        ? module->isDisplayActiveA.load(std::memory_order_relaxed)
+			                                        : module->isDisplayActiveB.load(std::memory_order_relaxed);
 
 			// active bank dot
 			nvgBeginPath(args.vg);

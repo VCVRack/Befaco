@@ -23,6 +23,7 @@ namespace R8{
         void setup(RandomInfo _info) override {
             // Random::setup(_info); // calls base class' function
             info = _info; // setRandomInfo(_info);
+            count = 0;
             CreateSequence();
             setCurrentValueFromIndex(0);
         }
@@ -33,7 +34,7 @@ namespace R8{
             return count * (befaco::QUANT_OCTAVE_RANGE / 12);
         }
 
-        RandomLoop CreateSequence() override {
+        RandomLoop& CreateSequence() override {
             for (int i = 0; i < randLoop.size; i++)
             {
                 randLoop.randValues.pop_back();

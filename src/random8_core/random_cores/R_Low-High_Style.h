@@ -20,6 +20,7 @@ namespace R8{
 
         void setup(RandomInfo _info) override {
             info = _info; // setRandomInfo(_info);
+            step = 0;
             CreateSequence();
             setCurrentValueFromIndex(0);
         }
@@ -37,7 +38,7 @@ namespace R8{
           return static_cast<uint16_t>(0x8000u | (rand() & 0x7FFF));
         }
 
-        RandomLoop CreateSequence() override {
+        RandomLoop& CreateSequence() override {
             //TODO: check values clamping here
             for (int i = 0; i < randLoop.size; i++)
             {

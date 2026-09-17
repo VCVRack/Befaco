@@ -150,7 +150,9 @@ struct Morphader : Module {
 
         for (int i = 0; i < NUM_MIXER_CHANNELS; i++) {
 
-            const int channels = std::max(std::max(inputs[A_INPUT + i].getChannels(), inputs[B_INPUT + i].getChannels()), 1);
+            const int cvInput = (i == 0 || inputs[CV_INPUT + i].isConnected()) ? CV_INPUT + i : CV_INPUT;
+            const int channels = std::max({inputs[A_INPUT + i].getChannels(), inputs[B_INPUT + i].getChannels(),
+                                           inputs[cvInput].getChannels(), 1});
             // keep track of the max number of channels for the mix output, noting that if channels are taken out of the mix
             // (i.e. they're connected) they shouldn't contribute to the mix polyphony calculation
             if (!outputs[OUT + i].isConnected()) {

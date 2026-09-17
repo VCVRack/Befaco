@@ -51,7 +51,7 @@ namespace R8{
           return wavetable[idx];
         }
 
-        RandomLoop CreateSequence() override {
+        RandomLoop& CreateSequence() override {
             for (int i = 0; i < randLoop.size; i++) {
                 const uint16_t idx = static_cast<uint16_t>((i / static_cast<float>(randLoop.size)) * (TABLE_SIZE - 1));
                 randLoop.randValues.pop_back();

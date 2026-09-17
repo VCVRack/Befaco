@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <array>
 #include <vector>
 
 namespace R8 {
@@ -12,11 +13,12 @@ constexpr uint32_t THIRTYTWO_BIT_MAX = 4294967295u;
 
 constexpr int NUM_AVAILABLE_SCALES = 16;
 constexpr int NUM_AVAILABLE_STYLES = 8;
+constexpr int RANDOM_SEQUENCE_SIZE = 33;
 
 // output from a random core
 struct RandomLoop {
     std::vector<uint16_t> randValues;
-    uint8_t size = 32;
+    uint8_t size = RANDOM_SEQUENCE_SIZE - 1;
 };
 
 // random8 core styles

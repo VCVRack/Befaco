@@ -32,11 +32,12 @@ PatchProcessor* getInitialisingPatchProcessor() {
 
 extern "C"{
 
-  void error(int8_t code, const char* reason){
-    printf("%s\n", reason);
-    errorcode = -1;
-    exit(errorcode);
-  }
+	void error(int8_t code, const char* reason) {
+		if (errorcode == 0) {
+			WARN("Owl error %d: %s", code, reason ? reason : "Unknown error");
+		}
+		errorcode = code != 0 ? code : -1;
+	}
 }
 
 extern "C" {
@@ -63,8 +64,10 @@ extern "C" {
 	}
 
 	void assert_failed(const char* msg, const char* location, int line) {
-		DEBUG("Assertion failed: %s, in %s line %d\n", msg, location, line);
-		exit(-1);
+		if (errorcode == 0) {
+			WARN("Owl assertion failed: %s, in %s line %d", msg, location, line);
+		}
+		errorcode = -1;
 	}
 }
 

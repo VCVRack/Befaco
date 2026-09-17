@@ -174,7 +174,9 @@ struct PonyVCO : Module {
 		const int oversamplingRatio = lfoMode ? 1 : oversampler[0].getOversamplingRatio();
 
 		// number of active polyphony engines (must be at least 1)
-		const int channels = std::max({inputs[TZFM_INPUT].getChannels(), inputs[VOCT_INPUT].getChannels(), inputs[TIMBRE_INPUT].getChannels(), 1});
+		const int channels = std::max({inputs[TZFM_INPUT].getChannels(), inputs[VOCT_INPUT].getChannels(),
+		                               inputs[TIMBRE_INPUT].getChannels(), inputs[SYNC_INPUT].getChannels(),
+		                               inputs[VCA_INPUT].getChannels(), 1});
 
 		for (int c = 0; c < channels; c += 4) {
 			const float_4 timbre = simd::clamp(params[TIMBRE_PARAM].getValue() + inputs[TIMBRE_INPUT].getPolyVoltageSimd<float_4>(c) / 10.f, 0.f, 1.f);

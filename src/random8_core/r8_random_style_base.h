@@ -1,8 +1,10 @@
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <array>
 #include <vector>
 
 #include "r8_utils_vcv.h"
@@ -26,10 +28,16 @@ class Random {
     virtual void create(RandomInfo _info) { setup(_info); }
     virtual void advance(float /*deltaSeconds*/) {}
     virtual uint16_t generate() = 0;
-    virtual RandomLoop CreateSequence() = 0;
+    virtual RandomLoop& CreateSequence() = 0;
 
     virtual uint16_t getNextValue() { return nextValue; }
     virtual uint16_t getCurrentValue() { return currentValue; }
+
+    void resetForSetup() {
+        std::fill(randLoop.randValues.begin(), randLoop.randValues.end(), 0);
+        currentValue = 0;
+        nextValue = 0;
+    }
 
     virtual void generateIntoNextValue() { nextValue = generate(); }
 
@@ -41,21 +49,21 @@ class Random {
 
     virtual void tick() {
         currentValue = randLoop.randValues.front();
-        randLoop.randValues.insert(randLoop.randValues.begin(), generate());
-        randLoop.randValues.pop_back();
+        for (std::size_t i = randLoop.randValues.size() - 1; i > 0; --i) {
+            randLoop.randValues[i] = randLoop.randValues[i - 1];
+        }
+        randLoop.randValues.front() = generate();
         nextValue = randLoop.randValues.front();
     }
 
-    std::vector<uint16_t> getSequence() const { return randLoop.randValues; }
+    std::array<uint16_t, RANDOM_SEQUENCE_SIZE> getSequence() const {
+        std::array<uint16_t, RANDOM_SEQUENCE_SIZE> sequence{};
+        std::copy(randLoop.randValues.begin(), randLoop.randValues.end(), sequence.begin());
+        return sequence;
+    }
 
-    void setSequence(const std::vector<uint16_t> &seq) {
-        randLoop.randValues = seq;
-        const std::size_t sequenceSize = static_cast<std::size_t>(randLoop.size) + 1;
-        if (randLoop.randValues.size() < sequenceSize) {
-            randLoop.randValues.resize(sequenceSize, 0);
-        } else if (randLoop.randValues.size() > sequenceSize) {
-            randLoop.randValues.resize(sequenceSize);
-        }
+    void setSequence(const std::array<uint16_t, RANDOM_SEQUENCE_SIZE> &seq) {
+        std::copy(seq.begin(), seq.end(), randLoop.randValues.begin());
     }
 
     void setCurrentValue(uint16_t value) { currentValue = value; }

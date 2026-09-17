@@ -48,7 +48,7 @@ class NormalDist : public Random {
 
     uint16_t generate() override { return clamp_u16_float(normal_dist() * 32000.0f); }
 
-    RandomLoop CreateSequence() override {
+    RandomLoop& CreateSequence() override {
         for (int i = 0; i < randLoop.size; i++) {
             randLoop.randValues.pop_back();
             randLoop.randValues.insert(randLoop.randValues.begin(), generate());
@@ -86,7 +86,7 @@ class BinomialDist : public Random {
 
     uint16_t generate() override { return binomial_dist(); }
 
-    RandomLoop CreateSequence() override {
+    RandomLoop& CreateSequence() override {
         for (int i = 0; i < randLoop.size; i++) {
             randLoop.randValues.pop_back();
             randLoop.randValues.insert(randLoop.randValues.begin(), generate());
@@ -122,7 +122,7 @@ class LorentzDist : public Random {
 
     uint16_t generate() override { return clamp_u16_float(lorentz_dist() * 65535.0f); }
 
-    RandomLoop CreateSequence() override {
+    RandomLoop& CreateSequence() override {
         for (int i = 0; i < randLoop.size; i++) {
             randLoop.randValues.pop_back();
             randLoop.randValues.insert(randLoop.randValues.begin(), generate());
@@ -157,7 +157,7 @@ class Mersenne : public Random {
 
     uint16_t generate() override { return mersenne_dist(); }
 
-    RandomLoop CreateSequence() override {
+    RandomLoop& CreateSequence() override {
         for (int i = 0; i < randLoop.size; i++) {
             randLoop.randValues.pop_back();
             randLoop.randValues.insert(randLoop.randValues.begin(), generate());
@@ -196,7 +196,7 @@ class GammaDist : public Random {
 
     uint16_t generate() override { return gamma_dist(); }
 
-    RandomLoop CreateSequence() override {
+    RandomLoop& CreateSequence() override {
         for (int i = 0; i < randLoop.size; i++) {
             randLoop.randValues.pop_back();
             randLoop.randValues.insert(randLoop.randValues.begin(), generate());
@@ -255,7 +255,7 @@ class WeibullDist : public Random {
 
     uint16_t generate() override { return weibull_dist(); }
 
-    RandomLoop CreateSequence() override {
+    RandomLoop& CreateSequence() override {
         for (int i = 0; i < randLoop.size; i++) {
             randLoop.randValues.pop_back();
             randLoop.randValues.insert(randLoop.randValues.begin(), generate());

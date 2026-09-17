@@ -32,7 +32,7 @@ namespace R8{
         // uint16_t generate() override { return remap(distribution(generator), -3, 3, 0, 65535); }
         uint16_t generate() override { return normal_dist(); }
 
-        RandomLoop CreateSequence() override {
+        RandomLoop& CreateSequence() override {
             for (int i = 0; i < randLoop.size; i++)
             {
                 randLoop.randValues.pop_back();

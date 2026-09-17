@@ -80,7 +80,13 @@ struct Random8 : Module {
     int panelAppState = Random8Panel::PERFORMANCE;
     int lastTouchedMenuChannel = 0;
     std::array<int, NUM_CHANNELS> loopModes{};
-    std::array<json_t *, NUM_CHANNELS> presetSlots{};
+    struct PresetSlot {
+        bool filled = false;
+        std::array<int, NUM_CHANNELS> loopModes{};
+        std::array<R8::Channel::ChannelState, NUM_CHANNELS> channelStates{};
+        std::array<std::array<float, NUM_CHANNELS>, NUM_PAGES> paramValues{};
+    };
+    std::array<PresetSlot, NUM_CHANNELS> presetSlots{};
     Random8Core core;
     Random8Panel::UX panelUx;
     std::array<std::array<float, NUM_CHANNELS>, NUM_PAGES> lastPageValues{};
@@ -170,14 +176,6 @@ struct Random8 : Module {
         channelParamsDirty.fill(true);
         updateLastPageValues();
         syncCoreParams();
-    }
-
-    ~Random8() override {
-        for (json_t *preset : presetSlots) {
-            if (preset) {
-                json_decref(preset);
-            }
-        }
     }
 
     dsp::SchmittTrigger trig[NUM_CHANNELS];
@@ -317,7 +315,7 @@ struct Random8 : Module {
         for (int i = 0; i < NUM_CHANNELS; i++) {
             panelInput.buttonDown[i] = params[pageButtonParams[i]].getValue() > 0.5f;
             panelInput.loopModes[i] = loopModes[i];
-            panelInput.presetFilled[i] = presetSlots[i] != nullptr;
+            panelInput.presetFilled[i] = presetSlots[i].filled;
             panelInput.divider[i] = params[DIVIDER_VALUE_PARAM + i].getValue();
             panelInput.probability[i] = params[PROB_VALUE_PARAM + i].getValue();
             panelInput.style[i] = params[STYLE_VALUE_PARAM + i].getValue();
@@ -441,6 +439,28 @@ struct Random8 : Module {
         writeOutputs();
     }
 
+    static json_t *channelStateToJson(const R8::Channel::ChannelState &state) {
+        json_t *chan = json_object();
+        json_object_set_new(chan, "style", json_integer(static_cast<int>(state.info.style)));
+        json_object_set_new(chan, "seed", json_integer(state.info.seed));
+        json_object_set_new(chan, "isLooping", json_integer(state.isLooping));
+        json_object_set_new(chan, "loopSteps", json_integer(state.loopSteps));
+        json_object_set_new(chan, "currentLoopIndex", json_integer(state.currentLoopIndex));
+        json_object_set_new(chan, "triggerCount", json_integer(state.triggerCount));
+        json_object_set_new(chan, "currentVal", json_integer(state.currentVal));
+        json_object_set_new(chan, "nextVal", json_integer(state.nextVal));
+        json_object_set_new(chan, "prevVal", json_integer(state.prevVal));
+
+        json_t *sequence = json_array();
+        if (state.hasSequence) {
+            for (uint16_t value : state.sequence) {
+                json_array_append_new(sequence, json_integer(value));
+            }
+        }
+        json_object_set_new(chan, "sequence", sequence);
+        return chan;
+    }
+
     json_t *stateToJson() {
         json_t *root = json_object();
 
@@ -452,102 +472,80 @@ struct Random8 : Module {
 
         json_t *channels = json_array();
         for (int i = 0; i < NUM_CHANNELS; i++) {
-            R8::Channel::ChannelState state = core.getChannelState(i);
-            json_t *chan = json_object();
-            json_object_set_new(chan, "style", json_integer(static_cast<int>(state.info.style)));
-            json_object_set_new(chan, "seed", json_integer(state.info.seed));
-            json_object_set_new(chan, "isLooping", json_integer(state.isLooping));
-            json_object_set_new(chan, "loopSteps", json_integer(state.loopSteps));
-            json_object_set_new(chan, "currentLoopIndex", json_integer(state.currentLoopIndex));
-            json_object_set_new(chan, "triggerCount", json_integer(state.triggerCount));
-            json_object_set_new(chan, "currentVal", json_integer(state.currentVal));
-            json_object_set_new(chan, "nextVal", json_integer(state.nextVal));
-            json_object_set_new(chan, "prevVal", json_integer(state.prevVal));
-
-            json_t *sequence = json_array();
-            for (uint16_t value : state.sequence) {
-                json_array_append_new(sequence, json_integer(value));
-            }
-            json_object_set_new(chan, "sequence", sequence);
-            json_array_append_new(channels, chan);
+            json_array_append_new(channels, channelStateToJson(core.getChannelState(i)));
         }
         json_object_set_new(root, "channels", channels);
         return root;
     }
 
-    json_t *presetToJson() {
-        json_t *root = stateToJson();
+    json_t *presetToJson(const PresetSlot &preset) {
+        json_t *root = json_object();
+
+        json_t *loops = json_array();
+        json_t *channels = json_array();
+        for (int i = 0; i < NUM_CHANNELS; ++i) {
+            json_array_append_new(loops, json_integer(preset.loopModes[i]));
+            json_array_append_new(channels, channelStateToJson(preset.channelStates[i]));
+        }
+        json_object_set_new(root, "loopModes", loops);
+        json_object_set_new(root, "channels", channels);
 
         json_t *paramsJson = json_array();
         for (int i = 0; i < NUM_CHANNELS; i++) {
             json_t *chan = json_object();
-            json_object_set_new(chan, "gain", json_real(params[GAIN_VALUE_PARAM + i].getValue()));
-            json_object_set_new(chan, "divider", json_real(params[DIVIDER_VALUE_PARAM + i].getValue()));
-            json_object_set_new(chan, "probability", json_real(params[PROB_VALUE_PARAM + i].getValue()));
-            json_object_set_new(chan, "style", json_real(params[STYLE_VALUE_PARAM + i].getValue()));
-            json_object_set_new(chan, "offset", json_real(params[OFFSET_VALUE_PARAM + i].getValue()));
-            json_object_set_new(chan, "scale", json_real(params[SCALE_VALUE_PARAM + i].getValue()));
-            json_object_set_new(chan, "slide", json_real(params[SLIDE_VALUE_PARAM + i].getValue()));
-            json_object_set_new(chan, "steps", json_real(params[STEPS_VALUE_PARAM + i].getValue()));
+            json_object_set_new(chan, "gain", json_real(preset.paramValues[PAGE_PRESET][i]));
+            json_object_set_new(chan, "divider", json_real(preset.paramValues[PAGE_DIVIDER][i]));
+            json_object_set_new(chan, "probability", json_real(preset.paramValues[PAGE_PROB][i]));
+            json_object_set_new(chan, "style", json_real(preset.paramValues[PAGE_STYLE][i]));
+            json_object_set_new(chan, "offset", json_real(preset.paramValues[PAGE_OFFSET][i]));
+            json_object_set_new(chan, "scale", json_real(preset.paramValues[PAGE_SCALE][i]));
+            json_object_set_new(chan, "slide", json_real(preset.paramValues[PAGE_SLIDE][i]));
+            json_object_set_new(chan, "steps", json_real(preset.paramValues[PAGE_STEPS][i]));
             json_array_append_new(paramsJson, chan);
         }
         json_object_set_new(root, "params", paramsJson);
         return root;
     }
 
-    void setParamFromJson(json_t *chan, const char *key, int paramId) {
+    static void setValueFromJson(json_t *chan, const char *key, float &value) {
         json_t *field = json_object_get(chan, key);
         if (field) {
-            params[paramId].setValue(json_number_value(field));
+            value = json_number_value(field);
         }
-    }
-
-    void presetFromJson(json_t *root) {
-        dataFromJson(root);
-
-        json_t *paramsJson = json_object_get(root, "params");
-        if (!paramsJson) {
-            return;
-        }
-        for (int i = 0; i < NUM_CHANNELS; i++) {
-            json_t *chan = json_array_get(paramsJson, i);
-            if (!chan) {
-                continue;
-            }
-
-            setParamFromJson(chan, "gain", GAIN_VALUE_PARAM + i);
-            setParamFromJson(chan, "divider", DIVIDER_VALUE_PARAM + i);
-            setParamFromJson(chan, "probability", PROB_VALUE_PARAM + i);
-            setParamFromJson(chan, "style", STYLE_VALUE_PARAM + i);
-            setParamFromJson(chan, "offset", OFFSET_VALUE_PARAM + i);
-            setParamFromJson(chan, "scale", SCALE_VALUE_PARAM + i);
-            setParamFromJson(chan, "slide", SLIDE_VALUE_PARAM + i);
-            setParamFromJson(chan, "steps", STEPS_VALUE_PARAM + i);
-        }
-    }
-
-    void setPresetSlot(int slot, json_t *data) {
-        if (slot < 0 || slot >= NUM_CHANNELS) {
-            return;
-        }
-        if (presetSlots[slot]) {
-            json_decref(presetSlots[slot]);
-        }
-        presetSlots[slot] = data;
     }
 
     void savePresetSlot(int slot) {
         if (slot < 0 || slot >= NUM_CHANNELS) {
             return;
         }
-        setPresetSlot(slot, presetToJson());
+        PresetSlot &preset = presetSlots[slot];
+        preset.filled = true;
+        preset.loopModes = loopModes;
+        for (int channel = 0; channel < NUM_CHANNELS; ++channel) {
+            preset.channelStates[channel] = core.getChannelState(channel);
+        }
+        for (int page = 0; page < NUM_PAGES; ++page) {
+            for (int channel = 0; channel < NUM_CHANNELS; ++channel) {
+                preset.paramValues[page][channel] = params[pageValueParams[page] + channel].getValue();
+            }
+        }
     }
 
     bool loadPresetSlot(int slot) {
-        if (slot < 0 || slot >= NUM_CHANNELS || !presetSlots[slot]) {
+        if (slot < 0 || slot >= NUM_CHANNELS || !presetSlots[slot].filled) {
             return false;
         }
-        presetFromJson(presetSlots[slot]);
+        const PresetSlot &preset = presetSlots[slot];
+        loopModes = preset.loopModes;
+        for (int channel = 0; channel < NUM_CHANNELS; ++channel) {
+            core.setChannelState(channel, preset.channelStates[channel]);
+        }
+        for (int page = 0; page < NUM_PAGES; ++page) {
+            for (int channel = 0; channel < NUM_CHANNELS; ++channel) {
+                params[pageValueParams[page] + channel].setValue(preset.paramValues[page][channel]);
+            }
+        }
+        channelParamsDirty.fill(true);
         return true;
     }
 
@@ -556,14 +554,87 @@ struct Random8 : Module {
 
         json_t *presets = json_array();
         for (int i = 0; i < NUM_CHANNELS; i++) {
-            if (presetSlots[i]) {
-                json_array_append(presets, presetSlots[i]);
+            if (presetSlots[i].filled) {
+                json_array_append_new(presets, presetToJson(presetSlots[i]));
             } else {
                 json_array_append_new(presets, json_null());
             }
         }
         json_object_set_new(root, "presets", presets);
         return root;
+    }
+
+    static R8::Channel::ChannelState channelStateFromJson(json_t *chan) {
+        R8::Channel::ChannelState state;
+        json_t *field = nullptr;
+
+        field = json_object_get(chan, "style");
+        if (field) state.info.style = static_cast<R8::RandomStyle>(json_integer_value(field));
+        field = json_object_get(chan, "seed");
+        if (field) state.info.seed = json_integer_value(field);
+        field = json_object_get(chan, "isLooping");
+        if (field) state.isLooping = json_integer_value(field);
+        field = json_object_get(chan, "loopSteps");
+        if (field) state.loopSteps = json_integer_value(field);
+        field = json_object_get(chan, "currentLoopIndex");
+        if (field) state.currentLoopIndex = json_integer_value(field);
+        field = json_object_get(chan, "triggerCount");
+        if (field) state.triggerCount = json_integer_value(field);
+        field = json_object_get(chan, "currentVal");
+        if (field) state.currentVal = json_integer_value(field);
+        field = json_object_get(chan, "nextVal");
+        if (field) state.nextVal = json_integer_value(field);
+        field = json_object_get(chan, "prevVal");
+        if (field) state.prevVal = json_integer_value(field);
+
+        json_t *sequence = json_object_get(chan, "sequence");
+        if (sequence) {
+            const size_t count = std::min(json_array_size(sequence), state.sequence.size());
+            for (size_t index = 0; index < count; ++index) {
+                state.sequence[index] = static_cast<uint16_t>(json_integer_value(json_array_get(sequence, index)));
+            }
+            state.hasSequence = count > 0;
+        }
+        return state;
+    }
+
+    void presetSlotFromJson(int slot, json_t *root) {
+        if (slot < 0 || slot >= NUM_CHANNELS || !root) {
+            return;
+        }
+        PresetSlot preset;
+        preset.filled = true;
+        preset.loopModes = loopModes;
+        for (int channel = 0; channel < NUM_CHANNELS; ++channel) {
+            preset.channelStates[channel] = core.getChannelState(channel);
+        }
+        for (int page = 0; page < NUM_PAGES; ++page) {
+            for (int channel = 0; channel < NUM_CHANNELS; ++channel) {
+                preset.paramValues[page][channel] = params[pageValueParams[page] + channel].getValue();
+            }
+        }
+
+        if (json_t *loops = json_object_get(root, "loopModes")) {
+            for (int i = 0; i < NUM_CHANNELS; ++i) {
+                if (json_t *value = json_array_get(loops, i)) preset.loopModes[i] = json_integer_value(value);
+            }
+        }
+        if (json_t *channels = json_object_get(root, "channels")) {
+            for (int i = 0; i < NUM_CHANNELS; ++i) {
+                if (json_t *chan = json_array_get(channels, i)) preset.channelStates[i] = channelStateFromJson(chan);
+            }
+        }
+        if (json_t *paramsJson = json_object_get(root, "params")) {
+            static const char *keys[NUM_PAGES] = {"gain", "divider", "probability", "style", "offset", "scale", "slide", "steps"};
+            for (int i = 0; i < NUM_CHANNELS; ++i) {
+                if (json_t *chan = json_array_get(paramsJson, i)) {
+                    for (int page = 0; page < NUM_PAGES; ++page) {
+                        setValueFromJson(chan, keys[page], preset.paramValues[page][i]);
+                    }
+                }
+            }
+        }
+        presetSlots[slot] = preset;
     }
 
     void dataFromJson(json_t *root) override {
@@ -581,59 +652,7 @@ struct Random8 : Module {
         if (channels) {
             for (int i = 0; i < NUM_CHANNELS; i++) {
                 json_t *chan = json_array_get(channels, i);
-                if (!chan) {
-                    continue;
-                }
-                R8::Channel::ChannelState state;
-                json_t *field = nullptr;
-
-                field = json_object_get(chan, "style");
-                if (field) {
-                    state.info.style = static_cast<R8::RandomStyle>(json_integer_value(field));
-                }
-                field = json_object_get(chan, "seed");
-                if (field) {
-                    state.info.seed = json_integer_value(field);
-                }
-                field = json_object_get(chan, "isLooping");
-                if (field) {
-                    state.isLooping = json_integer_value(field);
-                }
-                field = json_object_get(chan, "loopSteps");
-                if (field) {
-                    state.loopSteps = json_integer_value(field);
-                }
-                field = json_object_get(chan, "currentLoopIndex");
-                if (field) {
-                    state.currentLoopIndex = json_integer_value(field);
-                }
-                field = json_object_get(chan, "triggerCount");
-                if (field) {
-                    state.triggerCount = json_integer_value(field);
-                }
-                field = json_object_get(chan, "currentVal");
-                if (field) {
-                    state.currentVal = json_integer_value(field);
-                }
-                field = json_object_get(chan, "nextVal");
-                if (field) {
-                    state.nextVal = json_integer_value(field);
-                }
-                field = json_object_get(chan, "prevVal");
-                if (field) {
-                    state.prevVal = json_integer_value(field);
-                }
-
-                json_t *sequence = json_object_get(chan, "sequence");
-                if (sequence) {
-                    size_t index = 0;
-                    json_t *seqValue = nullptr;
-                    json_array_foreach(sequence, index, seqValue) {
-                        state.sequence.push_back(static_cast<uint16_t>(json_integer_value(seqValue)));
-                    }
-                }
-
-                core.setChannelState(i, state);
+                if (chan) core.setChannelState(i, channelStateFromJson(chan));
             }
         }
 
@@ -642,9 +661,9 @@ struct Random8 : Module {
             for (int i = 0; i < NUM_CHANNELS; i++) {
                 json_t *preset = json_array_get(presets, i);
                 if (preset && json_is_object(preset)) {
-                    setPresetSlot(i, json_deep_copy(preset));
+                    presetSlotFromJson(i, preset);
                 } else {
-                    setPresetSlot(i, nullptr);
+                    presetSlots[i] = PresetSlot{};
                 }
             }
         }
@@ -792,7 +811,7 @@ struct Random8Widget : ModuleWidget {
             if (random8->panelAppState == Random8Panel::IN_PRESETS) {
                 if (i == Random8::PAGE_PRESET) {
                     pq->description = "Press to exit preset mode.";
-                } else if (random8->presetSlots[i]) {
+                } else if (random8->presetSlots[i].filled) {
                     pq->description =
                         "Press to load preset from this slot.\nHold and release to overwrite this slot.\nReturns to "
                         "performance mode.";
@@ -835,7 +854,7 @@ struct Random8Widget : ModuleWidget {
         std::vector<std::string> presetLabels;
         presetLabels.reserve(Random8::NUM_CHANNELS);
         for (int i = 0; i < Random8::NUM_CHANNELS; i++) {
-            const bool used = random8->presetSlots[i] != nullptr;
+            const bool used = random8->presetSlots[i].filled;
             presetLabels.push_back(string::f("Slot %d (%s)", i + 1, used ? "used" : "unused"));
         }
         menu->addChild(createIndexSubmenuItem(
