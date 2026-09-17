@@ -921,12 +921,16 @@ struct NoisePlethoraWidget : ModuleWidget {
 			menu->addChild(createSubmenuItem(string::f("Program %c", programNames[sectionId]), "",
 			[ = ](Menu * menu) {
 				for (int i = 0; i < numBanks; i++) {
+					if (i == 3) {
+						menu->addChild(new MenuSeparator());
+						menu->addChild(createMenuLabel("Additional Contributor Banks"));
+					}
+
 					const int displayedSection = module->stereoMode ? NoisePlethora::SECTION_A : sectionId;
 					const int currentBank = module->programSelector.getSection(displayedSection).getBank();
 					const int currentProgram = module->programSelector.getSection(displayedSection).getProgram();
-					const char* bankType = i >= 3 ? " (USER)" : "";
 
-					menu->addChild(createSubmenuItem(string::f("Bank %c%s: %s", 'A' + i, bankType, bankAliases[i].c_str()), currentBank == i ? CHECKMARK_STRING : "", [ = ](Menu * menu) {
+					menu->addChild(createSubmenuItem(string::f("Bank %c: %s", 'A' + i, bankAliases[i].c_str()), currentBank == i ? CHECKMARK_STRING : "", [ = ](Menu * menu) {
 						for (int j = 0; j < getBankForIndex(i).getSize(); ++j) {
 							const bool currentProgramAndBank = (currentProgram == j) && (currentBank == i);
 							std::string_view algorithmName = getBankForIndex(i).getProgramName(j);
