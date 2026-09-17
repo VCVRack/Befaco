@@ -68,6 +68,8 @@ struct SlewLimiter : Module {
 
 			riseCV[c / 4] += param_rise;
 			fallCV[c / 4] += param_fall;
+			riseCV[c / 4] = simd::clamp(riseCV[c / 4], 0.f, 10.f);
+			fallCV[c / 4] = simd::clamp(fallCV[c / 4], 0.f, 10.f);
 
 			float_4 delta = in[c / 4] - out[c / 4];
 			float_4 delta_gt_0 = delta > 0.f;

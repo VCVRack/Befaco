@@ -6,17 +6,26 @@
   * Burst
     * Fix startup EOC and post-burst out-of-bounds access
   * Iroi
-    * Prevent Owl errors and assertions from terminating Rack; restore sync/modulation LEDs
+    * Prevent Owl errors and assertions from terminating Rack, restore sync/modulation LEDs, and remove the unused global VCV bridge
   * Polyphony
     * Fix dry/return widths in Bypass, lane CV in Hexmix VCA and Morphader, stale Rampage logic lanes, and omitted Octaves/Pony inputs
   * Noise Plethora
-    * Fix truncated 16-bit block copies and make the DSP-to-UI display state lock-free
+    * Fix truncated block copies, make display state lock-free, validate bank selection, and skip unused bottom-section noise generation
   * Sampling Modulator
     * Prevent stale or invalid BLEP events after output/mode changes
   * Random8
     * Remove engine, sequence, preset, and reset allocation from real-time processing
   * MIDI Thing
     * Remove per-sample active-channel allocation
+    * Validate saved settings and bound optional SysEx decoding
+  * ADSR and Slew Limiter
+    * Fix shaped release retriggers and clamp timing CV to its supported range
+  * Meters and lights
+    * Fix mono/poly meter states and avoid per-sample Sampling Modulator step-light updates
+  * Reset handling
+    * Clear stale sequencer, oscillator, envelope, filter, reverb, and meter state on reset
+  * Build
+    * Fix AArch64 Teensy assembly operands and remove dead Random8 quantizer fields
 
 ## v2.11.0
   * Random8

@@ -378,7 +378,7 @@ public:
 
 	/** Sets the oversampling factor as 2^idx */
 	void setOversamplingIndex(int newIdx) {
-		osIdx = newIdx;
+		osIdx = rack::clamp(newIdx, 0, NumOS - 1);
 	}
 
 	/** Returns the oversampling index */

@@ -157,6 +157,17 @@ struct PonyVCO : Module {
 		}
 	}
 
+	void onReset() override {
+		for (int i = 0; i < 4; ++i) {
+			phase[i] = 0.f;
+			syncTrigger[i].reset();
+		}
+		onSampleRateChange();
+		for (int i = 0; i < 4; ++i) {
+			blockTZFMDCFilter[i].reset();
+		}
+	}
+
 	// implementation taken from "Alias-Suppressed Oscillators Based on Differentiated Polynomial Waveforms",
 	// also the notes from Surge Synthesier repo:
 	// https://github.com/surge-synthesizer/surge/blob/09f1ec8e103265bef6fc0d8a0fc188238197bf8c/src/common/dsp/oscillators/ModernOscillator.cpp#L19
@@ -349,7 +360,7 @@ struct PonyVCO : Module {
 
 		json_t* oversamplingIndexJ = json_object_get(rootJ, "oversamplingIndex");
 		if (oversamplingIndexJ) {
-			oversamplingIndex = json_integer_value(oversamplingIndexJ);
+			oversamplingIndex = clamp(static_cast<int>(json_integer_value(oversamplingIndexJ)), 0, 4);
 			onSampleRateChange();
 		}
 	}

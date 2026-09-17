@@ -65,6 +65,17 @@ struct Percall : Module {
 		lightDivider.setDivision(128);
 	}
 
+	void onReset() override {
+		for (int i = 0; i < 4; ++i) {
+			envs[i].reset();
+			gains[i] = 0.f;
+			trigger[i].reset();
+			lights[LEDS + i].setBrightness(0.f);
+		}
+		cvDivider.reset();
+		lightDivider.reset();
+	}
+
 	void process(const ProcessArgs& args) override {
 
 		float strength = 1.0f;

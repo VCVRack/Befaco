@@ -22,6 +22,11 @@ struct AeFilter {
 
 	float a0, a1, a2, b0, b1, b2;
 
+	void reset() {
+		std::fill(x, x + 2, T{});
+		std::fill(y, y + 2, T{});
+	}
+
 	inline T process(const T& in) noexcept {
 		T out = b0 * in + b1 * x[0] + b2 * x[1] - a1 * y[0] - a2 * y[1];
 
@@ -92,6 +97,11 @@ struct AeEqualizer {
 	T y[2] = {};
 
 	float a0, a1, a2, b0, b1, b2;
+
+	void reset() {
+		std::fill(x, x + 2, T{});
+		std::fill(y, y + 2, T{});
+	}
 
 	T process(T in) {
 		T out = b0 * in + b1 * x[0] + b2 * x[1] - a1 * y[0] - a2 * y[1];
@@ -313,6 +323,26 @@ struct StereoStrip : Module {
 		}
 	}
 
+	void onReset() override {
+		for (int c = 0; c < 4; ++c) {
+			for (int side = 0; side < 2; ++side) {
+				eqLow[c][side].reset();
+				eqMid[c][side].reset();
+				eqHigh[c][side].reset();
+				highpass[c][side].reset();
+				highshelf[c][side].reset();
+			}
+		}
+		clickFilter.reset();
+		sliderUpdate.reset();
+		lastLowGain = -INFINITY;
+		lastMidGain = -INFINITY;
+		lastHighGain = -INFINITY;
+		for (int i = 0; i < LIGHTS_LEN; ++i) {
+			lights[i].setBrightness(0.f);
+		}
+	}
+
 	void process(const ProcessArgs& args) override {
 
 		float_4 out[4][2] = {}, in[4][2] = {};
@@ -433,7 +463,9 @@ struct StereoStrip : Module {
 
 		json_t* panningLawJ = json_object_get(rootJ, "panningLaw");
 		if (panningLawJ) {
-			panningLaw = (PanningLaw) json_integer_value(panningLawJ);
+			panningLaw = static_cast<PanningLaw>(clamp(static_cast<int>(json_integer_value(panningLawJ)),
+			                                             static_cast<int>(LINEAR_6dB),
+			                                             static_cast<int>(LINEAR_CLIPPED)));
 		}
 
 		json_t* softClippingJ = json_object_get(rootJ, "applySoftClipping");

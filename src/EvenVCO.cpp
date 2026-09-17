@@ -297,7 +297,7 @@ struct EvenVCO : Module {
 
 		json_t* oversamplingIndexJ = json_object_get(rootJ, "oversamplingIndex");
 		if (oversamplingIndexJ) {
-			oversamplingIndex = json_integer_value(oversamplingIndexJ);
+			oversamplingIndex = clamp(static_cast<int>(json_integer_value(oversamplingIndexJ)), 0, 4);
 			onSampleRateChange();
 		}
 	}

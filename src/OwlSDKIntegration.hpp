@@ -5,10 +5,7 @@
 #include "FastLogTable.h"
 #include "FastPowTable.h"
 #include "MemoryBuffer.hpp"
-#include "PatchProcessor.h"
 
-static float parameter_values[40] = {};
-static uint32_t button_values = 0;
 int errorcode = 0;
 
 #define BLOCKSIZE 32
@@ -16,19 +13,6 @@ int errorcode = 0;
 struct ProgramVector {};
 ProgramVector programVector;
 extern int errorcode;
-
-#if defined(VCV)
-PatchProcessor::PatchProcessor() : patch(NULL), index(0), bufferCount(0), parameterCount(0), name(NULL) {
-	for (int i = 0; i < MAX_NUMBER_OF_PARAMETERS; ++i)
-		parameters[i] = NULL;
-}
-PatchProcessor::~PatchProcessor() {}
-
-static PatchProcessor vcvPatchProcessor;
-PatchProcessor* getInitialisingPatchProcessor() {
-	return &vcvPatchProcessor;
-}
-#endif
 
 extern "C"{
 
@@ -48,19 +32,11 @@ extern "C" {
 
 extern "C" {
 	void doSetButton(uint8_t bid, uint16_t value, uint16_t samples) {
-		// DEBUG("Set button B%d: %d\n", bid - 4, value);
-		if (value)
-			button_values |= (1 << bid);
-		else
-			button_values &= ~(1 << bid);
+		// Hardware-only bridge. Iroi's VCV integration exposes LEDs directly
+		// from each patch instance instead of publishing process-global state.
 	}
 	void doSetPatchParameter(uint8_t pid, int16_t value) {
-		//if (pid < PARAMETER_AA)
-			//DEBUG("Set parameter %c: %d\n", 'A' + pid, value);
-		//else
-			//DEBUG("Set parameter %c%c: %d\n", '@' + (pid / 8), 'A' + (pid % 8), value);
-		if (pid < 40)
-			parameter_values[pid] = value / 4096.0f;
+		// Hardware-only bridge; see doSetButton().
 	}
 
 	void assert_failed(const char* msg, const char* location, int line) {
@@ -189,21 +165,17 @@ int Patch::getNumberOfChannels() {
 }
 
 float Patch::getParameterValue(PatchParameterId pid) {
-	if (pid < 40)
-		return parameter_values[pid];
 	return 0.0f;
 }
 
 void Patch::setParameterValue(PatchParameterId pid, float value) {
-	doSetPatchParameter(pid, value * 4095);
 }
 
 void Patch::setButton(PatchButtonId bid, uint16_t value, uint16_t samples) {
-	doSetButton(bid, value, samples);
 }
 
 bool Patch::isButtonPressed(PatchButtonId bid) {
-	return button_values & (1 << bid);
+	return false;
 }
 
 

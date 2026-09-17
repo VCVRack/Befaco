@@ -25,14 +25,6 @@ class Quantizer {
 
   private:
     int _scale = 0;
-    int _octave = 0;
-    int _index = 0;
-    int _nudge = 0;
-    int _above = 0;
-    int _below = 0;
-    int _current = 0;
-    QuantizeResponse _last{};
-    int _temp = 0;
 };
 
 } // namespace befaco

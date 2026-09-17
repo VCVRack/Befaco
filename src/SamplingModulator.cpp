@@ -45,6 +45,7 @@ struct SamplingModulator : Module {
 	int currentStep = 0;
 	StepState stepStates[numSteps];
 
+	dsp::ClockDivider lightDivider;
 	dsp::PulseGenerator triggerGenerator;
 	dsp::SchmittTrigger holdDetector;
 	dsp::SchmittTrigger clock;
@@ -75,6 +76,8 @@ struct SamplingModulator : Module {
 		for (int i = 0; i < numSteps; i++) {
 			configSwitch(STEP_PARAM + i, 0.f, 2.f, STATE_ON, string::f("Step %d", i + 1), {"Reset", "Off", "On"});
 		}
+
+		lightDivider.setDivision(32);
 	}
 
 	void process(const ProcessArgs& args) override {
@@ -208,8 +211,11 @@ struct SamplingModulator : Module {
 			outputs[TRIGG_OUTPUT].setVoltage(10.f * triggerGenerator.process(args.sampleTime));
 		}
 
-		for (int i = 0; i < numSteps; i++) {
-			lights[STEP_LIGHT + i].setBrightnessSmooth(currentStep == i, args.sampleTime);
+		if (lightDivider.process()) {
+			const float lightTime = args.sampleTime * lightDivider.getDivision();
+			for (int i = 0; i < numSteps; i++) {
+				lights[STEP_LIGHT + i].setBrightnessSmooth(currentStep == i, lightTime);
+			}
 		}
 	}
 

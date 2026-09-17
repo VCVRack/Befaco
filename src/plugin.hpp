@@ -341,6 +341,11 @@ struct ADEnvelope {
 
 	ADEnvelope() { };
 
+	void reset() {
+		stage = STAGE_OFF;
+		env = envLinear = 0.f;
+	}
+
 	void process(const float& sampleTime) {
 
 		if (stage == STAGE_OFF) {
@@ -388,6 +393,11 @@ struct DCBlockerT {
 	void setFrequency(float fc) {
 		fc_ = fc;
 		recalculateCoefficients();
+	}
+
+	void reset() {
+		for (int idx = 0; idx < N; idx++)
+			blockDCFilter[idx].reset();
 	}
 
 	T process(T x) {

@@ -10,6 +10,7 @@
  \param inSysEx The SysEx data received from MIDI in.
  \param outData The output buffer where to store the decrypted message.
  \param inLength The length of the input buffer.
+ \param outCapacity The capacity of the output buffer.
  \param inFlipHeaderBits True for Korg and other who store MSB in reverse order
  \return The length of the output buffer.
  @see encodeSysEx @see getSysExArrayLength
@@ -18,7 +19,22 @@
 unsigned decodeSysEx(const uint8_t* inSysEx,
                      uint8_t* outData,
                      unsigned inLength,
+                     unsigned outCapacity,
                      bool inFlipHeaderBits) {
+	const unsigned completeGroups = inLength / 8;
+	const unsigned remainder = inLength % 8;
+	if (completeGroups > outCapacity / 7) {
+		return 0;
+	}
+	unsigned decodedLength = completeGroups * 7;
+	if (remainder > 0) {
+		const unsigned remainderLength = remainder - 1;
+		if (remainderLength > outCapacity - decodedLength) {
+			return 0;
+		}
+		decodedLength += remainderLength;
+	}
+
 	unsigned count  = 0;
 	uint8_t msbStorage = 0;
 	uint8_t byteIndex  = 0;
@@ -300,7 +316,7 @@ struct MidiThing : Module {
 			uint8_t outData[32] = {};
 			while (inputQueue.tryPop(&msg, args.frame)) {
 
-				uint8_t outLen = decodeSysEx(&msg.bytes[0], outData, msg.bytes.size(), false);
+				unsigned outLen = decodeSysEx(&msg.bytes[0], outData, msg.bytes.size(), sizeof(outData), false);
 				if (outLen > 3) {
 
 					int channel = (outData[2] & 0x0f) >> 0;
@@ -385,13 +401,15 @@ struct MidiThing : Module {
 
 		json_t* updateRateIdxJ = json_object_get(rootJ, "updateRateIdx");
 		if (updateRateIdxJ) {
-			updateRateIdx = json_integer_value(updateRateIdxJ);
+			updateRateIdx = clamp(static_cast<int>(json_integer_value(updateRateIdxJ)), 0, static_cast<int>(updateRates.size()) - 1);
 		}
 
 		for (int c = 0; c < NUM_INPUTS; ++c) {
 			json_t* portModeJ = json_object_get(rootJ, string::f("portMode%d", c).c_str());
 			if (portModeJ) {
-				portModes[c] = (PORTMODE_t)json_integer_value(portModeJ);
+				portModes[c] = static_cast<PORTMODE_t>(clamp(static_cast<int>(json_integer_value(portModeJ)),
+				                                             static_cast<int>(MODE10V),
+				                                             static_cast<int>(LASTPORTMODE) - 1));
 			}
 		}
 

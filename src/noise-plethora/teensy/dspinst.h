@@ -340,7 +340,11 @@ static inline int32_t FRACMUL_SHL(int32_t x, int32_t y, int z) {
 static inline uint32_t get_q_psr(void) __attribute__((always_inline, unused));
 static inline uint32_t get_q_psr(void) {
 	uint32_t out;
+#if defined(__aarch64__)
+	asm("mrs %w0, APSR" : "=r"(out));
+#else
 	asm("mrs %0, APSR" : "=r"(out));
+#endif
 	return (out & 0x8000000) >> 27;
 }
 
@@ -348,8 +352,13 @@ static inline uint32_t get_q_psr(void) {
 static inline void clr_q_psr(void) __attribute__((always_inline, unused));
 static inline void clr_q_psr(void) {
 	uint32_t t;
+#if defined(__aarch64__)
+	asm("mov %w[t],#0\n"
+	    "msr APSR_nzcvq,%w[t]\n" : [t] "=&r"(t)::"cc");
+#else
 	asm("mov %[t],#0\n"
 	    "msr APSR_nzcvq,%0\n" : [t] "=&r"(t)::"cc");
+#endif
 }
 
 

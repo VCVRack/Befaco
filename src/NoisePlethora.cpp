@@ -381,18 +381,37 @@ struct NoisePlethora : Module {
 	// process section C
 	void processBottomSection(const ProcessArgs& args) {
 
-		float gritCv = rescale(clamp(inputs[GRIT_INPUT].getVoltage(), -10.f, 10.f), -10.f, 10.f, -1.f, 1.f);
-		float gritAmount = clamp(params[GRIT_PARAM].getValue() + gritCv, 0.f, 1.f);
-		float gritFrequency = 0.1 + std::pow(gritAmount, 2) * 20000;
-		gritNoiseSource.setDensity(gritFrequency);
-		float gritNoise = gritNoiseSource.process(args.sampleTime);
-		outputs[GRITTY_OUTPUT].setVoltage(gritNoise * 5.f);
+		const bool filteredOutputConnected = outputs[FILTERED_OUTPUT].isConnected();
+		const bool useWhiteSource = params[SOURCE_C_PARAM].getValue() != 0.f;
+		const bool gritNeeded = outputs[GRITTY_OUTPUT].isConnected() ||
+		                        (filteredOutputConnected && !useWhiteSource);
+		const bool whiteNeeded = outputs[WHITE_OUTPUT].isConnected() ||
+		                         (filteredOutputConnected && useWhiteSource);
+		// Hold each generator's state while its source is unused; reconnecting resumes
+		// its sequence after the intentional gap rather than advancing a muted source.
 
-		float whiteNoise = whiteNoiseSource.process();
-		outputs[WHITE_OUTPUT].setVoltage(whiteNoise * 5.f);
+		float gritNoise = 0.f;
+		if (gritNeeded) {
+			float gritCv = rescale(clamp(inputs[GRIT_INPUT].getVoltage(), -10.f, 10.f), -10.f, 10.f, -1.f, 1.f);
+			float gritAmount = clamp(params[GRIT_PARAM].getValue() + gritCv, 0.f, 1.f);
+			float gritFrequency = 0.1 + std::pow(gritAmount, 2) * 20000;
+			gritNoiseSource.setDensity(gritFrequency);
+			gritNoise = gritNoiseSource.process(args.sampleTime);
+		}
+		if (outputs[GRITTY_OUTPUT].isConnected()) {
+			outputs[GRITTY_OUTPUT].setVoltage(gritNoise * 5.f);
+		}
+
+		float whiteNoise = 0.f;
+		if (whiteNeeded) {
+			whiteNoise = whiteNoiseSource.process();
+		}
+		if (outputs[WHITE_OUTPUT].isConnected()) {
+			outputs[WHITE_OUTPUT].setVoltage(whiteNoise * 5.f);
+		}
 
 		float out = 0.f;
-		if (outputs[FILTERED_OUTPUT].isConnected() && !bypassFilters) {
+		if (filteredOutputConnected && !bypassFilters) {
 
 			const float freqCV = std::pow(params[CUTOFF_CV_C_PARAM].getValue(), 2) * inputs[CUTOFF_C_INPUT].getVoltage();
 			const float pitch = rescale(params[CUTOFF_C_PARAM].getValue(), 0, 1, -5.f, +6.4f) + freqCV;
@@ -413,7 +432,7 @@ struct NoisePlethora : Module {
 				out = blockDCFilter[SECTION_C].process(out);
 			}
 		}
-		else if (bypassFilters) {
+		else if (filteredOutputConnected && bypassFilters) {
 			out = params[SOURCE_C_PARAM].getValue() ? whiteNoise : gritNoise;
 		}
 
