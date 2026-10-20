@@ -4,6 +4,11 @@ Based on [Befaco Oneiroi](http://www.befaco.org/oneiroi) Eurorack module. For th
 
 ## Changelog
 
+### v2.0.3
+  * Fix looper length/start parameters becoming stuck after varispeed 0
+  * Fix unwanted resonator peaks at 8k and 16k
+  * Saw output now matches sine base frequency (old patches behaviour do not change)
+
 ### v2.0.2
   * Add DRM, Oneiroi now included in VCV+
 
